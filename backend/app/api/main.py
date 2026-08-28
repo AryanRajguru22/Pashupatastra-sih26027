@@ -1,10 +1,10 @@
-"""FastAPI application - Phase 1 backend API.
+"""FastAPI application entrypoint.
 
-Thin HTTP wrapper around the existing CP-SAT optimizer. This module
-contains no optimization logic of its own: requests/responses are
-validated using the existing contracts (contracts.OptimizationRequest,
-contracts.OptimizationResult) and solving is delegated entirely to
-backend.app.optimizer.solver.solve.
+Builds the app, wires up CORS, and registers routers. Route handlers
+themselves live in backend/app/api/routers/ - this file should stay
+small; adding a new endpoint means adding a router module and one
+include_router() call here, not editing existing handlers. See
+docs/integration.md for the full pattern.
 
 Run the dev server from the repo root:
     python -m uvicorn backend.app.api.main:app --reload
@@ -13,18 +13,18 @@ Run the dev server from the repo root:
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.optimizer.solver import solve
-from contracts import OptimizationRequest, OptimizationResult
+from backend.app.api.routers import health, optimize
 
 app = FastAPI(title="Pashupatastra API")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "healthy"}
-
-
-@app.post("/optimize", response_model=OptimizationResult)
-def optimize(request: OptimizationRequest) -> OptimizationResult:
-    return solve(request)
+app.include_router(health.router)
+app.include_router(optimize.router)
