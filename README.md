@@ -45,6 +45,31 @@ Run the optimizer correctness tests:
 python -m pytest backend/tests/ -v
 ```
 
+## Phase 1: backend API
+
+A thin FastAPI layer wraps the optimizer as-is: `GET /health` and
+`POST /optimize` (accepts an `OptimizationRequest`, returns an
+`OptimizationResult` — no new schemas, no logic duplicated from
+`backend/app/optimizer/solver.py`).
+
+Start the dev server from the repo root:
+
+```bash
+python -m uvicorn backend.app.api.main:app --reload
+```
+
+Then `GET http://127.0.0.1:8000/health`, or `POST` an
+`OptimizationRequest` JSON body (see
+`backend/app/data/fixtures/corridor_a_blocks.json` for an example) to
+`http://127.0.0.1:8000/optimize`. Interactive docs are at
+`http://127.0.0.1:8000/docs`.
+
+Run the API tests:
+
+```bash
+python -m pytest backend/tests/test_api.py -v
+```
+
 ## Repository layout
 
 ```
