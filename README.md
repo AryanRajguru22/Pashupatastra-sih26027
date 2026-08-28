@@ -70,6 +70,9 @@ Run the API tests:
 python -m pytest backend/tests/test_api.py -v
 ```
 
+Adding a new endpoint (ML scoring, disruption/re-optimize, etc.)? See
+`docs/integration.md` for the router pattern.
+
 ## Repository layout
 
 ```
