@@ -3,6 +3,10 @@
 This module does not modify the shared contract schemas or the optimizer.
 It creates a new OptimizationRequest representing the situation after
 a disruption.
+
+Emergency block requests are validation-only in Phase 1 because the
+DisruptionEvent contract provides block IDs but does not contain enough
+information to construct a brand-new BlockCandidate.
 """
 
 from __future__ import annotations
@@ -68,11 +72,17 @@ def apply_asset_failure(
     return updated
 
 
-def apply_emergency_block_request(
+def validate_emergency_block_request(
     request: OptimizationRequest,
     event: DisruptionEvent,
 ) -> OptimizationRequest:
-    """Ensure newly required emergency candidates participate in solving."""
+    """Validate emergency block IDs against existing candidates.
+
+    Phase 1 is validation-only: DisruptionEvent contains only IDs for
+    newly required blocks, not enough information to construct a new
+    BlockCandidate. The actual candidate must therefore already exist
+    in OptimizationRequest.block_candidates.
+    """
 
     updated = _copy_request(request)
 
@@ -134,7 +144,7 @@ def apply_disruption(
         return apply_asset_failure(request, event)
 
     if event.event_type == DisruptionType.EMERGENCY_BLOCK_REQUEST:
-        return apply_emergency_block_request(request, event)
+        return validate_emergency_block_request(request, event)
 
     if event.event_type == DisruptionType.BLOCK_OVERRUN:
         return apply_block_overrun(request, event)
