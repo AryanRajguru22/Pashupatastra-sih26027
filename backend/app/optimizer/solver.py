@@ -17,6 +17,8 @@ shape before the rest of the stack exists.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from pyexpat import model
+from tracemalloc import start
 
 from ortools.sat.python import cp_model
 
@@ -51,6 +53,11 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
     end: dict[str, cp_model.IntVar] = {}
     window_infeasible: set[str] = set()
 
+    committed_by_id = {
+        block.block_id: block
+        for block in request.existing_committed_blocks
+    }
+
     for block in blocks:
         earliest = _minutes(block.earliest_start - horizon_start)
         latest = _minutes(block.latest_finish - horizon_start)
@@ -66,9 +73,30 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
             model.Add(presence_var == 0)
             latest_start = earliest  # keep the domain well-formed
 
-        start_var = model.NewIntVar(earliest, latest_start, f"start_{block.block_id}")
-        end_var = model.NewIntVar(earliest, latest, f"end_{block.block_id}")
+        start_var = model.NewIntVar(
+            earliest,
+            latest_start,
+            f"start_{block.block_id}"
+        )
+
+        end_var = model.NewIntVar(
+            earliest,
+            latest,
+            f"end_{block.block_id}"
+        )
+
         model.Add(end_var == start_var + block.duration_minutes)
+
+        committed = committed_by_id.get(block.block_id)
+
+        if committed is not None:
+            committed_start = _minutes(committed.start - horizon_start)
+            committed_end = _minutes(committed.end - horizon_start)
+
+            model.Add(presence_var == 1)
+            model.Add(start_var == committed_start)
+            model.Add(end_var == committed_end)
+
         start[block.block_id] = start_var
         end[block.block_id] = end_var
 
