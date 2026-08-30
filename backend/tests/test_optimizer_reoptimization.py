@@ -4,7 +4,6 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from httpx import request
 
 from backend.app.optimizer.solver import solve
 from contracts import OptimizationRequest, OptimizationStatus, ScheduledBlock
@@ -36,6 +35,17 @@ def test_committed_block_remains_at_its_existing_slot():
         )
     ]
 
+    # Verify committed track matches the candidate track.
+    candidate = next(
+        block
+        for block in request.block_candidates
+        if block.block_id == "BLK-001"
+    )
+
+    committed_input = request.existing_committed_blocks[0]
+
+    assert committed_input.track_id == candidate.track_id
+
     result = solve(request)
 
     assert result.status in (
@@ -52,10 +62,12 @@ def test_committed_block_remains_at_its_existing_slot():
 
     committed = scheduled["BLK-001"]
 
-    assert committed.track_id == "UP"
+    assert committed.track_id == candidate.track_id
+
     assert committed.start == datetime.fromisoformat(
         "2026-09-01T01:00:00"
     )
+
     assert committed.end == datetime.fromisoformat(
         "2026-09-01T04:00:00"
     )
