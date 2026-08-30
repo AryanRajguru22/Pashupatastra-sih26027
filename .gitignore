@@ -12,6 +12,7 @@ venv/
 node_modules/
 dist/
 .vite/
+.next/
 frontend/build/
 
 # Env / secrets
