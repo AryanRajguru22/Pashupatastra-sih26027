@@ -7,7 +7,7 @@ export default async function DashboardPage() {
   return (
     <main className="flex-1 flex flex-col min-h-screen">
       {/* Top bar */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-[#1e293b] bg-[#0c1120]">
+      <header className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 border-b border-[#1e293b] bg-[#0c1120]">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -17,6 +17,9 @@ export default async function DashboardPage() {
           </div>
           <span className="text-[11px] text-[#475569] border-l border-[#1e293b] pl-3 font-mono">
             BLOCK PLANNING COMMAND CENTER
+          </span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            STAGE 1–3 FIXTURE DEMO
           </span>
         </div>
         <div className="flex items-center gap-4 text-[11px] font-mono text-[#64748b]">

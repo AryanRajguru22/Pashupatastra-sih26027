@@ -216,7 +216,6 @@ export default function Timeline({
     startDate.setMinutes(0, 0, 0);
     let tick = startDate.getTime();
     if (tick < horizonStart) tick += 3600000;
-    let idx = 0;
     while (tick <= horizonEnd) {
       const hour = new Date(tick).getHours();
       if (hour % 2 === 0) {
@@ -225,7 +224,6 @@ export default function Timeline({
         minor.push(tick);
       }
       tick += 3600000;
-      idx++;
     }
     return { majorTicks: major, minorTicks: minor };
   }, [horizonStart, horizonEnd]);

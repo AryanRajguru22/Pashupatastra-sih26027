@@ -41,6 +41,29 @@ export default function KpiSummaryBar({ data }: KpiSummaryBarProps) {
       ? Math.round((scheduledCount / totalCandidates) * 100)
       : 0;
 
+  // Calculate pairwise track overlap conflicts dynamically from scheduled blocks
+  const trackConflictCount = useMemo(() => {
+    let conflicts = 0;
+    const blocks = result.scheduled_blocks;
+    for (let i = 0; i < blocks.length; i++) {
+      for (let j = i + 1; j < blocks.length; j++) {
+        if (blocks[i].track_id === blocks[j].track_id) {
+          const startA = new Date(blocks[i].start).getTime();
+          const endA = new Date(blocks[i].end).getTime();
+          const startB = new Date(blocks[j].start).getTime();
+          const endB = new Date(blocks[j].end).getTime();
+          if (Math.max(startA, startB) < Math.min(endA, endB)) {
+            conflicts++;
+          }
+        }
+      }
+    }
+    return conflicts;
+  }, [result.scheduled_blocks]);
+
+  const isSolverFeasible =
+    result.status === "OPTIMAL" || result.status === "FEASIBLE";
+
   return (
     <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
       {/* 1. Asset Availability KPI */}
@@ -199,7 +222,7 @@ export default function KpiSummaryBar({ data }: KpiSummaryBarProps) {
         <div>
           <div className="flex items-center justify-between text-[#64748b] mb-1.5">
             <span className="text-[10px] font-semibold tracking-wider uppercase">
-              Operational Conflicts
+              Operational Impact
             </span>
             <svg
               className="w-4 h-4 text-emerald-400"
@@ -226,15 +249,24 @@ export default function KpiSummaryBar({ data }: KpiSummaryBarProps) {
         </div>
 
         <div className="mt-3 flex items-center justify-between pt-2 border-t border-[#1e293b]/70 text-[10px] font-mono">
-          <span className="text-[#64748b]">Hard Constraints</span>
-          <span className="text-emerald-400 font-semibold flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-            0 Violations
-          </span>
+          <span className="text-[#64748b]">Constraint Feasibility</span>
+          {isSolverFeasible && trackConflictCount === 0 ? (
+            <span className="text-emerald-400 font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+              0 Track Overlaps ({result.status})
+            </span>
+          ) : (
+            <span className="text-red-400 font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
+              {trackConflictCount > 0
+                ? `${trackConflictCount} Overlap Conflicts`
+                : `Status: ${result.status}`}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* 5. Risk Reduction / Safety Score KPI */}
+      {/* 5. Risk Reduction / Priority Score KPI */}
       <div className="bg-[#0c1120] border border-[#1e293b] hover:border-[#2a3c5a] transition-all rounded-lg p-3.5 flex flex-col justify-between shadow-sm relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-xl pointer-events-none" />
         <div>
@@ -274,7 +306,7 @@ export default function KpiSummaryBar({ data }: KpiSummaryBarProps) {
             />
           </div>
           <div className="flex items-center justify-between mt-1.5 text-[10px] font-mono text-[#64748b]">
-            <span>ML Risk Addressed</span>
+            <span>Estimated Risk Addressed</span>
             <span className="text-purple-300 font-semibold">
               {riskReductionPct.toFixed(0)}%
             </span>

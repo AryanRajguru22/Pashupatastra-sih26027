@@ -80,7 +80,7 @@ export default function DashboardClient({ data }: DashboardClientProps) {
               Decision Audit
             </h2>
             <span className="text-[11px] font-mono text-[#64748b]">
-              CP-SAT + ML Audit Trail
+              Optimization & Priority Audit Trail
             </span>
           </div>
 
@@ -95,38 +95,46 @@ export default function DashboardClient({ data }: DashboardClientProps) {
       </div>
 
       {/* Summary footer */}
-      <div className="flex items-center gap-6 text-[11px] font-mono text-[#64748b] px-1">
-        <span>
-          SCHEDULED:{" "}
-          <span className="text-emerald-400 font-semibold">
-            {data.result.scheduled_blocks.length}
+      <div className="flex flex-wrap items-center justify-between gap-4 text-[11px] font-mono text-[#64748b] px-1 pt-2 border-t border-[#1e293b]/50">
+        <div className="flex items-center gap-6">
+          <span>
+            SCHEDULED:{" "}
+            <span className="text-emerald-400 font-semibold">
+              {data.result.scheduled_blocks.length}
+            </span>
           </span>
-        </span>
-        <span>
-          REJECTED:{" "}
-          <span className="text-red-400 font-semibold">
-            {data.result.unscheduled_blocks.length}
+          <span>
+            REJECTED:{" "}
+            <span className="text-red-400 font-semibold">
+              {data.result.unscheduled_blocks.length}
+            </span>
           </span>
-        </span>
-        <span>
-          TOTAL CANDIDATES:{" "}
-          <span className="text-[#94a3b8]">
-            {data.request.block_candidates.length}
+          <span>
+            TOTAL CANDIDATES:{" "}
+            <span className="text-[#94a3b8]">
+              {data.request.block_candidates.length}
+            </span>
           </span>
-        </span>
-        <span>
-          STATUS:{" "}
-          <span
-            className={
-              data.result.status === "OPTIMAL" ||
-              data.result.status === "FEASIBLE"
-                ? "text-emerald-400 font-semibold"
-                : "text-red-400 font-semibold"
-            }
-          >
-            {data.result.status}
+          <span>
+            STATUS:{" "}
+            <span
+              className={
+                data.result.status === "OPTIMAL" ||
+                data.result.status === "FEASIBLE"
+                  ? "text-emerald-400 font-semibold"
+                  : "text-red-400 font-semibold"
+              }
+            >
+              {data.result.status}
+            </span>
           </span>
-        </span>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] text-[#475569]">
+          <span>MODE:</span>
+          <span className="text-[#64748b] bg-[#0c1120] border border-[#1e293b] px-2 py-0.5 rounded">
+            Stage-1 Fixture (Pending Live Backend API)
+          </span>
+        </div>
       </div>
     </div>
   );

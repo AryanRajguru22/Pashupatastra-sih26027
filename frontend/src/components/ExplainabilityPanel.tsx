@@ -112,8 +112,8 @@ export default function ExplainabilityPanel({
               </p>
               <p className="text-[11px] text-[#64748b] mt-1 max-w-[240px]">
                 Click on any scheduled or rejected block in the timeline to
-                inspect CP-SAT solver reasoning, ML scores, and binding
-                constraints.
+                inspect CP-SAT solver reasoning, candidate priority/risk scores,
+                and binding constraints.
               </p>
             </div>
 
@@ -231,11 +231,16 @@ export default function ExplainabilityPanel({
               </div>
             )}
 
-            {/* 3. AI/ML Scoring Inputs (Priority & Risk) */}
+            {/* 3. Candidate Objective Inputs (Priority & Risk) */}
             <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#64748b] block mb-2">
-                AI / ML Scorer Objective Inputs
-              </span>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[#64748b]">
+                  Candidate Priority & Risk Inputs
+                </span>
+                <span className="text-[10px] font-mono text-[#475569]">
+                  Objective Weights
+                </span>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-[#101726] border border-[#1e293b] p-2.5 rounded">
                   <div className="text-[10px] text-[#64748b] uppercase font-semibold">
@@ -271,6 +276,9 @@ export default function ExplainabilityPanel({
                   </div>
                 </div>
               </div>
+              <span className="text-[10px] text-[#475569] font-mono mt-1.5 block">
+                * Baseline candidate attributes supplied to CP-SAT solver. Dynamic ML Scorer pipeline integration planned for Milestone 2.
+              </span>
             </div>
 
             {/* 4. Time Window & Possession Horizon */}
