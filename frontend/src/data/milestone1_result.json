@@ -1,0 +1,140 @@
+{
+  "request_id": "REQ-MILESTONE-1",
+  "status": "OPTIMAL",
+  "scheduled_blocks": [
+    {
+      "block_id": "BLK-001",
+      "track_id": "UP",
+      "start": "2026-09-01T00:00:00",
+      "end": "2026-09-01T03:00:00"
+    },
+    {
+      "block_id": "BLK-002",
+      "track_id": "DOWN",
+      "start": "2026-09-01T00:00:00",
+      "end": "2026-09-01T01:30:00"
+    },
+    {
+      "block_id": "BLK-003",
+      "track_id": "UP",
+      "start": "2026-09-01T05:00:00",
+      "end": "2026-09-01T07:00:00"
+    },
+    {
+      "block_id": "BLK-004",
+      "track_id": "DOWN",
+      "start": "2026-09-01T01:40:00",
+      "end": "2026-09-01T02:40:00"
+    },
+    {
+      "block_id": "BLK-007",
+      "track_id": "DOWN",
+      "start": "2026-09-01T02:50:00",
+      "end": "2026-09-01T06:10:00"
+    },
+    {
+      "block_id": "BLK-009",
+      "track_id": "DOWN",
+      "start": "2026-09-01T07:00:00",
+      "end": "2026-09-01T08:30:00"
+    },
+    {
+      "block_id": "BLK-010",
+      "track_id": "UP",
+      "start": "2026-09-01T07:10:00",
+      "end": "2026-09-01T08:10:00"
+    },
+    {
+      "block_id": "BLK-012",
+      "track_id": "UP",
+      "start": "2026-09-01T03:10:00",
+      "end": "2026-09-01T04:50:00"
+    }
+  ],
+  "unscheduled_blocks": [
+    {
+      "block_id": "BLK-005",
+      "reason": "excluded by optimizer: capacity/priority trade-off on this track"
+    },
+    {
+      "block_id": "BLK-006",
+      "reason": "excluded by optimizer: capacity/priority trade-off on this track"
+    },
+    {
+      "block_id": "BLK-008",
+      "reason": "excluded by optimizer: capacity/priority trade-off on this track"
+    },
+    {
+      "block_id": "BLK-011",
+      "reason": "excluded by optimizer: capacity/priority trade-off on this track"
+    }
+  ],
+  "kpis": {
+    "asset_availability_pct": 68.75,
+    "trains_affected": 0,
+    "blocks_scheduled": 8,
+    "risk_reduction_score": 4.25
+  },
+  "explainability": [
+    {
+      "block_id": "BLK-001",
+      "reason": "Scheduled on track UP 2026-09-01T00:00:00 - 2026-09-01T03:00:00 (priority=0.9, risk=0.85).",
+      "binding_constraints": [
+        "track_no_overlap:UP"
+      ]
+    },
+    {
+      "block_id": "BLK-002",
+      "reason": "Scheduled on track DOWN 2026-09-01T00:00:00 - 2026-09-01T01:30:00 (priority=0.4, risk=0.3).",
+      "binding_constraints": [
+        "track_no_overlap:DOWN"
+      ]
+    },
+    {
+      "block_id": "BLK-003",
+      "reason": "Scheduled on track UP 2026-09-01T05:00:00 - 2026-09-01T07:00:00 (priority=0.95, risk=0.9).",
+      "binding_constraints": [
+        "track_no_overlap:UP",
+        "mutually_exclusive_with:BLK-009"
+      ]
+    },
+    {
+      "block_id": "BLK-004",
+      "reason": "Scheduled on track DOWN 2026-09-01T01:40:00 - 2026-09-01T02:40:00 (priority=0.3, risk=0.2).",
+      "binding_constraints": [
+        "track_no_overlap:DOWN"
+      ]
+    },
+    {
+      "block_id": "BLK-007",
+      "reason": "Scheduled on track DOWN 2026-09-01T02:50:00 - 2026-09-01T06:10:00 (priority=0.6, risk=0.5).",
+      "binding_constraints": [
+        "track_no_overlap:DOWN"
+      ]
+    },
+    {
+      "block_id": "BLK-009",
+      "reason": "Scheduled on track DOWN 2026-09-01T07:00:00 - 2026-09-01T08:30:00 (priority=0.5, risk=0.4).",
+      "binding_constraints": [
+        "track_no_overlap:DOWN",
+        "mutually_exclusive_with:BLK-003"
+      ]
+    },
+    {
+      "block_id": "BLK-010",
+      "reason": "Scheduled on track UP 2026-09-01T07:10:00 - 2026-09-01T08:10:00 (priority=0.35, risk=0.3).",
+      "binding_constraints": [
+        "track_no_overlap:UP"
+      ]
+    },
+    {
+      "block_id": "BLK-012",
+      "reason": "Scheduled on track UP 2026-09-01T03:10:00 - 2026-09-01T04:50:00 (priority=0.85, risk=0.8).",
+      "binding_constraints": [
+        "track_no_overlap:UP"
+      ]
+    }
+  ],
+  "solve_time_ms": 10,
+  "generated_at": "2026-08-29T10:49:14.240683"
+}
