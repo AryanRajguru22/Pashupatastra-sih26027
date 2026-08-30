@@ -17,8 +17,6 @@ shape before the rest of the stack exists.
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from pyexpat import model
-from tracemalloc import start
 
 from ortools.sat.python import cp_model
 
