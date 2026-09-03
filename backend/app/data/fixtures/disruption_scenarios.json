@@ -1,0 +1,134 @@
+{
+  "description": "Deterministic disruption scenarios for Pashupatastra simulation & recovery engine (Tirth).",
+  "scenarios": [
+    {
+      "scenario_id": "SCENARIO_1_TRACK_UNAVAILABLE",
+      "name": "Track Unavailable Disruption",
+      "disruption_event": {
+        "disruption_id": "DISR-SCN1-001",
+        "disruption_type": "TRACK_UNAVAILABLE",
+        "corridor_id": "CORR-NDLS-AGC",
+        "track_id": "UP-1",
+        "start_minute": 60,
+        "end_minute": 240,
+        "affected_asset_id": "AST-UP1-RAI-004",
+        "new_candidate": null,
+        "description": "Rail surface defect forces track UP-1 closure from 01:00 to 04:00."
+      },
+      "expected_behavior": {
+        "affected_tracks": ["UP-1"],
+        "affected_blocks": ["BLK-004", "BLK-005"],
+        "committed_blocks_handling": "Committed blocks remain locked; non-committed blocks rescheduled or deferred",
+        "recovery_status": "OPTIMAL_OR_FEASIBLE"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_2_EMERGENCY_WORK",
+      "name": "Emergency Work Insertion Disruption",
+      "disruption_event": {
+        "disruption_id": "DISR-SCN2-002",
+        "disruption_type": "EMERGENCY_WORK",
+        "corridor_id": "CORR-NDLS-AGC",
+        "track_id": "DOWN-1",
+        "start_minute": 30,
+        "end_minute": 150,
+        "affected_asset_id": "AST-DN1-RAI-EMG",
+        "new_candidate": {
+          "block_id": "BLK-EMG-001",
+          "asset_id": "AST-DN1-RAI-EMG",
+          "track_id": "DOWN-1",
+          "work_type": "EMERGENCY_REPAIR",
+          "duration_minutes": 90,
+          "earliest_start_minute": 30,
+          "latest_end_minute": 300,
+          "priority_score": 0.995,
+          "risk_score": 0.980,
+          "dependencies": [],
+          "mutual_exclusion_group": null,
+          "is_committed": false,
+          "status": "PLANNED",
+          "metadata": {
+            "defect_severity": "CRITICAL",
+            "defect_type": "TRANSVERSE_FATIGUE_FRACTURE",
+            "km_location": 14.2
+          }
+        },
+        "description": "Ultrasonic flaw detection identifies alarming transverse crack at KM 14.2 on DOWN-1 requiring immediate emergency repair."
+      },
+      "expected_behavior": {
+        "emergency_block_id": "BLK-EMG-001",
+        "expected_action": "BLK-EMG-001 must be scheduled in prime window [30, 300], pre-empting lower priority routine tasks",
+        "committed_blocks_handling": "Committed blocks must not be moved",
+        "recovery_status": "OPTIMAL"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_3_POSSESSION_CURTAILMENT",
+      "name": "Possession Window Curtailment Disruption",
+      "disruption_event": {
+        "disruption_id": "DISR-SCN3-003",
+        "disruption_type": "POSSESSION_CURTAILMENT",
+        "corridor_id": "CORR-NDLS-AGC",
+        "track_id": "UP-1",
+        "start_minute": 690,
+        "end_minute": 750,
+        "affected_asset_id": null,
+        "new_candidate": null,
+        "description": "Late running Vande Bharat Express delays start of Midday Possession Window on UP-1 by 60 minutes (effective window [750, 870])."
+      },
+      "expected_behavior": {
+        "curtailed_window": "POS-UP-1-MIDDAY",
+        "effective_window_duration": 120,
+        "expected_action": "Blocks exceeding remaining window capacity are rescheduled to evening window or deferred",
+        "recovery_status": "OPTIMAL_OR_FEASIBLE"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_4_ASSET_CONDITION_DETERIORATION",
+      "name": "Asset Condition Deterioration Disruption",
+      "disruption_event": {
+        "disruption_id": "DISR-SCN4-004",
+        "disruption_type": "ASSET_CONDITION_DETERIORATION",
+        "corridor_id": "CORR-NDLS-AGC",
+        "track_id": "DOWN-1",
+        "start_minute": 0,
+        "end_minute": 1440,
+        "affected_asset_id": "AST-DN1-TUR-012",
+        "new_candidate": null,
+        "description": "Sensor alerts report critical point motor overheating at Mathura Interlocking throat (AST-DN1-TUR-012). Urgency promoted from MINOR to CRITICAL."
+      },
+      "expected_behavior": {
+        "affected_asset": "AST-DN1-TUR-012",
+        "old_priority": 0.390,
+        "new_priority": 0.940,
+        "old_risk": 0.310,
+        "new_risk": 0.920,
+        "expected_action": "BLK-012 is promoted from deferred list into active scheduled blocks in re-optimization",
+        "recovery_status": "OPTIMAL"
+      }
+    },
+    {
+      "scenario_id": "SCENARIO_5_INFEASIBLE_SCENARIO",
+      "name": "Infeasible Schedule Disruption",
+      "disruption_event": {
+        "disruption_id": "DISR-SCN5-005",
+        "disruption_type": "INFEASIBLE_SCENARIO",
+        "corridor_id": "CORR-NDLS-AGC",
+        "track_id": "DOWN-1",
+        "start_minute": 0,
+        "end_minute": 1440,
+        "affected_asset_id": null,
+        "new_candidate": null,
+        "description": "All possession windows on DOWN-1 cancelled by Divisional Control while 2 committed blocks are locked."
+      },
+      "expected_behavior": {
+        "expected_status": "INFEASIBLE",
+        "expected_infeasibility_reasons": [
+          "COMMITTED_BLOCK_POSSESSION_WINDOW_REVOKED",
+          "CANNOT_SATISFY_HARD_LOCK_WITHOUT_POSSESSION"
+        ],
+        "system_behavior": "Must return status INFEASIBLE gracefully with structured explanation without crash"
+      }
+    }
+  ]
+}

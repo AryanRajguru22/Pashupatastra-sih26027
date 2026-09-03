@@ -1,50 +1,109 @@
-# Shared data contracts (draft v0.1)
+# Data Contracts Specification — Pashupatastra
 
-Defined as Pydantic models in `contracts/`. This is the one directory
-every subsystem depends on — treat changes to it like an API version
-bump: sync with the team before editing, don't silently rename or
-remove fields others may already be building against.
+This document specifies the shared data contracts between the data generator, ML scorer, CP-SAT optimizer, simulation engine, backend API, and frontend dashboard.
 
-## BlockCandidate (`contracts/block_candidate.py`)
+---
 
-One maintenance work request needing a track possession window.
-`priority_score` and `risk_score` are written by the ML subsystem and
-are objective-function inputs only — see `docs/architecture.md` for why
-this boundary matters.
+## 1. Enums
 
-## OptimizationRequest (`contracts/optimization_request.py`)
+### WorkType
+- `TRACK_RENEWAL`: Complete Track Renewal (CTR), Sleeper/Rail renewal (Heavy machine, strict duration).
+- `BALLAST_TAMPING`: Tie-tamping & track geometry packing (CSM/Duomatic).
+- `OHE_MAINTENANCE`: Overhead electrification inspection/power block.
+- `SIGNALLING_INTERLOCKING`: Point machines, track circuits, axle counters.
+- `ROUTINE_INSPECTION`: USFD ultrasonic rail flaw detection, foot patrol.
+- `EMERGENCY_REPAIR`: Urgent rail fracture, weld failure, wire parting.
 
-The input the CP-SAT engine solves: a planning horizon, a set of
-`BlockCandidate`s, the train timetable to protect, any already-committed
-blocks (used to keep re-optimization after a disruption stable rather
-than reshuffling everything), and objective weights / constraint config.
+### DisruptionType
+- `TRACK_UNAVAILABLE`: Specific track closed for a time window.
+- `EMERGENCY_WORK`: Urgent high-priority block injected.
+- `POSSESSION_CURTAILMENT`: Possession time window shortened.
+- `ASSET_BREAKDOWN`: Equipment failure causing delay or cancellation.
 
-## OptimizationResult (`contracts/optimization_result.py`)
+### SolverStatus
+- `OPTIMAL`: Optimal feasible schedule found.
+- `FEASIBLE`: Feasible schedule found within time limit.
+- `INFEASIBLE`: No schedule satisfies all hard constraints.
+- `NO_SOLUTION`: Solver timed out with no solution.
 
-The optimizer's output: which blocks got scheduled and when, which were
-excluded and why, corridor-level KPIs, and an `explainability` list —
-the audit trail of binding constraints behind each scheduling decision.
+---
 
-## DisruptionEvent (`contracts/disruption_event.py`)
+## 2. Core Schemas
 
-Something that invalidates part of a committed plan (asset failure,
-weather, an emergency block request, a delay, a block overrun) and
-usually triggers a re-optimization, scoped to the full horizon, a
-rolling window, or just the affected segment.
+### `BlockCandidate`
+Represents a maintenance job requested to be scheduled.
+```json
+{
+  "block_id": "BLK-001",
+  "asset_id": "AST-TRK-012",
+  "track_id": "UP-1",
+  "work_type": "BALLAST_TAMPING",
+  "duration_minutes": 120,
+  "earliest_start_minute": 60,
+  "latest_end_minute": 360,
+  "priority_score": 0.85,
+  "risk_score": 0.72,
+  "dependencies": ["BLK-000"],
+  "mutual_exclusion_group": "CSM_TAMPER_01",
+  "is_committed": false,
+  "status": "PLANNED"
+}
+```
 
-## Open questions for domain review (Darshini)
+### `PossessionWindow`
+Represents an available maintenance window on a track.
+```json
+{
+  "window_id": "POS-UP1-01",
+  "track_id": "UP-1",
+  "start_minute": 60,
+  "end_minute": 360,
+  "window_type": "NIGHT_BLOCK"
+}
+```
 
-These are flagged in the code as draft v0.1 and expected to change:
+### `OptimizationRequest`
+Input payload sent to `solve(request)`.
+```json
+{
+  "corridor_id": "CORRIDOR_A",
+  "horizon_minutes": 1440,
+  "tracks": ["UP-1", "DOWN-1"],
+  "candidates": [...],
+  "possession_windows": [...],
+  "existing_committed_blocks": [...],
+  "min_headway_minutes": 15
+}
+```
 
-- Are the `work_type` / `event_type` enum values complete for the
-  problem statement, or missing categories used in practice?
-- Does a single-line vs multi-line section need a richer `track_id`
-  model than a flat string?
-- Is a `ResourceRequirement` (crew/equipment) needed on `BlockCandidate`
-  for v1, or can mutual exclusion by block ID stand in for now?
-- Is `train_timetable` on `OptimizationRequest` enough to represent
-  train protection, or does it need explicit headway/blocking rules per
-  train service?
+### `ScheduledBlock`
+```json
+{
+  "block_id": "BLK-001",
+  "track_id": "UP-1",
+  "start_minute": 90,
+  "end_minute": 210,
+  "priority_score": 0.85,
+  "risk_score": 0.72,
+  "is_committed": false,
+  "status": "SCHEDULED"
+}
+```
 
-Resolve these before wave 2 (API + real ML/domain implementations)
-starts building heavily on top of the current shapes.
+### `OptimizationResult`
+Output payload returned by `solve(request)`.
+```json
+{
+  "corridor_id": "CORRIDOR_A",
+  "status": "OPTIMAL",
+  "scheduled_blocks": [...],
+  "unscheduled_blocks": [...],
+  "total_priority_scheduled": 4.55,
+  "total_risk_mitigated": 3.82,
+  "solve_time_seconds": 0.08,
+  "infeasibility_reasons": [],
+  "rejection_reasons": {
+    "BLK-009": "TIME_WINDOW_CONFLICT"
+  }
+}
+```

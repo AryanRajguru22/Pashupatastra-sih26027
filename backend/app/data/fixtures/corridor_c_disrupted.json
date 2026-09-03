@@ -1,0 +1,602 @@
+{
+  "corridor_id": "CORRIDOR_C_DISRUPTED",
+  "horizon_minutes": 1440,
+  "tracks": [
+    "UP-1",
+    "DOWN-1"
+  ],
+  "candidates": [
+    {
+      "block_id": "BLK-001",
+      "asset_id": "AST-UP-1-OHE-001",
+      "track_id": "UP-1",
+      "work_type": "ROUTINE_INSPECTION",
+      "duration_minutes": 45,
+      "earliest_start_minute": 60,
+      "latest_end_minute": 105,
+      "priority_score": 0.548,
+      "risk_score": 0.187,
+      "dependencies": [],
+      "mutual_exclusion_group": null,
+      "is_committed": true,
+      "status": "COMMITTED",
+      "metadata": {
+        "asset_name": "Ohe Mast @ KM 3.5 (UP-1)",
+        "km_location": 3.5,
+        "defect_severity": "NONE",
+        "scoring_features": {
+          "asset_criticality": 0.82,
+          "defect_severity": 0.0,
+          "defect_severity_name": "NONE",
+          "days_overdue": 8,
+          "days_overdue_norm": 0.089,
+          "failure_probability": 0.343,
+          "train_impact": 0.515,
+          "maintenance_duration": 45,
+          "maintenance_duration_norm": 0.125,
+          "historical_failure_rate": 0.333,
+          "baseline_risk_score": 0.187,
+          "baseline_priority_score": 0.548
+        }
+      }
+    },
+    {
+      "block_id": "BLK-002",
+      "asset_id": "AST-DOWN-1-OHE-009",
+      "track_id": "DOWN-1",
+      "work_type": "ROUTINE_INSPECTION",
+      "duration_minutes": 60,
+      "earliest_start_minute": 90,
+      "latest_end_minute": 150,
+      "priority_score": 0.503,
+      "risk_score": 0.123,
+      "dependencies": [],
+      "mutual_exclusion_group": null,
+      "is_committed": true,
+      "status": "COMMITTED",
+      "metadata": {
+        "asset_name": "Ohe Mast @ KM 1.93 (DOWN-1)",
+        "km_location": 1.93,
+        "defect_severity": "NONE",
+        "scoring_features": {
+          "asset_criticality": 0.73,
+          "defect_severity": 0.0,
+          "defect_severity_name": "NONE",
+          "days_overdue": 6,
+          "days_overdue_norm": 0.067,
+          "failure_probability": 0.364,
+          "train_impact": 0.554,
+          "maintenance_duration": 60,
+          "maintenance_duration_norm": 0.167,
+          "historical_failure_rate": 0.0,
+          "baseline_risk_score": 0.123,
+          "baseline_priority_score": 0.503
+        }
+      }
+    },
+    {
+      "block_id": "BLK-003",
+      "asset_id": "AST-DOWN-1-SIG-012",
+      "track_id": "DOWN-1",
+      "work_type": "ROUTINE_INSPECTION",
+      "duration_minutes": 45,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 360,
+      "priority_score": 0.598,
+      "risk_score": 0.447,
+      "dependencies": [],
+      "mutual_exclusion_group": null,
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Signal Post @ KM 15.49 (DOWN-1)",
+        "km_location": 15.49,
+        "defect_severity": "MODERATE",
+        "scoring_features": {
+          "asset_criticality": 0.64,
+          "defect_severity": 0.6,
+          "defect_severity_name": "MODERATE",
+          "days_overdue": 57,
+          "days_overdue_norm": 0.633,
+          "failure_probability": 0.469,
+          "train_impact": 0.535,
+          "maintenance_duration": 45,
+          "maintenance_duration_norm": 0.125,
+          "historical_failure_rate": 0.0,
+          "baseline_risk_score": 0.447,
+          "baseline_priority_score": 0.598
+        }
+      }
+    },
+    {
+      "block_id": "BLK-004",
+      "asset_id": "AST-UP-1-OHE-006",
+      "track_id": "UP-1",
+      "work_type": "OHE_MAINTENANCE",
+      "duration_minutes": 120,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 1410,
+      "priority_score": 0.514,
+      "risk_score": 0.297,
+      "dependencies": [],
+      "mutual_exclusion_group": "TOWER_WAGON_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Ohe Mast @ KM 25.16 (UP-1)",
+        "km_location": 25.16,
+        "defect_severity": "MINOR",
+        "scoring_features": {
+          "asset_criticality": 0.62,
+          "defect_severity": 0.25,
+          "defect_severity_name": "MINOR",
+          "days_overdue": 46,
+          "days_overdue_norm": 0.511,
+          "failure_probability": 0.288,
+          "train_impact": 0.608,
+          "maintenance_duration": 120,
+          "maintenance_duration_norm": 0.333,
+          "historical_failure_rate": 0.167,
+          "baseline_risk_score": 0.297,
+          "baseline_priority_score": 0.514
+        }
+      }
+    },
+    {
+      "block_id": "BLK-005",
+      "asset_id": "AST-DOWN-1-OHE-014",
+      "track_id": "DOWN-1",
+      "work_type": "OHE_MAINTENANCE",
+      "duration_minutes": 120,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 1410,
+      "priority_score": 0.531,
+      "risk_score": 0.227,
+      "dependencies": [],
+      "mutual_exclusion_group": "TOWER_WAGON_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Ohe Mast @ KM 26.3 (DOWN-1)",
+        "km_location": 26.3,
+        "defect_severity": "NONE",
+        "scoring_features": {
+          "asset_criticality": 0.77,
+          "defect_severity": 0.0,
+          "defect_severity_name": "NONE",
+          "days_overdue": 54,
+          "days_overdue_norm": 0.6,
+          "failure_probability": 0.134,
+          "train_impact": 0.629,
+          "maintenance_duration": 120,
+          "maintenance_duration_norm": 0.333,
+          "historical_failure_rate": 0.333,
+          "baseline_risk_score": 0.227,
+          "baseline_priority_score": 0.531
+        }
+      }
+    },
+    {
+      "block_id": "BLK-006",
+      "asset_id": "AST-UP-1-TUR-008",
+      "track_id": "UP-1",
+      "work_type": "ROUTINE_INSPECTION",
+      "duration_minutes": 60,
+      "earliest_start_minute": 660,
+      "latest_end_minute": 930,
+      "priority_score": 0.567,
+      "risk_score": 0.354,
+      "dependencies": [],
+      "mutual_exclusion_group": null,
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Turnout Point @ KM 38.19 (UP-1)",
+        "km_location": 38.19,
+        "defect_severity": "MINOR",
+        "scoring_features": {
+          "asset_criticality": 0.68,
+          "defect_severity": 0.25,
+          "defect_severity_name": "MINOR",
+          "days_overdue": 3,
+          "days_overdue_norm": 0.033,
+          "failure_probability": 0.464,
+          "train_impact": 0.533,
+          "maintenance_duration": 60,
+          "maintenance_duration_norm": 0.167,
+          "historical_failure_rate": 0.667,
+          "baseline_risk_score": 0.354,
+          "baseline_priority_score": 0.567
+        }
+      }
+    },
+    {
+      "block_id": "BLK-007",
+      "asset_id": "AST-DOWN-1-TUR-016",
+      "track_id": "DOWN-1",
+      "work_type": "ROUTINE_INSPECTION",
+      "duration_minutes": 60,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 1410,
+      "priority_score": 0.511,
+      "risk_score": 0.146,
+      "dependencies": [],
+      "mutual_exclusion_group": null,
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Turnout Point @ KM 37.49 (DOWN-1)",
+        "km_location": 37.49,
+        "defect_severity": "NONE",
+        "scoring_features": {
+          "asset_criticality": 0.73,
+          "defect_severity": 0.0,
+          "defect_severity_name": "NONE",
+          "days_overdue": 28,
+          "days_overdue_norm": 0.311,
+          "failure_probability": 0.169,
+          "train_impact": 0.554,
+          "maintenance_duration": 60,
+          "maintenance_duration_norm": 0.167,
+          "historical_failure_rate": 0.167,
+          "baseline_risk_score": 0.146,
+          "baseline_priority_score": 0.511
+        }
+      }
+    },
+    {
+      "block_id": "BLK-008",
+      "asset_id": "AST-DOWN-1-OHE-013",
+      "track_id": "DOWN-1",
+      "work_type": "ROUTINE_INSPECTION",
+      "duration_minutes": 45,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 1410,
+      "priority_score": 0.593,
+      "risk_score": 0.238,
+      "dependencies": [],
+      "mutual_exclusion_group": null,
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Ohe Mast @ KM 21.79 (DOWN-1)",
+        "km_location": 21.79,
+        "defect_severity": "NONE",
+        "scoring_features": {
+          "asset_criticality": 0.91,
+          "defect_severity": 0.0,
+          "defect_severity_name": "NONE",
+          "days_overdue": 34,
+          "days_overdue_norm": 0.378,
+          "failure_probability": 0.321,
+          "train_impact": 0.535,
+          "maintenance_duration": 45,
+          "maintenance_duration_norm": 0.125,
+          "historical_failure_rate": 0.333,
+          "baseline_risk_score": 0.238,
+          "baseline_priority_score": 0.593
+        }
+      }
+    },
+    {
+      "block_id": "BLK-009",
+      "asset_id": "AST-UP-1-TRA-005",
+      "track_id": "UP-1",
+      "work_type": "ROUTINE_INSPECTION",
+      "duration_minutes": 45,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 1410,
+      "priority_score": 0.564,
+      "risk_score": 0.224,
+      "dependencies": [],
+      "mutual_exclusion_group": null,
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Track Circuit @ KM 23.55 (UP-1)",
+        "km_location": 23.55,
+        "defect_severity": "NONE",
+        "scoring_features": {
+          "asset_criticality": 0.83,
+          "defect_severity": 0.0,
+          "defect_severity_name": "NONE",
+          "days_overdue": 59,
+          "days_overdue_norm": 0.656,
+          "failure_probability": 0.199,
+          "train_impact": 0.515,
+          "maintenance_duration": 45,
+          "maintenance_duration_norm": 0.125,
+          "historical_failure_rate": 0.167,
+          "baseline_risk_score": 0.224,
+          "baseline_priority_score": 0.564
+        }
+      }
+    },
+    {
+      "block_id": "BLK-010",
+      "asset_id": "AST-UP-1-RAI-003",
+      "track_id": "UP-1",
+      "work_type": "BALLAST_TAMPING",
+      "duration_minutes": 120,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 360,
+      "priority_score": 0.627,
+      "risk_score": 0.42,
+      "dependencies": [],
+      "mutual_exclusion_group": "CSM_TAMPER_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Rail Section @ KM 11.65 (UP-1)",
+        "km_location": 11.65,
+        "defect_severity": "MODERATE",
+        "scoring_features": {
+          "asset_criticality": 0.9,
+          "defect_severity": 0.6,
+          "defect_severity_name": "MODERATE",
+          "days_overdue": 53,
+          "days_overdue_norm": 0.589,
+          "failure_probability": 0.408,
+          "train_impact": 0.608,
+          "maintenance_duration": 120,
+          "maintenance_duration_norm": 0.333,
+          "historical_failure_rate": 0.0,
+          "baseline_risk_score": 0.42,
+          "baseline_priority_score": 0.627
+        }
+      }
+    },
+    {
+      "block_id": "BLK-011",
+      "asset_id": "AST-UP-1-RAI-004",
+      "track_id": "UP-1",
+      "work_type": "TRACK_RENEWAL",
+      "duration_minutes": 180,
+      "earliest_start_minute": 660,
+      "latest_end_minute": 930,
+      "priority_score": 0.712,
+      "risk_score": 0.694,
+      "dependencies": [],
+      "mutual_exclusion_group": null,
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Rail Section @ KM 17.6 (UP-1)",
+        "km_location": 17.6,
+        "defect_severity": "CRITICAL",
+        "scoring_features": {
+          "asset_criticality": 0.93,
+          "defect_severity": 1.0,
+          "defect_severity_name": "CRITICAL",
+          "days_overdue": 55,
+          "days_overdue_norm": 0.611,
+          "failure_probability": 0.795,
+          "train_impact": 0.683,
+          "maintenance_duration": 180,
+          "maintenance_duration_norm": 0.5,
+          "historical_failure_rate": 0.167,
+          "baseline_risk_score": 0.694,
+          "baseline_priority_score": 0.712
+        }
+      }
+    },
+    {
+      "block_id": "BLK-012",
+      "asset_id": "AST-DOWN-1-OHE-011",
+      "track_id": "DOWN-1",
+      "work_type": "OHE_MAINTENANCE",
+      "duration_minutes": 90,
+      "earliest_start_minute": 660,
+      "latest_end_minute": 930,
+      "priority_score": 0.662,
+      "risk_score": 0.459,
+      "dependencies": [],
+      "mutual_exclusion_group": "TOWER_WAGON_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Ohe Mast @ KM 12.02 (DOWN-1)",
+        "km_location": 12.02,
+        "defect_severity": "MODERATE",
+        "scoring_features": {
+          "asset_criticality": 0.93,
+          "defect_severity": 0.6,
+          "defect_severity_name": "MODERATE",
+          "days_overdue": 29,
+          "days_overdue_norm": 0.322,
+          "failure_probability": 0.381,
+          "train_impact": 0.592,
+          "maintenance_duration": 90,
+          "maintenance_duration_norm": 0.25,
+          "historical_failure_rate": 0.5,
+          "baseline_risk_score": 0.459,
+          "baseline_priority_score": 0.662
+        }
+      }
+    },
+    {
+      "block_id": "BLK-013",
+      "asset_id": "AST-DOWN-1-TUR-010",
+      "track_id": "DOWN-1",
+      "work_type": "EMERGENCY_REPAIR",
+      "duration_minutes": 90,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 1410,
+      "priority_score": 0.508,
+      "risk_score": 0.227,
+      "dependencies": [],
+      "mutual_exclusion_group": null,
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Turnout Point @ KM 6.57 (DOWN-1)",
+        "km_location": 6.57,
+        "defect_severity": "NONE",
+        "scoring_features": {
+          "asset_criticality": 0.64,
+          "defect_severity": 0.0,
+          "defect_severity_name": "NONE",
+          "days_overdue": 44,
+          "days_overdue_norm": 0.489,
+          "failure_probability": 0.098,
+          "train_impact": 0.592,
+          "maintenance_duration": 90,
+          "maintenance_duration_norm": 0.25,
+          "historical_failure_rate": 0.5,
+          "baseline_risk_score": 0.227,
+          "baseline_priority_score": 0.508
+        }
+      }
+    },
+    {
+      "block_id": "BLK-014",
+      "asset_id": "AST-UP-1-OHE-002",
+      "track_id": "UP-1",
+      "work_type": "OHE_MAINTENANCE",
+      "duration_minutes": 105,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 1410,
+      "priority_score": 0.579,
+      "risk_score": 0.304,
+      "dependencies": [],
+      "mutual_exclusion_group": "TOWER_WAGON_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Ohe Mast @ KM 8.29 (UP-1)",
+        "km_location": 8.29,
+        "defect_severity": "MINOR",
+        "scoring_features": {
+          "asset_criticality": 0.85,
+          "defect_severity": 0.25,
+          "defect_severity_name": "MINOR",
+          "days_overdue": 9,
+          "days_overdue_norm": 0.1,
+          "failure_probability": 0.252,
+          "train_impact": 0.59,
+          "maintenance_duration": 105,
+          "maintenance_duration_norm": 0.292,
+          "historical_failure_rate": 0.667,
+          "baseline_risk_score": 0.304,
+          "baseline_priority_score": 0.579
+        }
+      }
+    }
+  ],
+  "possession_windows": [
+    {
+      "window_id": "POS-UP-1-NIGHT",
+      "track_id": "UP-1",
+      "start_minute": 30,
+      "end_minute": 300,
+      "window_type": "NIGHT_TRAFFIC_BLOCK"
+    },
+    {
+      "window_id": "POS-UP-1-MIDDAY",
+      "track_id": "UP-1",
+      "start_minute": 690,
+      "end_minute": 870,
+      "window_type": "MIDDAY_MAINTENANCE_SLOT"
+    },
+    {
+      "window_id": "POS-UP-1-EVENING",
+      "track_id": "UP-1",
+      "start_minute": 1260,
+      "end_minute": 1410,
+      "window_type": "EVENING_OFF_PEAK"
+    },
+    {
+      "window_id": "POS-DOWN-1-NIGHT",
+      "track_id": "DOWN-1",
+      "start_minute": 30,
+      "end_minute": 300,
+      "window_type": "NIGHT_TRAFFIC_BLOCK"
+    },
+    {
+      "window_id": "POS-DOWN-1-MIDDAY",
+      "track_id": "DOWN-1",
+      "start_minute": 690,
+      "end_minute": 870,
+      "window_type": "MIDDAY_MAINTENANCE_SLOT"
+    },
+    {
+      "window_id": "POS-DOWN-1-EVENING",
+      "track_id": "DOWN-1",
+      "start_minute": 1260,
+      "end_minute": 1410,
+      "window_type": "EVENING_OFF_PEAK"
+    }
+  ],
+  "existing_committed_blocks": [
+    {
+      "block_id": "BLK-001",
+      "asset_id": "AST-UP-1-OHE-001",
+      "track_id": "UP-1",
+      "work_type": "ROUTINE_INSPECTION",
+      "duration_minutes": 45,
+      "earliest_start_minute": 60,
+      "latest_end_minute": 105,
+      "priority_score": 0.548,
+      "risk_score": 0.187,
+      "dependencies": [],
+      "mutual_exclusion_group": null,
+      "is_committed": true,
+      "status": "COMMITTED",
+      "metadata": {
+        "asset_name": "Ohe Mast @ KM 3.5 (UP-1)",
+        "km_location": 3.5,
+        "defect_severity": "NONE",
+        "scoring_features": {
+          "asset_criticality": 0.82,
+          "defect_severity": 0.0,
+          "defect_severity_name": "NONE",
+          "days_overdue": 8,
+          "days_overdue_norm": 0.089,
+          "failure_probability": 0.343,
+          "train_impact": 0.515,
+          "maintenance_duration": 45,
+          "maintenance_duration_norm": 0.125,
+          "historical_failure_rate": 0.333,
+          "baseline_risk_score": 0.187,
+          "baseline_priority_score": 0.548
+        }
+      }
+    },
+    {
+      "block_id": "BLK-002",
+      "asset_id": "AST-DOWN-1-OHE-009",
+      "track_id": "DOWN-1",
+      "work_type": "ROUTINE_INSPECTION",
+      "duration_minutes": 60,
+      "earliest_start_minute": 90,
+      "latest_end_minute": 150,
+      "priority_score": 0.503,
+      "risk_score": 0.123,
+      "dependencies": [],
+      "mutual_exclusion_group": null,
+      "is_committed": true,
+      "status": "COMMITTED",
+      "metadata": {
+        "asset_name": "Ohe Mast @ KM 1.93 (DOWN-1)",
+        "km_location": 1.93,
+        "defect_severity": "NONE",
+        "scoring_features": {
+          "asset_criticality": 0.73,
+          "defect_severity": 0.0,
+          "defect_severity_name": "NONE",
+          "days_overdue": 6,
+          "days_overdue_norm": 0.067,
+          "failure_probability": 0.364,
+          "train_impact": 0.554,
+          "maintenance_duration": 60,
+          "maintenance_duration_norm": 0.167,
+          "historical_failure_rate": 0.0,
+          "baseline_risk_score": 0.123,
+          "baseline_priority_score": 0.503
+        }
+      }
+    }
+  ],
+  "min_headway_minutes": 15,
+  "train_timetable": []
+}

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pashupatastra — Domain Review & Complete Railway Data Specification</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 16mm 16mm 16mm 16mm;
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 8.5pt;
+      color: #64748b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', Helvetica, Arial, sans-serif;
+    color: #0f172a;
+    line-height: 1.5;
+    font-size: 9.5pt;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .header-card {
+    background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+    color: #ffffff;
+    padding: 20px 24px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  .header-card h1 {
+    font-size: 22pt;
+    margin: 0 0 4px 0;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #60a5fa;
+  }
+  .header-card .subtitle {
+    font-size: 11.5pt;
+    color: #e2e8f0;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 8.5pt;
+  }
+
+  h1.section-title {
+    color: #1e3a8a;
+    font-size: 15pt;
+    border-bottom: 2.5px solid #1e3a8a;
+    padding-bottom: 5px;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    page-break-after: avoid;
+  }
+  h2 {
+    color: #1e3a8a;
+    font-size: 12pt;
+    border-bottom: 1.5px solid #3b82f6;
+    padding-bottom: 3px;
+    margin-top: 18px;
+    margin-bottom: 8px;
+    page-break-after: avoid;
+  }
+  h3 {
+    color: #1e293b;
+    font-size: 10.5pt;
+    margin-top: 14px;
+    margin-bottom: 4px;
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 8px 0; }
+
+  .review-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #3b82f6;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin-bottom: 12px;
+  }
+  .review-label {
+    font-weight: bold;
+    color: #1e40af;
+    display: inline-block;
+    min-width: 140px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 14px 0;
+    font-size: 8.5pt;
+    page-break-inside: avoid;
+  }
+  th {
+    background: #1e3a8a;
+    color: #ffffff;
+    font-weight: 600;
+    text-align: left;
+    padding: 6px 8px;
+    border: 1px solid #1e3a8a;
+  }
+  td {
+    padding: 5px 8px;
+    border: 1px solid #cbd5e1;
+  }
+  tr:nth-child(even) td { background: #f8fafc; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 7.5pt;
+    font-weight: 700;
+  }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-yellow { background: #fef3c7; color: #92400e; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-purple { background: #f3e8ff; color: #6b21a8; }
+
+  .callout {
+    background: #eff6ff;
+    border-left: 4px solid #2563eb;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 9pt;
+    border-radius: 0 4px 4px 0;
+  }
+  .page-break { page-break-before: always; }
+  code {
+    background: #f1f5f9;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: Consolas, monospace;
+    font-size: 8.5pt;
+    color: #0f172a;
+  }
+  pre {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 8pt;
+    overflow-x: auto;
+    font-family: Consolas, monospace;
+  }
+  .checklist {
+    list-style: none;
+    padding-left: 0;
+  }
+  .checklist li {
+    padding: 4px 0;
+    font-size: 9pt;
+  }
+  .checklist li::before {
+    content: "☑ ";
+    color: #16a34a;
+    font-weight: bold;
+    font-size: 11pt;
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER / HEADER -->
+<div class="header-card">
+  <h1>🚆 PASHUPATASTRA</h1>
+  <div class="subtitle">AI-Assisted Railway Maintenance Scheduling & Disruption Recovery</div>
+  <div class="meta-grid">
+    <div><strong>Document:</strong> Formal Domain Review & Complete Master Data Package</div>
+    <div><strong>Workstream:</strong> Domain Modeling & Synthetic Data (Darshini)</div>
+    <div><strong>Branch:</strong> <code>feature/domain-data</code></div>
+    <div><strong>Integration Owner:</strong> Aryan (<code>feature/backend-api</code>)</div>
+    <div><strong>Event:</strong> Smart India Hackathon 2026</div>
+    <div><strong>Status:</strong> Ready for Team Domain Freeze Checkpoint</div>
+  </div>
+</div>
+
+<h1 class="section-title">PART I: FORMAL DOMAIN REVIEW (DOMAIN_REVIEW.md)</h1>
+
+<h2>Executive Summary</h2>
+<p>
+Pashupatastra solves a critical real-world operational problem for Indian Railways (IR): <strong>how to optimize, schedule, and dynamically re-schedule maintenance blocks (possessions) across busy railway corridors while respecting operational safety, asset conditions, precedence dependencies, and train timetables.</strong>
+</p>
+<p>
+This domain review formalizes the railway domain semantics, identifies limitations in initial baseline assumptions, and establishes concrete recommendations for the <strong>Domain Freeze</strong> checkpoint before downstream workstreams (Tyagi's Optimizer, Ayush's ML Scorer, Tirth's Simulation, Archit's Frontend, and Aryan's API) build further.
+</p>
+
+<h2>1. Track Modeling & Corridor Representation</h2>
+<div class="review-item">
+  <p><span class="review-label">Current Assumption:</span> Tracks are identified by simple flat strings: <code>track_id = "UP-1"</code>, <code>track_id = "DOWN-1"</code>.</p>
+  <p><span class="review-label">Problem Identified:</span> A flat string alone does not convey which corridor, section, or kilometer range the track belongs to. However, introducing a full GIS graph or topological switch network adds unnecessary mathematical complexity to the CP-SAT solver without adding demo value.</p>
+  <p><span class="review-label">Recommendation:</span> <strong>Retain <code>track_id: str</code> as the primary key/unique identifier</strong> in shared contracts (e.g. <code>"UP-1"</code>, <code>"DOWN-1"</code>). In the Domain Data layer, represent tracks with structured metadata (corridor ID, section name, direction, mileage start/end, speed limit, electrification).</p>
+  <p><span class="review-label">Reason & Grounding:</span> In Indian Railways, maintenance blocks are granted per <strong>block section</strong> along a directional line (Up Main Line, Down Main Line). Preserving a clean string identifier keeps CP-SAT interval constraints simple (no overlapping intervals on the same track), while metadata enables rich UI display on the Frontend dashboard.</p>
+  <p><span class="review-label">Downstream Impact:</span> <strong>Optimizer (Tyagi):</strong> Zero breaking changes. <strong>Frontend (Archit):</strong> Groups tracks cleanly by direction. <strong>ML Scorer (Ayush):</strong> Uses speed limits and density for operational impact scoring.</p>
+</div>
+
+<h2>2. Maintenance Work Types (<code>WorkType</code>)</h2>
+<div class="review-item">
+  <p><span class="review-label">Current Assumption:</span> Generic categories (<code>RENEWAL</code>, <code>INSPECTION</code>, <code>REPAIR</code>, <code>MAINTENANCE</code>).</p>
+  <p><span class="review-label">Problem Identified:</span> Categories are too generic and fail to reflect Indian Railways maintenance practices (e.g. Track Machine Operations, OHE Power Blocks, S&T Interlocking). They do not capture why certain tasks require heavy machinery or complete electrical isolation.</p>
+  <p><span class="review-label">Recommendation:</span> Standardize the <code>WorkType</code> enum into 6 concrete railway maintenance categories:</p>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 20%;">WorkType</th>
+      <th style="width: 32%;">Description</th>
+      <th style="width: 14%;">Typical Duration</th>
+      <th style="width: 22%;">Machinery / Resource Note</th>
+      <th style="width: 12%;">Priority Range</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>TRACK_RENEWAL</code></td>
+      <td>Complete Track Renewal (CTR), Through Sleeper Renewal (TSR), Rail Renewal (TRR)</td>
+      <td>180 – 360 min</td>
+      <td>Heavy possession (BCM, PQRS, T-28), total track closure</td>
+      <td><span class="badge badge-red">0.85 – 0.95</span></td>
+    </tr>
+    <tr>
+      <td><code>BALLAST_TAMPING</code></td>
+      <td>Track packing and alignment using Tie-Tamping machines (CSM, Duomatic)</td>
+      <td>90 – 180 min</td>
+      <td>Requires safety headway buffer after track renewal</td>
+      <td><span class="badge badge-yellow">0.70 – 0.85</span></td>
+    </tr>
+    <tr>
+      <td><code>OHE_MAINTENANCE</code></td>
+      <td>Overhead Equipment inspection, contact wire replacement, insulator washing</td>
+      <td>60 – 150 min</td>
+      <td>Requires Electrical Power Block (OHE isolation); Tower Wagon</td>
+      <td><span class="badge badge-blue">0.65 – 0.80</span></td>
+    </tr>
+    <tr>
+      <td><code>SIGNALLING_INTERLOCKING</code></td>
+      <td>Point machine overhaul, track circuit testing, axle counter maintenance</td>
+      <td>45 – 120 min</td>
+      <td>Affects interlocking & station approaches; Signal Gang</td>
+      <td><span class="badge badge-purple">0.60 – 0.75</span></td>
+    </tr>
+    <tr>
+      <td><code>ROUTINE_INSPECTION</code></td>
+      <td>Ultrasonic Flaw Detection (USFD), foot patrol, geometry recording</td>
+      <td>30 – 90 min</td>
+      <td>Minimal disruption; manual trolley or inspection unit</td>
+      <td><span class="badge badge-green">0.35 – 0.50</span></td>
+    </tr>
+    <tr>
+      <td><code>EMERGENCY_REPAIR</code></td>
+      <td>Rail fracture, weld failure, OHE wire parting, point failure</td>
+      <td>60 – 180 min</td>
+      <td>Unscheduled, pre-emptive, highest urgency score</td>
+      <td><span class="badge badge-red">0.95 – 0.99</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>3. Disruption Types (<code>DisruptionType</code>)</h2>
+<p>We define 4 standardized, deterministic disruption types for the <strong>PLAN &rarr; DISRUPT &rarr; RECOVER</strong> demonstration:</p>
+
+<div class="review-item">
+  <p><strong>1. <code>TRACK_UNAVAILABLE</code> (Scenario 1 — Track Blockage)</strong><br>
+  <em>Description:</em> A track segment becomes unusable from time $t_1$ to $t_2$ (e.g. detected rail defect, obstacle, speed restriction).<br>
+  <em>Impact:</em> Blocks scheduled on that track during that interval become <code>AFFECTED</code> and must be rescheduled to another track or moved in time.</p>
+</div>
+
+<div class="review-item">
+  <p><strong>2. <code>EMERGENCY_WORK</code> (Scenario 2 — Critical Unscheduled Work Insertion)</strong><br>
+  <em>Description:</em> An urgent emergency repair block (e.g. rail fracture) appears at time $t$ with maximum priority (0.99).<br>
+  <em>Impact:</em> CP-SAT must schedule the emergency block immediately, shifting or dropping lower-priority routine blocks while protecting already committed blocks.</p>
+</div>
+
+<div class="review-item">
+  <p><strong>3. <code>POSSESSION_CURTAILMENT</code> (Scenario 3 — Time Window Shortened)</strong><br>
+  <em>Description:</em> Due to delayed express trains, an available possession window (e.g. 08:00–12:00) is curtailed to (09:30–11:30).<br>
+  <em>Impact:</em> Maintenance tasks that no longer fit must be compressed, rescheduled to later slots, or marked unscheduled with clear reason codes.</p>
+</div>
+
+<div class="review-item">
+  <p><strong>4. <code>ASSET_BREAKDOWN</code> (Scenario 4 — Machine / Equipment Failure)</strong><br>
+  <em>Description:</em> A heavy track machine (e.g. BCM) breaks down mid-block, extending work duration or halting all tasks sharing that machine group.</p>
+</div>
+
+<h2>4. Resource & Machinery Constraints</h2>
+<div class="review-item">
+  <p><span class="review-label">Current Assumption:</span> Complex multi-resource models (<code>crew_id</code>, <code>crew_type</code>, <code>equipment_id</code>, <code>crew_capacity</code>).</p>
+  <p><span class="review-label">Problem Identified:</span> Full resource leveling and human crew rostering turns the problem into a 2-stage multi-mode RCPSP, risking slow solve times (>10s) and artificial infeasibility during a live hackathon demo.</p>
+  <p><span class="review-label">Recommendation:</span> <strong>Do NOT model individual human workers in Phase 1.</strong> Model shared heavy machines via <code>mutual_exclusion_group: Optional[str]</code> (e.g. <code>BCM_MACHINE_01</code>, <code>CSM_TAMPER_01</code>, <code>TOWER_WAGON_01</code>). The CP-SAT solver enforces:
+  $$\text{Interval}(\text{Block}_1) \cap \text{Interval}(\text{Block}_2) = \emptyset \quad \forall \text{ blocks sharing same machine group}$$
+  This guarantees that the single available BCM machine is not scheduled in two places simultaneously, without bloating the solver.</p>
+</div>
+
+<h2>5. Train Timetable & Operational Window Representation</h2>
+<div class="review-item">
+  <p><span class="review-label">Current Assumption:</span> <code>train_timetable</code> field exists in the contract but lacks clear solver constraints.</p>
+  <p><span class="review-label">Recommendation:</span> Model train traffic as <strong>Discrete Available Possession Windows</strong> per track over the 24-hour horizon:</p>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Window ID</th>
+      <th>Track</th>
+      <th>Window Type</th>
+      <th>Clock Time</th>
+      <th>Minute Timeline</th>
+      <th>Allocated Maintenance Work</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>POS-UP1-NIGHT</code></td>
+      <td><code>UP-1</code></td>
+      <td>NIGHT_TRAFFIC_BLOCK</td>
+      <td>00:30 – 05:00</td>
+      <td><strong>0030 – 0300</strong> (270 min)</td>
+      <td>Heavy Track Renewal (CTR) & Ballast Tamping</td>
+    </tr>
+    <tr>
+      <td><code>POS-UP1-MIDDAY</code></td>
+      <td><code>UP-1</code></td>
+      <td>MIDDAY_MAINTENANCE</td>
+      <td>11:30 – 14:30</td>
+      <td><strong>0690 – 0870</strong> (180 min)</td>
+      <td>USFD Inspection & OHE Isolations</td>
+    </tr>
+    <tr>
+      <td><code>POS-UP1-EVENING</code></td>
+      <td><code>UP-1</code></td>
+      <td>EVENING_OFF_PEAK</td>
+      <td>21:00 – 23:30</td>
+      <td><strong>1260 – 1410</strong> (150 min)</td>
+      <td>Point Machines & Signalling Interlocking</td>
+    </tr>
+    <tr>
+      <td><code>POS-DN1-NIGHT</code></td>
+      <td><code>DOWN-1</code></td>
+      <td>NIGHT_TRAFFIC_BLOCK</td>
+      <td>00:30 – 05:00</td>
+      <td><strong>0030 – 0300</strong> (270 min)</td>
+      <td>Heavy Track Renewal (CTR) & Ballast Tamping</td>
+    </tr>
+    <tr>
+      <td><code>POS-DN1-MIDDAY</code></td>
+      <td><code>DOWN-1</code></td>
+      <td>MIDDAY_MAINTENANCE</td>
+      <td>11:30 – 14:30</td>
+      <td><strong>0690 – 0870</strong> (180 min)</td>
+      <td>USFD Inspection & OHE Isolations</td>
+    </tr>
+    <tr>
+      <td><code>POS-DN1-EVENING</code></td>
+      <td><code>DOWN-1</code></td>
+      <td>EVENING_OFF_PEAK</td>
+      <td>21:00 – 23:30</td>
+      <td><strong>1260 – 1410</strong> (150 min)</td>
+      <td>Point Machines & Signalling Interlocking</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><strong>Solver Constraint:</strong> Every scheduled block $[s_i, e_i]$ on track $T$ must lie strictly within an available window:</p>
+<div class="callout">
+  $$\exists W \in \text{PossessionWindows}(T) \quad \text{such that} \quad W.\text{start} \le s_i \quad \text{and} \quad e_i \le W.\text{end}$$
+</div>
+
+<h2>6. Precedence Dependencies & Sequential Chains</h2>
+<p>Maintenance operations follow strict sequential engineering protocols:</p>
+<div class="callout">
+  $$\text{Track Renewal (CTR)} \xrightarrow{\text{precedes}} \text{Deep Ballast Screening (BCM)} \xrightarrow{\text{precedes}} \text{Tie Tamping (CSM)} \xrightarrow{\text{precedes}} \text{Speed Normalization}$$
+</div>
+<p>If Block $B$ depends on Block $A$ (<code>dependencies: ["BLK-A"]</code>), CP-SAT enforces: $\text{start\_time}(B) \ge \text{end\_time}(A) + \text{buffer}$.</p>
+
+<h2>7. Summary Checklist for Domain Freeze</h2>
+<ul class="checklist">
+  <li><strong>Track Modeling:</strong> String <code>track_id</code> preserved for solver; metadata dictionary available for UI.</li>
+  <li><strong>Work Types:</strong> 6 standardized Indian Railways categories agreed.</li>
+  <li><strong>Disruption Types:</strong> 4 deterministic disruption types defined.</li>
+  <li><strong>Resources:</strong> Simplified to <code>mutual_exclusion_group</code> for heavy machines.</li>
+  <li><strong>Train Timetable:</strong> Modeled as discrete <code>PossessionWindow</code> intervals.</li>
+  <li><strong>Synthetic Generator:</strong> Seed-driven implementation ready for downstream integration.</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h1 class="section-title">PART II: FULL SYNTHETIC DATASETS & SCENARIOS</h1>
+
+<h2>Scenario A: Baseline Mainline Corridor (<code>corridor_a_blocks.json</code>)</h2>
+<p><strong>Corridor:</strong> <code>CORRIDOR_A</code> (New Delhi – Ghaziabad Main Line) | <strong>Tracks:</strong> <code>UP-1</code>, <code>DOWN-1</code> | <strong>Horizon:</strong> 1440 min | <strong>Candidates:</strong> 12 Blocks</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Block ID</th>
+      <th>Track</th>
+      <th>Asset ID</th>
+      <th>Work Category</th>
+      <th>Dur</th>
+      <th>Pri</th>
+      <th>Risk</th>
+      <th>Time Window (Clock)</th>
+      <th>Machine Group</th>
+      <th>Precedence</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>BLK-001</code></td>
+      <td><code>DOWN-1</code></td>
+      <td><code>AST-DOWN-1-OHE-013</code></td>
+      <td><code>OHE_MAINTENANCE</code></td>
+      <td>120 m</td>
+      <td><span class="badge badge-yellow">0.79</span></td>
+      <td>0.63</td>
+      <td>11:00 – 15:30 (0660-0930)</td>
+      <td><code>TOWER_WAGON_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-002</code></td>
+      <td><code>DOWN-1</code></td>
+      <td><code>AST-DOWN-1-RAI-015</code></td>
+      <td><code>BALLAST_TAMPING</code></td>
+      <td>105 m</td>
+      <td><span class="badge badge-blue">0.50</span></td>
+      <td>0.50</td>
+      <td>00:30 – 06:00 (0030-0360)</td>
+      <td><code>CSM_TAMPER_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-003</code></td>
+      <td><code>DOWN-1</code></td>
+      <td><code>AST-DOWN-1-RAI-014</code></td>
+      <td><code>TRACK_RENEWAL</code></td>
+      <td>210 m</td>
+      <td><span class="badge badge-yellow">0.59</span></td>
+      <td>0.66</td>
+      <td>00:30 – 06:00 (0030-0360)</td>
+      <td><code>BCM_MACHINE_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-004</code></td>
+      <td><code>DOWN-1</code></td>
+      <td><code>AST-DOWN-1-RAI-009</code></td>
+      <td><code>BALLAST_TAMPING</code></td>
+      <td>150 m</td>
+      <td><span class="badge badge-yellow">0.59</span></td>
+      <td>0.59</td>
+      <td>04:00 – 07:30 (0240-0450)</td>
+      <td><code>CSM_TAMPER_01</code></td>
+      <td><code>BLK-003</code> 🔗</td>
+    </tr>
+    <tr>
+      <td><code>BLK-005</code></td>
+      <td><code>UP-1</code></td>
+      <td><code>AST-UP-1-OHE-004</code></td>
+      <td><code>OHE_MAINTENANCE</code></td>
+      <td>75 m</td>
+      <td><span class="badge badge-blue">0.56</span></td>
+      <td>0.52</td>
+      <td>00:30 – 23:30 (0030-1410)</td>
+      <td><code>TOWER_WAGON_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-006</code></td>
+      <td><code>DOWN-1</code></td>
+      <td><code>AST-DOWN-1-OHE-016</code></td>
+      <td><code>OHE_MAINTENANCE</code></td>
+      <td>120 m</td>
+      <td><span class="badge badge-blue">0.54</span></td>
+      <td>0.49</td>
+      <td>00:30 – 23:30 (0030-1410)</td>
+      <td><code>TOWER_WAGON_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-007</code></td>
+      <td><code>DOWN-1</code></td>
+      <td><code>AST-DOWN-1-OHE-011</code></td>
+      <td><code>OHE_MAINTENANCE</code></td>
+      <td>120 m</td>
+      <td><span class="badge badge-yellow">0.79</span></td>
+      <td>0.53</td>
+      <td>11:00 – 15:30 (0660-0930)</td>
+      <td><code>TOWER_WAGON_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-008</code></td>
+      <td><code>UP-1</code></td>
+      <td><code>AST-UP-1-RAI-001</code></td>
+      <td><code>TRACK_RENEWAL</code></td>
+      <td>210 m</td>
+      <td><span class="badge badge-red">0.78</span></td>
+      <td>0.77</td>
+      <td>00:30 – 06:00 (0030-0360)</td>
+      <td><code>BCM_MACHINE_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-009</code></td>
+      <td><code>UP-1</code></td>
+      <td><code>AST-UP-1-TUR-007</code></td>
+      <td><code>SIGNALLING_INTERLOCK</code></td>
+      <td>105 m</td>
+      <td><span class="badge badge-green">0.42</span></td>
+      <td>0.44</td>
+      <td>00:30 – 23:30 (0030-1410)</td>
+      <td><code>S_T_GANG_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-010</code></td>
+      <td><code>UP-1</code></td>
+      <td><code>AST-UP-1-RAI-008</code></td>
+      <td><code>ROUTINE_INSPECTION</code></td>
+      <td>45 m</td>
+      <td><span class="badge badge-green">0.42</span></td>
+      <td>0.46</td>
+      <td>11:00 – 15:30 (0660-0930)</td>
+      <td>—</td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-011</code></td>
+      <td><code>UP-1</code></td>
+      <td><code>AST-UP-1-SIG-002</code></td>
+      <td><code>SIGNALLING_INTERLOCK</code></td>
+      <td>75 m</td>
+      <td><span class="badge badge-yellow">0.65</span></td>
+      <td>0.59</td>
+      <td>00:30 – 23:30 (0030-1410)</td>
+      <td><code>S_T_GANG_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-012</code></td>
+      <td><code>UP-1</code></td>
+      <td><code>AST-UP-1-TUR-006</code></td>
+      <td><code>SIGNALLING_INTERLOCK</code></td>
+      <td>75 m</td>
+      <td><span class="badge badge-blue">0.57</span></td>
+      <td>0.50</td>
+      <td>00:30 – 23:30 (0030-1410)</td>
+      <td><code>S_T_GANG_01</code></td>
+      <td>—</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Scenario B: Dense Quadruple Corridor (<code>corridor_b_dense.json</code>)</h2>
+<p>
+<strong>Corridor:</strong> <code>CORRIDOR_B_DENSE</code> | <strong>Tracks:</strong> <code>UP-1</code>, <code>UP-2</code>, <code>DOWN-1</code>, <code>DOWN-2</code> | <strong>Candidates:</strong> 24 Blocks<br>
+Simulates heavy quadruple trunk routes (e.g. New Delhi – Kanpur). Contains 4 competing track machine groups (<code>BCM_MACHINE_01</code>, <code>CSM_TAMPER_01</code>, <code>TOWER_WAGON_01</code>, <code>S_T_GANG_01</code>) with tight possession windows to test CP-SAT solver optimization trade-offs under high network saturation.
+</p>
+
+<h2>Scenario C: Disruption & Recovery Testbed (<code>corridor_c_disrupted.json</code>)</h2>
+<p>
+<strong>Corridor:</strong> <code>CORRIDOR_C_DISRUPTED</code> | <strong>Tracks:</strong> <code>UP-1</code>, <code>DOWN-1</code> | <strong>Candidates:</strong> 14 Blocks<br>
+<strong>Pre-Committed Blocks (Locked by Section Controller):</strong><br>
+&bull; <code>BLK-001</code>: <code>DOWN-1</code>, 01:00 – 03:00 (0060–0180 min), <strong>COMMITTED</strong> (Cannot be shifted).<br>
+&bull; <code>BLK-002</code>: <code>DOWN-1</code>, 01:30 – 03:15 (0090–0195 min), <strong>COMMITTED</strong> (Cannot be shifted).<br>
+<strong>Disruption Event:</strong> <code>TRACK_UNAVAILABLE</code> on <code>UP-1</code> from 02:00 to 05:00. Tirth's simulation will verify that Tyagi's optimizer re-routes unaffected blocks while protecting <code>BLK-001</code> & <code>BLK-002</code>.
+</p>
+
+<h2>Automated Test Verification Results</h2>
+<pre>
+test_dependency_integrity (test_generator.TestCorridorDataGenerator) ............ OK
+test_different_seeds_produce_variation (test_generator.TestCorridorDataGenerator) OK
+test_json_fixtures_validity (test_generator.TestCorridorDataGenerator) .......... OK
+test_scenario_b_dense_properties (test_generator.TestCorridorDataGenerator) ..... OK
+test_scenario_c_committed_blocks (test_generator.TestCorridorDataGenerator) ..... OK
+test_score_boundaries (test_generator.TestCorridorDataGenerator) ................ OK
+test_seed_reproducibility (test_generator.TestCorridorDataGenerator) ............ OK
+test_time_window_consistency (test_generator.TestCorridorDataGenerator) ......... OK
+test_track_assignment_validity (test_generator.TestCorridorDataGenerator) ....... OK
+test_work_types_are_valid_enums (test_generator.TestCorridorDataGenerator) ...... OK
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.049s — OK (100% Passed)
+</pre>
+
+</body>
+</html>

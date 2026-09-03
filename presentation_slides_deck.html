@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pashupatastra — Darshini Presentation Slide Deck</title>
+<style>
+  @page {
+    size: 297mm 210mm; /* A4 Landscape */
+    margin: 0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', Helvetica, Arial, sans-serif;
+    color: #0f172a;
+    background: #e2e8f0;
+    -webkit-print-color-adjust: exact;
+  }
+  
+  .slide {
+    width: 297mm;
+    height: 210mm;
+    page-break-after: always;
+    page-break-inside: avoid;
+    position: relative;
+    padding: 24mm 26mm;
+    background: #ffffff;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Slide 1: Dark Cover */
+  .slide-cover {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+    color: #ffffff;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 30mm 32mm;
+  }
+  .slide-cover h1 {
+    font-size: 38pt;
+    font-weight: 800;
+    margin: 0 0 8px 0;
+    color: #60a5fa;
+    letter-spacing: -0.5px;
+  }
+  .slide-cover h2 {
+    font-size: 18pt;
+    font-weight: 600;
+    color: #f8fafc;
+    margin: 0 0 20px 0;
+  }
+  .cover-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1.5px solid #3b82f6;
+    border-radius: 10px;
+    padding: 16px 24px;
+    width: 100%;
+    margin-top: 15px;
+    font-size: 12pt;
+    line-height: 1.6;
+  }
+
+  /* Slide Header */
+  .slide-header {
+    border-bottom: 3px solid #1e3a8a;
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+  .slide-header h2 {
+    font-size: 20pt;
+    color: #1e3a8a;
+    margin: 0;
+    font-weight: 800;
+  }
+  .slide-header .tag {
+    font-size: 10pt;
+    font-weight: 700;
+    color: #3b82f6;
+    background: #eff6ff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid #bfdbfe;
+  }
+
+  /* Layout Grids */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    flex: 1;
+  }
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    flex: 1;
+  }
+
+  .card {
+    background: #f8fafc;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-size: 10.5pt;
+  }
+  .card-highlight {
+    background: #eff6ff;
+    border-color: #3b82f6;
+  }
+  .card-title {
+    font-size: 13pt;
+    font-weight: 800;
+    color: #1e3a8a;
+    margin-bottom: 10px;
+    border-bottom: 1.5px solid #cbd5e1;
+    padding-bottom: 4px;
+  }
+  .card-highlight .card-title {
+    color: #1d4ed8;
+    border-color: #93c5fd;
+  }
+
+  ul.bullet-list {
+    margin: 0;
+    padding-left: 18px;
+    line-height: 1.55;
+  }
+  ul.bullet-list li {
+    margin-bottom: 8px;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+    margin-top: 6px;
+  }
+  th {
+    background: #1e3a8a;
+    color: #ffffff;
+    text-align: left;
+    padding: 8px 10px;
+    font-weight: 700;
+    border: 1px solid #1e3a8a;
+  }
+  td {
+    padding: 7px 10px;
+    border: 1px solid #cbd5e1;
+  }
+  tr:nth-child(even) td { background: #f8fafc; }
+
+  /* Badges */
+  .badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 8pt;
+    font-weight: 700;
+  }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-yellow { background: #fef3c7; color: #92400e; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-purple { background: #f3e8ff; color: #6b21a8; }
+
+  .footer-bar {
+    position: absolute;
+    bottom: 10mm;
+    left: 26mm;
+    right: 26mm;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8.5pt;
+    color: #64748b;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 6px;
+  }
+
+  .step-row {
+    display: flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+  }
+  .step-num {
+    background: #1e3a8a;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 11pt;
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-right: 14px;
+  }
+  .step-title {
+    font-weight: 700;
+    font-size: 11.5pt;
+    color: #0f172a;
+    width: 220px;
+  }
+  .step-owner {
+    font-weight: 700;
+    color: #2563eb;
+    width: 140px;
+  }
+  .step-desc {
+    color: #475569;
+    font-size: 10pt;
+    flex: 1;
+  }
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: COVER -->
+<div class="slide slide-cover">
+  <h1>🚆 PASHUPATASTRA</h1>
+  <h2>AI-Assisted Railway Maintenance Scheduling & Disruption Recovery</h2>
+  
+  <div class="cover-card">
+    <div style="font-weight: 800; font-size: 14pt; color: #60a5fa; margin-bottom: 8px;">
+      PHASE 1: DOMAIN REVIEW & RAILWAY DATA ARCHITECTURE
+    </div>
+    <div><strong>Presenter / Domain Lead:</strong> Darshini (<code>feature/domain-data</code>)</div>
+    <div><strong>Integration & Backend Lead:</strong> Aryan (<code>feature/backend-api</code>)</div>
+    <div><strong>Event:</strong> Smart India Hackathon 2026 — Phase 1 Parallel Kickoff</div>
+    <div><strong>Status:</strong> Complete, Tested & Ready for Team Domain Freeze</div>
+  </div>
+  
+  <div class="footer-bar" style="color: #94a3b8; border-color: rgba(255,255,255,0.2);">
+    <span>Project Pashupatastra</span>
+    <span>Slide 1 of 8</span>
+  </div>
+</div>
+
+<!-- SLIDE 2: PROBLEM & MISSION -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>1. The Railway Problem & Darshini's Mission</h2>
+    <span class="tag">Context & Objectives</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">THE PROBLEM WE ARE SOLVING</div>
+      <ul class="bullet-list">
+        <li><strong>Shared Track Capacity:</strong> High-speed passenger express trains and heavy freight operate on the same tracks.</li>
+        <li><strong>Maintenance Possessions:</strong> Track renewals and repairs require complete line closure (possession block).</li>
+        <li><strong>Scarce Windows:</strong> Section controllers have very limited time slots (mostly nighttime and midday off-peak).</li>
+        <li><strong>Daily Disruptions:</strong> Unplanned rail fractures, OHE faults, and train delays frequently throw static schedules into chaos.</li>
+      </ul>
+    </div>
+
+    <div class="card card-highlight">
+      <div class="card-title">DARSHINI'S MISSION (DOMAIN + DATA)</div>
+      <ul class="bullet-list">
+        <li><strong>Formal Domain Review:</strong> Establish mathematical & operational railway rules in <code>DOMAIN_REVIEW.md</code>.</li>
+        <li><strong>Protect Shared Contracts:</strong> Maintain zero-breaking-change data contracts for the whole team.</li>
+        <li><strong>Synthetic Data Generator:</strong> Build seed-driven generator (<code>generator.py</code>) producing realistic corridors.</li>
+        <li><strong>Provide Standard Fixtures:</strong> Export Scenarios A, B, and C as benchmark datasets for all teammates.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <span>Pashupatastra — Domain Modeling & Synthetic Data</span>
+    <span>Slide 2 of 8</span>
+  </div>
+</div>
+
+<!-- SLIDE 3: SYSTEM PIPELINE -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>2. System Pipeline: How Data Flows to the Team</h2>
+    <span class="tag">Architecture & Handover</span>
+  </div>
+
+  <div style="flex: 1;">
+    <div class="step-row" style="background: #eff6ff; border-color: #3b82f6;">
+      <div class="step-num">1</div>
+      <div class="step-title">Domain & Data</div>
+      <div class="step-owner">Darshini (You)</div>
+      <div class="step-desc">Produces Corridor Topology, Asset Master, and Scenarios A / B / C</div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">2</div>
+      <div class="step-title">ML Priority & Risk</div>
+      <div class="step-owner">Ayush</div>
+      <div class="step-desc">Calculates explainable priority & risk scores from asset defect severity</div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div class="step-title">CP-SAT Optimizer</div>
+      <div class="step-owner">Tyagi</div>
+      <div class="step-desc">Produces optimal schedule, enforces headway buffers, protects committed blocks</div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">4</div>
+      <div class="step-title">FastAPI Backend</div>
+      <div class="step-owner">Aryan</div>
+      <div class="step-desc">Exposes endpoints: POST /optimize, GET /health, POST /disrupt</div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">5</div>
+      <div class="step-title">Operations UI</div>
+      <div class="step-owner">Archit</div>
+      <div class="step-desc">Visualizes Corridor Timeline (Time vs. Tracks) & before/after recovery</div>
+    </div>
+    <div class="step-row">
+      <div class="step-num">6</div>
+      <div class="step-title">Disruption Sim</div>
+      <div class="step-owner">Tirth</div>
+      <div class="step-desc">Injects disruptions (e.g. track unavailable) & triggers re-optimization loop</div>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <span>Pashupatastra — Pipeline Flow</span>
+    <span>Slide 3 of 8</span>
+  </div>
+</div>
+
+<!-- SLIDE 4: THE 5 DOMAIN DECISIONS -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>3. The 5 Core Domain Freeze Decisions</h2>
+    <span class="tag">DOMAIN_REVIEW.md</span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 24%;">Domain Area</th>
+        <th style="width: 38%;">Agreed Phase 1 Standard</th>
+        <th style="width: 38%;">Operational Reason & Team Impact</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. Track Modeling</strong></td>
+        <td>Retain string <code>track_id</code> (<code>"UP-1"</code>, <code>"DOWN-1"</code>). Attach geographic metadata in data layer.</td>
+        <td><strong>Zero solver breaking changes.</strong> CP-SAT interval scheduling stays fast; UI gets rich section & direction grouping.</td>
+      </tr>
+      <tr>
+        <td><strong>2. Maintenance Categories</strong></td>
+        <td>6 Indian Railways work types: Track Renewal, Tamping, OHE, Signalling, Inspection, Emergency.</td>
+        <td>Matches physical operations, machinery needs, and precedence constraints.</td>
+      </tr>
+      <tr>
+        <td><strong>3. Machinery Constraints</strong></td>
+        <td>Shared heavy machines modeled via <code>mutual_exclusion_group</code> (e.g. <code>BCM_01</code>, <code>CSM_01</code>).</td>
+        <td>Guarantees a machine is never scheduled in two places simultaneously, avoiding solver timeouts.</td>
+      </tr>
+      <tr>
+        <td><strong>4. Train Timetables</strong></td>
+        <td>Modeled as <strong>Discrete Possession Windows</strong> (Night, Midday, Evening slots) over 24h horizon.</td>
+        <td>Solver enforces all scheduled blocks lie strictly within valid possession slots.</td>
+      </tr>
+      <tr>
+        <td><strong>5. Disruption Scenarios</strong></td>
+        <td>4 deterministic disruption triggers: Track Blockage, Emergency Work, Window Curtailment, Machine Breakdown.</td>
+        <td>Enables reproducible <strong>PLAN &rarr; DISRUPT &rarr; RECOVER</strong> demo flow on stage.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer-bar">
+    <span>Pashupatastra — Domain Freeze</span>
+    <span>Slide 4 of 8</span>
+  </div>
+</div>
+
+<!-- SLIDE 5: WORK CATEGORIES & WINDOWS -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>4. Maintenance Work Types & 24-Hour Possession Slots</h2>
+    <span class="tag">Operational Specifications</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">6 WORK CATEGORIES (WorkType)</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Duration</th>
+            <th>Machinery / Gang</th>
+            <th>Priority</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>TRACK_RENEWAL</code></td>
+            <td>180 – 240m</td>
+            <td><code>BCM_MACHINE_01</code></td>
+            <td><span class="badge badge-red">0.85 – 0.95</span></td>
+          </tr>
+          <tr>
+            <td><code>BALLAST_TAMPING</code></td>
+            <td>90 – 150m</td>
+            <td><code>CSM_TAMPER_01</code></td>
+            <td><span class="badge badge-yellow">0.70 – 0.85</span></td>
+          </tr>
+          <tr>
+            <td><code>OHE_MAINTENANCE</code></td>
+            <td>75 – 120m</td>
+            <td><code>TOWER_WAGON_01</code></td>
+            <td><span class="badge badge-blue">0.65 – 0.80</span></td>
+          </tr>
+          <tr>
+            <td><code>SIGNALLING_INTERLOCK</code></td>
+            <td>60 – 120m</td>
+            <td><code>S_T_GANG_01</code></td>
+            <td><span class="badge badge-purple">0.60 – 0.75</span></td>
+          </tr>
+          <tr>
+            <td><code>ROUTINE_INSPECTION</code></td>
+            <td>45 – 90m</td>
+            <td><em>Manual Trolley</em></td>
+            <td><span class="badge badge-green">0.35 – 0.50</span></td>
+          </tr>
+          <tr>
+            <td><code>EMERGENCY_REPAIR</code></td>
+            <td>90 – 150m</td>
+            <td><em>Flying Squad</em></td>
+            <td><span class="badge badge-red">0.95 – 0.99</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card card-highlight">
+      <div class="card-title">24-HOUR POSSESSION WINDOWS (1440 MIN)</div>
+      <ul class="bullet-list" style="font-size: 10pt;">
+        <li>🌙 <strong>Night Traffic Block (00:30 – 05:00 | 0030–0300 min):</strong><br>
+        Heavy track renewals (CTR), ballast cleaning, and tamping.</li>
+        <li style="margin-top: 8px;">☀️ <strong>Midday Maintenance Slot (11:30 – 14:30 | 0690–0870 min):</strong><br>
+        USFD flaw inspection, OHE power blocks, and tower wagon runs.</li>
+        <li style="margin-top: 8px;">🌆 <strong>Evening Off-Peak Slot (21:00 – 23:30 | 1260–1410 min):</strong><br>
+        Signalling point machines and track circuit overhauls.</li>
+        <li style="margin-top: 8px;">⏱️ <strong>Headway Buffer:</strong> 15 minutes safety separation between consecutive blocks on the same track.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <span>Pashupatastra — Operational Rules</span>
+    <span>Slide 5 of 8</span>
+  </div>
+</div>
+
+<!-- SLIDE 6: THE 3 SCENARIOS -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>5. The 3 Synthetic Scenarios Ready in <code>fixtures/</code></h2>
+    <span class="tag">Benchmark Datasets</span>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">SCENARIO A: BASELINE</div>
+      <div style="font-size: 9pt; font-weight: bold; color: #64748b; margin-bottom: 8px;">corridor_a_blocks.json</div>
+      <ul class="bullet-list" style="font-size: 9pt;">
+        <li><strong>Corridor:</strong> 2 Tracks (<code>UP-1</code>, <code>DOWN-1</code>)</li>
+        <li><strong>Candidates:</strong> 12 Blocks</li>
+        <li><strong>Status:</strong> 100% Feasible Schedule</li>
+        <li><strong>Dependencies:</strong> <code>BLK-003</code> (Renewal) &rarr; <code>BLK-004</code> (Tamping)</li>
+        <li><strong>Machines:</strong> BCM & CSM Tamper</li>
+        <li><em>Ready for Tyagi's CP-SAT solver.</em></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">SCENARIO B: DENSE TRUNK</div>
+      <div style="font-size: 9pt; font-weight: bold; color: #64748b; margin-bottom: 8px;">corridor_b_dense.json</div>
+      <ul class="bullet-list" style="font-size: 9pt;">
+        <li><strong>Corridor:</strong> 4 Tracks (<code>UP-1/2</code>, <code>DOWN-1/2</code>)</li>
+        <li><strong>Candidates:</strong> 24 Blocks</li>
+        <li><strong>Saturation:</strong> High-density traffic</li>
+        <li><strong>Machines:</strong> 4 competing machine groups</li>
+        <li><strong>Purpose:</strong> Tests solver trade-offs, priority ranking, and capacity limits.</li>
+      </ul>
+    </div>
+
+    <div class="card card-highlight">
+      <div class="card-title">SCENARIO C: DISRUPTED</div>
+      <div style="font-size: 9pt; font-weight: bold; color: #64748b; margin-bottom: 8px;">corridor_c_disrupted.json</div>
+      <ul class="bullet-list" style="font-size: 9pt;">
+        <li><strong>Corridor:</strong> 2 Tracks | 14 Candidates</li>
+        <li><strong>Committed Blocks:</strong> <code>BLK-001</code> & <code>BLK-002</code> locked on <code>DOWN-1</code> (01:00-03:15)</li>
+        <li><strong>Disruption:</strong> <code>TRACK_UNAVAILABLE</code> on <code>UP-1</code> (02:00-05:00)</li>
+        <li><em>Ready for Tirth's recovery demo.</em></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <span>Pashupatastra — Generated Scenarios</span>
+    <span>Slide 6 of 8</span>
+  </div>
+</div>
+
+<!-- SLIDE 7: TEAM HANDOVER -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>6. Exact Handover for Each Teammate</h2>
+    <span class="tag">Team Integration</span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 18%;">Teammate</th>
+        <th style="width: 25%;">Workstream & Branch</th>
+        <th style="width: 57%;">What Darshini Has Prepared for You</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Aryan</strong></td>
+        <td>Backend & Integration (<code>feature/backend-api</code>)</td>
+        <td><code>DOMAIN_REVIEW.md</code> complete; shared schemas in <code>contracts/schemas.py</code> locked for FastAPI integration.</td>
+      </tr>
+      <tr>
+        <td><strong>Tyagi</strong></td>
+        <td>CP-SAT Optimizer (<code>feature/optimizer</code>)</td>
+        <td>Use <code>corridor_a_blocks.json</code> to test baseline solve; machine exclusion groups & headway buffers active.</td>
+      </tr>
+      <tr>
+        <td><strong>Ayush</strong></td>
+        <td>ML Risk Scorer (<code>feature/ml-scorer</code>)</td>
+        <td><code>backend/app/data/models.py</code> provides <code>Asset</code> with <code>criticality</code>, <code>condition_score</code>, and <code>defect_severity</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>Tirth</strong></td>
+        <td>Simulation (<code>feature/simulation</code>)</td>
+        <td><code>corridor_c_disrupted.json</code> has 2 pre-committed blocks ready for your <code>TRACK_UNAVAILABLE</code> test.</td>
+      </tr>
+      <tr>
+        <td><strong>Archit</strong></td>
+        <td>Frontend (<code>feature/frontend</code>)</td>
+        <td>Load <code>corridor_a_blocks.json</code> directly into React to render the Corridor Timeline UI immediately.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer-bar">
+    <span>Pashupatastra — Team Handover</span>
+    <span>Slide 7 of 8</span>
+  </div>
+</div>
+
+<!-- SLIDE 8: TEST RESULTS -->
+<div class="slide">
+  <div class="slide-header">
+    <h2>7. Automated Verification & Delivery Proof</h2>
+    <span class="tag">Test Suite Results</span>
+  </div>
+
+  <div class="grid-2">
+    <div class="card card-highlight">
+      <div class="card-title">10/10 UNIT TESTS PASSED (0.049s)</div>
+      <ul class="bullet-list" style="color: #166534; font-weight: 600; font-size: 10pt;">
+        <li>✓ <code>test_seed_reproducibility</code></li>
+        <li>✓ <code>test_different_seeds_produce_variation</code></li>
+        <li>✓ <code>test_track_assignment_validity</code></li>
+        <li>✓ <code>test_time_window_consistency</code></li>
+        <li>✓ <code>test_dependency_integrity</code></li>
+        <li>✓ <code>test_work_types_are_valid_enums</code></li>
+        <li>✓ <code>test_score_boundaries [0.0, 1.0]</code></li>
+        <li>✓ <code>test_scenario_b_dense_properties</code></li>
+        <li>✓ <code>test_scenario_c_committed_blocks</code></li>
+        <li>✓ <code>test_json_fixtures_validity</code></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">HOW TO RUN GENERATOR & TESTS</div>
+      <p><strong>Run Interactive CLI:</strong></p>
+      <code>python generate_data.py --scenario A</code><br>
+      <code>python generate_data.py --scenario B</code><br>
+      <code>python generate_data.py --scenario C</code>
+      <p style="margin-top: 12px;"><strong>Run Automated Test Suite:</strong></p>
+      <code>python -m unittest discover -s backend/tests -v</code>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <span>Pashupatastra — Ready for Domain Freeze</span>
+    <span>Slide 8 of 8</span>
+  </div>
+</div>
+
+</body>
+</html>

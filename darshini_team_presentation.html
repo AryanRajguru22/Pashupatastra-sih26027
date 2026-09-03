@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pashupatastra — Darshini Team Presentation Package</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 14mm 14mm 14mm 14mm;
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 8pt;
+      color: #64748b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', Helvetica, Arial, sans-serif;
+    color: #0f172a;
+    line-height: 1.45;
+    font-size: 9.5pt;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Hero Banner */
+  .cover-card {
+    background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+    color: #ffffff;
+    padding: 18px 22px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .cover-card h1 {
+    font-size: 20pt;
+    margin: 0 0 4px 0;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #60a5fa;
+  }
+  .cover-card .subtitle {
+    font-size: 11pt;
+    color: #e2e8f0;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .cover-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 8.5pt;
+  }
+
+  h2 {
+    color: #1e3a8a;
+    font-size: 12pt;
+    border-bottom: 2px solid #3b82f6;
+    padding-bottom: 3px;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    page-break-after: avoid;
+  }
+  h3 {
+    color: #1e293b;
+    font-size: 10pt;
+    margin-top: 12px;
+    margin-bottom: 4px;
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 6px 0; }
+
+  /* Flow chart */
+  .pipeline-box {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    text-align: center;
+    font-size: 8pt;
+  }
+  .pipe-step {
+    flex: 1;
+    padding: 6px 4px;
+    margin: 0 3px;
+    border-radius: 5px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+  }
+  .pipe-active {
+    background: #eff6ff;
+    border: 1.5px solid #2563eb;
+    font-weight: bold;
+    color: #1e40af;
+  }
+  .pipe-title { font-weight: bold; margin-bottom: 2px; }
+  .pipe-owner { color: #64748b; font-size: 7.5pt; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0 12px 0;
+    font-size: 8pt;
+    page-break-inside: avoid;
+  }
+  th {
+    background: #1e3a8a;
+    color: #ffffff;
+    font-weight: 600;
+    text-align: left;
+    padding: 5px 6px;
+    border: 1px solid #1e3a8a;
+  }
+  td {
+    padding: 4px 6px;
+    border: 1px solid #cbd5e1;
+  }
+  tr:nth-child(even) td { background: #f8fafc; }
+
+  /* Badges */
+  .badge {
+    display: inline-block;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 7pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-yellow { background: #fef3c7; color: #92400e; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-purple { background: #f3e8ff; color: #6b21a8; }
+
+  .callout {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 8px 12px;
+    margin: 8px 0;
+    font-size: 8.5pt;
+    border-radius: 0 4px 4px 0;
+  }
+  .page-break { page-break-before: always; }
+  code {
+    background: #f1f5f9;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: Consolas, monospace;
+    font-size: 8pt;
+    color: #0f172a;
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO HEADER -->
+<div class="cover-card">
+  <h1>🚆 PASHUPATASTRA — TEAM PRESENTATION</h1>
+  <div class="subtitle">AI-Assisted Railway Maintenance Scheduling & Disruption Recovery</div>
+  <div class="cover-grid">
+    <div><strong>Workstream:</strong> Railway Domain Modeling & Synthetic Data</div>
+    <div><strong>Presenter / Owner:</strong> Darshini (<code>feature/domain-data</code>)</div>
+    <div><strong>Deliverable:</strong> Phase 1 Domain Review & Master Railway Datasets</div>
+    <div><strong>Target:</strong> Smart India Hackathon 2026 — Domain Freeze</div>
+  </div>
+</div>
+
+<!-- PIPELINE -->
+<div class="pipeline-box">
+  <div class="pipe-step pipe-active">
+    <div class="pipe-title">1. Domain & Data</div>
+    <div class="pipe-owner">Darshini (You)</div>
+  </div>
+  <div class="pipe-step">
+    <div class="pipe-title">2. ML Risk Scorer</div>
+    <div class="pipe-owner">Ayush</div>
+  </div>
+  <div class="pipe-step">
+    <div class="pipe-title">3. CP-SAT Solver</div>
+    <div class="pipe-owner">Tyagi</div>
+  </div>
+  <div class="pipe-step">
+    <div class="pipe-title">4. FastAPI Backend</div>
+    <div class="pipe-owner">Aryan</div>
+  </div>
+  <div class="pipe-step">
+    <div class="pipe-title">5. Operations UI</div>
+    <div class="pipe-owner">Archit</div>
+  </div>
+  <div class="pipe-step">
+    <div class="pipe-title">6. Disruption Sim</div>
+    <div class="pipe-owner">Tirth</div>
+  </div>
+</div>
+
+<h2>1. Domain Decisions for Team Freeze (Summary for Aryan & Tyagi)</h2>
+<div class="callout">
+  <strong>Key Rule:</strong> Zero breaking changes for the CP-SAT solver. <code>track_id: str</code> is preserved while rich Indian Railways metadata is structured in the data layer.
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 22%;">Domain Dimension</th>
+      <th style="width: 38%;">Agreed Phase 1 Standard</th>
+      <th style="width: 40%;">Impact on Teammates</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Track Representation</strong></td>
+      <td>String <code>track_id</code> (<code>"UP-1"</code>, <code>"DOWN-1"</code>) + Geographic metadata dictionary (corridor, direction, km start/end, speed limit).</td>
+      <td><strong>Tyagi (Solver):</strong> No constraint changes.<br><strong>Archit (UI):</strong> Groups tracks by UP/DOWN.</td>
+    </tr>
+    <tr>
+      <td><strong>Work Categories</strong></td>
+      <td>6 Indian Railways maintenance categories (Renewals, Tamping, OHE, Signalling, Inspection, Emergency).</td>
+      <td><strong>Ayush (Scorer):</strong> Computes distinct risk profiles.<br><strong>Tyagi:</strong> Realistic durations.</td>
+    </tr>
+    <tr>
+      <td><strong>Machinery & Resources</strong></td>
+      <td>Model shared heavy machines via <code>mutual_exclusion_group</code> (e.g. <code>BCM_01</code>, <code>CSM_01</code>) rather than crew rostering.</td>
+      <td>Prevents CP-SAT solver timeouts and artificial infeasibility during live demo.</td>
+    </tr>
+    <tr>
+      <td><strong>Train Timetable</strong></td>
+      <td>Train traffic modeled as <strong>Discrete Possession Windows</strong> per track (Night, Midday, Evening slots).</td>
+      <td>Solver enforces: <code>start >= window.start</code> and <code>end <= window.end</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Disruption Scenarios</strong></td>
+      <td>4 deterministic disruption triggers (Track Unavailable, Emergency Injection, Possession Shortened, Machine Breakdown).</td>
+      <td><strong>Tirth (Simulation):</strong> Drives repeatable PLAN &rarr; DISRUPT &rarr; RECOVER demo flow.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>2. Indian Railways Corridor Master Data</h2>
+
+<h3>Track Layout (New Delhi – Ghaziabad Section, 40 KM)</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Track ID</th>
+      <th>Direction</th>
+      <th>Line Type</th>
+      <th>Speed Limit</th>
+      <th>Traction</th>
+      <th>Daily Density</th>
+      <th>Headway Buffer</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>UP-1</code></td>
+      <td>UP (To Delhi)</td>
+      <td>Up Main Line (Passenger & Express)</td>
+      <td>130 km/h</td>
+      <td>25kV AC</td>
+      <td>85 trains/day</td>
+      <td>15 min</td>
+    </tr>
+    <tr>
+      <td><code>DOWN-1</code></td>
+      <td>DOWN (From Delhi)</td>
+      <td>Down Main Line (Passenger & Express)</td>
+      <td>130 km/h</td>
+      <td>25kV AC</td>
+      <td>90 trains/day</td>
+      <td>15 min</td>
+    </tr>
+    <tr>
+      <td><code>UP-2</code></td>
+      <td>UP (To Delhi)</td>
+      <td>Up Loop / Freight Line</td>
+      <td>100 km/h</td>
+      <td>25kV AC</td>
+      <td>45 trains/day</td>
+      <td>15 min</td>
+    </tr>
+    <tr>
+      <td><code>DOWN-2</code></td>
+      <td>DOWN (From Delhi)</td>
+      <td>Down Loop / Freight Line</td>
+      <td>100 km/h</td>
+      <td>25kV AC</td>
+      <td>50 trains/day</td>
+      <td>15 min</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Operational Possession Windows (24-Hour Horizon = 1440 Minutes)</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Window ID</th>
+      <th>Track</th>
+      <th>Window Type</th>
+      <th>Clock Time</th>
+      <th>Minute Timeline</th>
+      <th>Allocated Maintenance Work</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>POS-UP1-NIGHT</code></td>
+      <td><code>UP-1</code></td>
+      <td>NIGHT_TRAFFIC_BLOCK</td>
+      <td>00:30 – 05:00</td>
+      <td><strong>0030 – 0300</strong> (270 min)</td>
+      <td>Heavy Track Renewal (CTR) & Ballast Tamping</td>
+    </tr>
+    <tr>
+      <td><code>POS-UP1-MIDDAY</code></td>
+      <td><code>UP-1</code></td>
+      <td>MIDDAY_MAINTENANCE</td>
+      <td>11:30 – 14:30</td>
+      <td><strong>0690 – 0870</strong> (180 min)</td>
+      <td>USFD Inspection & OHE Isolations</td>
+    </tr>
+    <tr>
+      <td><code>POS-UP1-EVENING</code></td>
+      <td><code>UP-1</code></td>
+      <td>EVENING_OFF_PEAK</td>
+      <td>21:00 – 23:30</td>
+      <td><strong>1260 – 1410</strong> (150 min)</td>
+      <td>Point Machines & Signalling Interlocking</td>
+    </tr>
+    <tr>
+      <td><code>POS-DN1-NIGHT</code></td>
+      <td><code>DOWN-1</code></td>
+      <td>NIGHT_TRAFFIC_BLOCK</td>
+      <td>00:30 – 05:00</td>
+      <td><strong>0030 – 0300</strong> (270 min)</td>
+      <td>Heavy Track Renewal (CTR) & Ballast Tamping</td>
+    </tr>
+    <tr>
+      <td><code>POS-DN1-MIDDAY</code></td>
+      <td><code>DOWN-1</code></td>
+      <td>MIDDAY_MAINTENANCE</td>
+      <td>11:30 – 14:30</td>
+      <td><strong>0690 – 0870</strong> (180 min)</td>
+      <td>USFD Inspection & OHE Isolations</td>
+    </tr>
+    <tr>
+      <td><code>POS-DN1-EVENING</code></td>
+      <td><code>DOWN-1</code></td>
+      <td>EVENING_OFF_PEAK</td>
+      <td>21:00 – 23:30</td>
+      <td><strong>1260 – 1410</strong> (150 min)</td>
+      <td>Point Machines & Signalling Interlocking</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>3. Scenario A: Baseline Mainline Dataset (<code>corridor_a_blocks.json</code>)</h2>
+<p><strong>Corridor:</strong> <code>CORRIDOR_A</code> | <strong>Tracks:</strong> <code>UP-1</code>, <code>DOWN-1</code> | <strong>Candidates:</strong> 12 Blocks | <strong>Clean Feasible Solution</strong></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Block ID</th>
+      <th>Track</th>
+      <th>Asset ID</th>
+      <th>Work Category</th>
+      <th>Dur</th>
+      <th>Pri</th>
+      <th>Risk</th>
+      <th>Time Window (Clock)</th>
+      <th>Machine Group</th>
+      <th>Precedence</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>BLK-001</code></td>
+      <td><code>DOWN-1</code></td>
+      <td><code>AST-DN-OHE-013</code></td>
+      <td><code>OHE_MAINTENANCE</code></td>
+      <td>120 min</td>
+      <td><span class="badge badge-yellow">0.79</span></td>
+      <td>0.63</td>
+      <td>11:00 – 15:30 (0660-0930)</td>
+      <td><code>TOWER_WAGON_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-002</code></td>
+      <td><code>DOWN-1</code></td>
+      <td><code>AST-DN-RAI-015</code></td>
+      <td><code>BALLAST_TAMPING</code></td>
+      <td>105 min</td>
+      <td><span class="badge badge-blue">0.50</span></td>
+      <td>0.50</td>
+      <td>00:30 – 06:00 (0030-0360)</td>
+      <td><code>CSM_TAMPER_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-003</code></td>
+      <td><code>DOWN-1</code></td>
+      <td><code>AST-DN-RAI-014</code></td>
+      <td><code>TRACK_RENEWAL</code></td>
+      <td>210 min</td>
+      <td><span class="badge badge-yellow">0.59</span></td>
+      <td>0.66</td>
+      <td>00:30 – 06:00 (0030-0360)</td>
+      <td><code>BCM_MACHINE_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-004</code></td>
+      <td><code>DOWN-1</code></td>
+      <td><code>AST-DN-RAI-009</code></td>
+      <td><code>BALLAST_TAMPING</code></td>
+      <td>150 min</td>
+      <td><span class="badge badge-yellow">0.59</span></td>
+      <td>0.59</td>
+      <td>04:00 – 07:30 (0240-0450)</td>
+      <td><code>CSM_TAMPER_01</code></td>
+      <td><code>BLK-003</code> 🔗</td>
+    </tr>
+    <tr>
+      <td><code>BLK-005</code></td>
+      <td><code>UP-1</code></td>
+      <td><code>AST-UP-OHE-004</code></td>
+      <td><code>OHE_MAINTENANCE</code></td>
+      <td>75 min</td>
+      <td><span class="badge badge-blue">0.56</span></td>
+      <td>0.52</td>
+      <td>00:30 – 23:30 (0030-1410)</td>
+      <td><code>TOWER_WAGON_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-006</code></td>
+      <td><code>DOWN-1</code></td>
+      <td><code>AST-DN-OHE-016</code></td>
+      <td><code>OHE_MAINTENANCE</code></td>
+      <td>120 min</td>
+      <td><span class="badge badge-blue">0.54</span></td>
+      <td>0.49</td>
+      <td>00:30 – 23:30 (0030-1410)</td>
+      <td><code>TOWER_WAGON_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-007</code></td>
+      <td><code>DOWN-1</code></td>
+      <td><code>AST-DN-OHE-011</code></td>
+      <td><code>OHE_MAINTENANCE</code></td>
+      <td>120 min</td>
+      <td><span class="badge badge-yellow">0.79</span></td>
+      <td>0.53</td>
+      <td>11:00 – 15:30 (0660-0930)</td>
+      <td><code>TOWER_WAGON_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-008</code></td>
+      <td><code>UP-1</code></td>
+      <td><code>AST-UP-RAI-001</code></td>
+      <td><code>TRACK_RENEWAL</code></td>
+      <td>210 min</td>
+      <td><span class="badge badge-red">0.78</span></td>
+      <td>0.77</td>
+      <td>00:30 – 06:00 (0030-0360)</td>
+      <td><code>BCM_MACHINE_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-009</code></td>
+      <td><code>UP-1</code></td>
+      <td><code>AST-UP-TUR-007</code></td>
+      <td><code>SIGNALLING_INTERLOCK</code></td>
+      <td>105 min</td>
+      <td><span class="badge badge-green">0.42</span></td>
+      <td>0.44</td>
+      <td>00:30 – 23:30 (0030-1410)</td>
+      <td><code>S_T_GANG_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-010</code></td>
+      <td><code>UP-1</code></td>
+      <td><code>AST-UP-RAI-008</code></td>
+      <td><code>ROUTINE_INSPECTION</code></td>
+      <td>45 min</td>
+      <td><span class="badge badge-green">0.42</span></td>
+      <td>0.46</td>
+      <td>11:00 – 15:30 (0660-0930)</td>
+      <td>—</td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-011</code></td>
+      <td><code>UP-1</code></td>
+      <td><code>AST-UP-SIG-002</code></td>
+      <td><code>SIGNALLING_INTERLOCK</code></td>
+      <td>75 min</td>
+      <td><span class="badge badge-yellow">0.65</span></td>
+      <td>0.59</td>
+      <td>00:30 – 23:30 (0030-1410)</td>
+      <td><code>S_T_GANG_01</code></td>
+      <td>—</td>
+    </tr>
+    <tr>
+      <td><code>BLK-012</code></td>
+      <td><code>UP-1</code></td>
+      <td><code>AST-UP-TUR-006</code></td>
+      <td><code>SIGNALLING_INTERLOCK</code></td>
+      <td>75 min</td>
+      <td><span class="badge badge-blue">0.57</span></td>
+      <td>0.50</td>
+      <td>00:30 – 23:30 (0030-1410)</td>
+      <td><code>S_T_GANG_01</code></td>
+      <td>—</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>4. Scenario B & Scenario C Overview</h2>
+
+<h3>Scenario B: Dense Quadruple Corridor (<code>corridor_b_dense.json</code>)</h3>
+<p>
+<strong>Corridor:</strong> <code>CORRIDOR_B_DENSE</code> | <strong>Tracks:</strong> <code>UP-1</code>, <code>UP-2</code>, <code>DOWN-1</code>, <code>DOWN-2</code> | <strong>Candidates:</strong> 24 Blocks<br>
+<strong>Purpose:</strong> Simulates high-density trunk routes (New Delhi – Kanpur). 4 heavy machine groups competing across 4 tracks with strict headway buffers, testing CP-SAT objective trade-offs and capacity limits.
+</p>
+
+<h3>Scenario C: Disruption & Recovery Testbed (<code>corridor_c_disrupted.json</code>)</h3>
+<p>
+<strong>Corridor:</strong> <code>CORRIDOR_C_DISRUPTED</code> | <strong>Tracks:</strong> <code>UP-1</code>, <code>DOWN-1</code> | <strong>Candidates:</strong> 14 Blocks<br>
+<strong>Pre-Committed Blocks (Locked):</strong><br>
+&bull; <code>BLK-001</code>: <code>DOWN-1</code>, 01:00 – 03:00 (0060–0180 min), <strong>COMMITTED</strong> (Cannot be moved).<br>
+&bull; <code>BLK-002</code>: <code>DOWN-1</code>, 01:30 – 03:15 (0090–0195 min), <strong>COMMITTED</strong> (Cannot be moved).<br>
+<strong>Disruption Event:</strong> <code>TRACK_UNAVAILABLE</code> on <code>UP-1</code> from 02:00 to 05:00. Tirth's simulation will verify that Tyagi's optimizer re-routes unaffected blocks while protecting <code>BLK-001</code> & <code>BLK-002</code>.
+</p>
+
+<h2>5. Automated Test Results & Deliverable Locations</h2>
+<div class="callout">
+  <strong>Test Execution Result:</strong> <code>10/10 Unit Tests Passed in 0.049s</code> (Seed reproducibility, schema validity, duration validity, dependency integrity, fixture loading).
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Deliverable</th>
+      <th>File Path</th>
+      <th>Primary Downstream Consumer</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Domain Review Doc</strong></td>
+      <td><code>DOMAIN_REVIEW.md</code></td>
+      <td>Whole Team (Aryan, Tyagi, Ayush, Tirth, Archit)</td>
+    </tr>
+    <tr>
+      <td><strong>Domain Models</strong></td>
+      <td><code>backend/app/data/models.py</code></td>
+      <td>Ayush (ML Scorer) & Aryan (API)</td>
+    </tr>
+    <tr>
+      <td><strong>Synthetic Generator</strong></td>
+      <td><code>backend/app/data/generator.py</code></td>
+      <td>Tyagi (Optimizer) & Tirth (Simulation)</td>
+    </tr>
+    <tr>
+      <td><strong>JSON Fixtures</strong></td>
+      <td><code>backend/app/data/fixtures/*.json</code></td>
+      <td>Archit (Frontend Dashboard) & Tyagi</td>
+    </tr>
+    <tr>
+      <td><strong>Unit Tests</strong></td>
+      <td><code>backend/tests/test_generator.py</code></td>
+      <td>Continuous Integration / CI Validation</td>
+    </tr>
+  </tbody>
+</table>
+
+</body>
+</html>

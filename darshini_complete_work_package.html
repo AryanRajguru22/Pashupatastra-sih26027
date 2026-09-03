@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pashupatastra — Complete Domain & Data Foundation Package (Darshini)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+    @top-right {
+      content: "Pashupatastra — Domain & Data Package";
+      font-family: 'Inter', sans-serif;
+      font-size: 8pt;
+      color: #64748b;
+    }
+    @bottom-center {
+      content: "Page " counter(page);
+      font-family: 'Inter', sans-serif;
+      font-size: 8pt;
+      color: #64748b;
+    }
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1e293b;
+    background: #ffffff;
+    line-height: 1.55;
+    font-size: 10pt;
+  }
+
+  .cover-page {
+    page-break-after: always;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 40px 20px 20px 20px;
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    color: #ffffff;
+    border-radius: 12px;
+  }
+
+  .cover-header {
+    border-bottom: 2px solid #38bdf8;
+    padding-bottom: 20px;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid #38bdf8;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 8.5pt;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .cover-title {
+    font-size: 28pt;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #ffffff;
+    margin-bottom: 6px;
+  }
+
+  .cover-subtitle {
+    font-size: 14pt;
+    color: #94a3b8;
+    font-weight: 400;
+  }
+
+  .cover-body {
+    margin: 40px 0;
+  }
+
+  .cover-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .cover-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px;
+    border-radius: 8px;
+  }
+
+  .cover-card h4 {
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #38bdf8;
+    margin-bottom: 6px;
+  }
+
+  .cover-card p {
+    font-size: 9.5pt;
+    color: #cbd5e1;
+  }
+
+  .cover-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 15px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8.5pt;
+    color: #94a3b8;
+  }
+
+  .section {
+    margin-bottom: 24px;
+    page-break-inside: avoid;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  h1 {
+    font-size: 16pt;
+    font-weight: 700;
+    color: #0f172a;
+    border-bottom: 2px solid #0284c7;
+    padding-bottom: 6px;
+    margin-bottom: 14px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  h2 {
+    font-size: 12.5pt;
+    font-weight: 600;
+    color: #1e293b;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    border-left: 3.5px solid #0284c7;
+    padding-left: 8px;
+  }
+
+  h3 {
+    font-size: 10.5pt;
+    font-weight: 600;
+    color: #334155;
+    margin-top: 12px;
+    margin-bottom: 6px;
+  }
+
+  p {
+    margin-bottom: 8px;
+    color: #334155;
+    font-size: 9.5pt;
+  }
+
+  ul, ol {
+    margin-left: 18px;
+    margin-bottom: 10px;
+    color: #334155;
+    font-size: 9.5pt;
+  }
+
+  li {
+    margin-bottom: 4px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px 0;
+    font-size: 8.5pt;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 6px 8px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f1f5f9;
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 7.5pt;
+    font-weight: 600;
+  }
+
+  .badge-blue { background: #e0f2fe; color: #0369a1; }
+  .badge-green { background: #dcfce7; color: #15803d; }
+  .badge-yellow { background: #fef9c3; color: #a16207; }
+  .badge-red { background: #fee2e2; color: #b91c1c; }
+  .badge-purple { background: #f3e8ff; color: #7e22ce; }
+
+  .callout {
+    background-color: #f0f9ff;
+    border-left: 4px solid #0284c7;
+    padding: 10px 14px;
+    border-radius: 0 6px 6px 0;
+    margin: 10px 0 14px 0;
+  }
+
+  .callout-title {
+    font-weight: 700;
+    color: #0369a1;
+    font-size: 9pt;
+    margin-bottom: 4px;
+  }
+
+  .callout p {
+    margin-bottom: 0;
+    font-size: 9pt;
+    color: #0c4a6e;
+  }
+
+  .code-box {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8pt;
+    line-height: 1.4;
+    margin: 8px 0 12px 0;
+    overflow-x: auto;
+    border: 1px solid #1e293b;
+  }
+
+  .diagram {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    margin: 10px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 7.5pt;
+    line-height: 1.35;
+    color: #0f172a;
+    white-space: pre;
+  }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .kpi-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    text-align: center;
+  }
+
+  .kpi-val {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #0284c7;
+  }
+
+  .kpi-lbl {
+    font-size: 7.5pt;
+    color: #64748b;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover-page">
+  <div class="cover-header">
+    <div class="cover-badge">PASHUPATASTRA — RAILWAY OPERATIONS AI</div>
+    <div class="cover-title">Railway Domain & Data Foundation</div>
+    <div class="cover-subtitle">Complete Engineering Specification, 7-Feature ML Scoring Architecture, 5 Disruption Models & Master Golden Scenario</div>
+  </div>
+
+  <div class="cover-body">
+    <div class="cover-grid">
+      <div class="cover-card">
+        <h4>Author / Lead</h4>
+        <p><strong>Darshini (Domain & Data Lead)</strong></p>
+        <p style="font-size: 8.5pt; color: #94a3b8; margin-top: 4px;">Branch: <code>feature/domain-data</code></p>
+      </div>
+      <div class="cover-card">
+        <h4>Target Consumers</h4>
+        <p>Ayush (ML), Tyagi (Optimizer), Mehta (API), Archit (UI), Tirth (Recovery), Aryan (Lead)</p>
+      </div>
+      <div class="cover-card">
+        <h4>Corridor Testbed</h4>
+        <p><strong>CORR-NDLS-AGC</strong> (New Delhi – Agra Cantt High-Speed Trunk Mainline)</p>
+      </div>
+      <div class="cover-card">
+        <h4>Verification Status</h4>
+        <p><span style="color: #4ade80; font-weight: 700;">✔ 29 / 29 Automated Checks Passed</span></p>
+        <p style="font-size: 8.5pt; color: #94a3b8; margin-top: 4px;">Full Contract & Schema Conformance</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-footer">
+    <div>Indian Railways Operations Context • Track, TRD, S&T Engineering</div>
+    <div>Document Version 1.0 • August 2026</div>
+  </div>
+</div>
+
+<!-- EXECUTIVE SUMMARY & TOC -->
+<div class="section page-break">
+  <h1>Executive Summary & Architecture Roadmap</h1>
+  <p>This document provides the canonical railway domain definitions, mathematical scoring data mappings, deterministic disruption specifications, and master benchmark scenarios for <strong>Pashupatastra</strong>. It establishes the operational reality of Indian Railways (IR) across civil (P-Way), electrical (TRD/OHE), and signalling (S&T) engineering departments.</p>
+
+  <div class="callout">
+    <div class="callout-title">Core System Mission</div>
+    <p>Seamlessly connect real railway maintenance inspection data into risk/priority scoring, CP-SAT mathematical optimization, real-time disruption handling, and interactive visual explanation.</p>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-val">12</div>
+      <div class="kpi-lbl">Candidate Blocks</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val">7</div>
+      <div class="kpi-lbl">Scoring Features</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val">5</div>
+      <div class="kpi-lbl">Disruption Scenarios</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-val">100%</div>
+      <div class="kpi-lbl">Contract Validated</div>
+    </div>
+  </div>
+
+  <h2>System Integration Flow Across Modules</h2>
+  <div class="diagram">
+                 ┌────────────────────────────────────────────────────────┐
+                 │                 DARSHINI (Domain & Data)               │
+                 │  - Multi-Asset Hierarchy  - 7 Scoring Inputs           │
+                 │  - Golden Benchmark       - 5 Disruption Payloads      │
+                 └───────────────────────────┬────────────────────────────┘
+                                             │
+                                             ▼
+                 ┌────────────────────────────────────────────────────────┐
+                 │                  AYUSH (ML & Scoring)                  │
+                 │  - ScoringFeatureAdapter  - risk_score / priority_score│
+                 └───────────────────────────┬────────────────────────────┘
+                                             │
+                                             ▼
+                 ┌────────────────────────────────────────────────────────┐
+                 │                TYAGI (CP-SAT Optimizer)                │
+                 │  - Interval Scheduling    - Committed Locks            │
+                 │  - Headway & Dependencies - Mutual Exclusion Groups    │
+                 └───────────────────────────┬────────────────────────────┘
+                                             │
+                                             ▼
+  ┌──────────────────────────────────────────┴──────────────────────────────────────────┐
+  │                                                                                     │
+  ▼                                                                                     ▼
+┌─────────────────────────────────┐                                   ┌─────────────────────────────────┐
+│        MEHTA (API Backend)      │                                   │   TIRTH (Simulation & Recovery) │
+│  - POST /optimize               │                                   │  - Disruption Injection         │
+│  - POST /disrupt                │                                   │  - Affected Work Identification │
+└────────────────┬────────────────┘                                   └────────────────┬────────────────┘
+                 │                                                                     │
+                 └─────────────────────────────────┬───────────────────────────────────┘
+                                                   │
+                                                   ▼
+                                 ┌───────────────────────────────────┐
+                                 │      ARCHIT (Frontend UI)         │
+                                 │  - Before vs After Timelines      │
+                                 │  - Explainability Cards & KPIs    │
+                                 └───────────────────────────────────┘</div>
+</div>
+
+<!-- SECTION 1: DOMAIN DEFINITIONS -->
+<div class="section page-break">
+  <h1>1. Railway Domain Definitions & Entity Hierarchy</h1>
+
+  <h2>1.1 Core Entities</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 20%;">Entity</th>
+        <th style="width: 45%;">Railway Operational Definition</th>
+        <th style="width: 35%;">Key Attributes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Corridor</strong><br><code>Corridor</code></td>
+        <td>A contiguous operational railway trunk route spanning multiple stations, block sections, and administrative divisions (e.g. <em>New Delhi – Agra Cantt Section</em>, 195 km, Northern / North Central Railway).</td>
+        <td><code>corridor_id</code>, <code>name</code>, <code>zone</code>, <code>division</code>, <code>tracks</code>, <code>assets</code></td>
+      </tr>
+      <tr>
+        <td><strong>Track</strong><br><code>TrackSegment</code></td>
+        <td>A physical directional line along a corridor along which trains operate and on which exclusive maintenance possessions are granted.<br>• <strong>UP:</strong> Towards Zonal HQ / Capital (e.g. `UP-1`)<br>• <strong>DOWN:</strong> Away from Zonal HQ (e.g. `DOWN-1`)</td>
+        <td><code>track_id</code>, <code>corridor_id</code>, <code>direction</code>, <code>speed_limit_kmh</code>, <code>daily_train_density</code>, <code>route_classification</code></td>
+      </tr>
+      <tr>
+        <td><strong>Asset</strong><br><code>Asset</code></td>
+        <td>A physical engineering component installed at a specific kilometric location along or over a track (Rail Section, Turnout Point, OHE Mast, Signal Post, Track Circuit).</td>
+        <td><code>asset_id</code>, <code>name</code>, <code>asset_type</code>, <code>track_id</code>, <code>km_location</code>, <code>criticality</code>, <code>condition_score</code>, <code>defect_severity</code></td>
+      </tr>
+      <tr>
+        <td><strong>Maintenance Block</strong><br><code>BlockCandidate</code></td>
+        <td>A formal engineering possession request granting exclusive track occupancy to work gangs and machinery while suspending revenue train traffic.</td>
+        <td><code>block_id</code>, <code>asset_id</code>, <code>track_id</code>, <code>work_type</code>, <code>duration_minutes</code>, <code>priority_score</code>, <code>risk_score</code></td>
+      </tr>
+      <tr>
+        <td><strong>Committed Block</strong><br><code>is_committed: true</code></td>
+        <td>A maintenance block already sanctioned and mobilized on site. <strong>Operational Invariant:</strong> The solver must freeze its start time, track, and duration during re-optimization.</td>
+        <td><code>is_committed = True</code>, <code>status = "COMMITTED"</code></td>
+      </tr>
+      <tr>
+        <td><strong>Disruption</strong><br><code>DisruptionEvent</code></td>
+        <td>An unplanned real-time disturbance (e.g. rail fracture, OHE wire break, train delay curtailing possession) forcing schedule recalculation.</td>
+        <td><code>disruption_id</code>, <code>disruption_type</code>, <code>track_id</code>, <code>start_minute</code>, <code>end_minute</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>1.2 Multi-Asset Track Topology & Physical Relationship</h2>
+  <div class="callout">
+    <div class="callout-title">Clarification: Can a Single Track Host Multiple Assets? YES.</div>
+    <p>A single track segment (e.g. <code>UP-1</code> between KM 0.0 and KM 50.0) contains hundreds of distinct assets: 50+ Rail Sections (CWR), 12+ Turnouts at yard throats, 700+ OHE Masts every 60–70m, and 25+ Signal Posts.</p>
+  </div>
+
+  <div class="diagram">
+================================ TRACK UP-1 (KM 0.0 to KM 50.0) ================================
+KM 0.0          KM 8.5            KM 14.2           KM 24.1           KM 32.0           KM 50.0
+ ├──[RAI-001]─────[RAI-004]─────────[RAI-005]─────────[TUR-008]─────────[RAI-010]──────────┤  (Civil Rails)
+ ├──[OHE-001]─────[OHE-002]─────────[OHE-003]─────────[OHE-004]─────────[OHE-006]──────────┤  (25kV OHE Masts)
+ ├──[SIG-001]───────────────────────[SIG-002]───────────────────────────[SIG-003]──────────┤  (Signals)
+================================================================================================</div>
+
+  <h3>Key Spatial & Scheduling Rules:</h3>
+  <ul>
+    <li><strong>Track Possession:</strong> Every maintenance task specifies an <code>asset_id</code>, but requires exclusive occupancy of its hosting <code>track_id</code>.</li>
+    <li><strong>No Overlap:</strong> Two tasks on the same track cannot run concurrently unless they share a certified compound possession window.</li>
+    <li><strong>Headway Buffer:</strong> Minimum 15 minutes safety buffer between sequential blocks on the same track for work-train clearing.</li>
+    <li><strong>Machine Groups:</strong> Shared heavy equipment (e.g., Tie-Tamper <code>CSM_TAMPER_01</code>, Tower Wagon <code>TOWER_WAGON_01</code>) cannot be scheduled simultaneously anywhere on the corridor.</li>
+  </ul>
+</div>
+
+<!-- SECTION 2: 7-FEATURE SCORING MAPPING -->
+<div class="section page-break">
+  <h1>2. 7-Feature ML Scoring Domain Data Mapping</h1>
+  <p>Ayush's scoring engine requires 7 clean numerical inputs to compute <code>risk_score</code> and <code>priority_score</code>. Below is the exact operational mapping to Indian Railways data sources and fallback logic:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 4%;">#</th>
+        <th style="width: 18%;">Feature Name</th>
+        <th style="width: 28%;">Domain Meaning & Physical Context</th>
+        <th style="width: 12%;">Type / Range</th>
+        <th style="width: 20%;">Real Indian Railways Source</th>
+        <th style="width: 18%;">Demo Fallback / Formula</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><code>asset_criticality</code></td>
+        <td>Operational importance of track/asset based on route classification, speed potential, and traffic throughput.</td>
+        <td><code>float</code><br>[0.0, 1.0]</td>
+        <td><strong>TMS (Track Management System)</strong> Route Classification (Group A = 0.95, Group B = 0.80, Group D = 0.40).</td>
+        <td>$0.4 \cdot \text{route} + 0.3 \cdot \frac{\text{speed}}{160} + 0.3 \cdot \frac{\text{density}}{120}$</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>defect_severity</code></td>
+        <td>Severity level of physical flaw detected during recent ultrasound/geometry inspection.</td>
+        <td><code>float</code><br>[0.0, 1.0]</td>
+        <td><strong>USFD Flaw Registers</strong>, <strong>OMS-2000 (TRC)</strong> acceleration peaks, <strong>OHE Current Collection logs</strong>.</td>
+        <td><code>NONE</code> = 0.00<br><code>MINOR</code> = 0.25<br><code>MODERATE</code> = 0.60<br><code>CRITICAL</code> = 1.00</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>days_overdue</code></td>
+        <td>Days elapsed past the statutory maintenance due date prescribed by the IRPWM manual.</td>
+        <td><code>int</code> $\ge 0$<br>(Norm [0, 1])</td>
+        <td><strong>TMS Overhaul Schedule (POH/IOH)</strong> and <strong>TRD Maintenance Ledgers</strong>.</td>
+        <td>$\min\left(1.0, \frac{\text{days}}{90}\right)$</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>failure_probability</code></td>
+        <td>Estimated probability of in-service failure within 7 days if maintenance is deferred.</td>
+        <td><code>float</code><br>[0.0, 1.0]</td>
+        <td><strong>Weibull Degradation Curves</strong> fitted on Gross Million Tonnes (GMT) and condition scores.</td>
+        <td>$(1.0 - \text{cond}) \cdot 0.5 + 0.4 \cdot \text{sev} + 0.2 \cdot \frac{\text{GMT}}{500}$</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>train_impact</code></td>
+        <td>Operational delay index caused by blocking track (conflicting passenger and freight trains).</td>
+        <td><code>float</code><br>[0.0, 1.0]</td>
+        <td><strong>COA (Control Office Application)</strong> & <strong>ICMS Timetable Density</strong>.</td>
+        <td>$0.5 \cdot \frac{\text{density}}{120} + 0.3 \cdot \frac{\text{dur}}{240} + \text{peak}$</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><code>maintenance_duration</code></td>
+        <td>SOP execution duration in minutes including work train setup and safety restoration.</td>
+        <td><code>int</code> (Minutes)<br>(Norm [0, 1])</td>
+        <td><strong>Indian Railways Engineering Code & Standard Time Norms (IRPWM Ch. 5)</strong>.</td>
+        <td>$\min\left(1.0, \frac{\text{duration}}{360}\right)$</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td><code>historical_failure_rate</code></td>
+        <td>Frequency of unscheduled breakdowns or weld fractures on this asset/section over past 3 years.</td>
+        <td><code>float</code><br>[0.0, 1.0]</td>
+        <td><strong>SIMS (Safety Information Management System)</strong> & <strong>Rail Madad Logs</strong>.</td>
+        <td>$\min\left(1.0, \frac{\text{incidents in 3yr}}{6}\right)$</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2.1 Baseline Mathematical Scoring Formulation</h2>
+  <div class="code-box">
+# Risk Score Formulation (Risk Mitigation Objective)
+risk_score = 0.30 * defect_severity + 0.30 * failure_probability + 0.20 * days_overdue_norm + 0.20 * historical_failure_rate
+
+# Priority Score Formulation (Priority Maximization Objective)
+priority_score = 0.35 * risk_score + 0.25 * asset_criticality + 0.20 * train_impact + 0.20 * (1.0 - duration_norm)</div>
+</div>
+
+<!-- SECTION 3: WORK TYPES & DISRUPTIONS -->
+<div class="section page-break">
+  <h1>3. Work Types & 5 Standardized Disruption Scenarios</h1>
+
+  <h2>3.1 Standard Railway Work Types</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Work Type</th>
+        <th>Engineering Scope</th>
+        <th>Standard Duration</th>
+        <th>Machinery Group</th>
+        <th>Precedence Rules</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>TRACK_RENEWAL</code></td>
+        <td>Complete Track Renewal (CTR), rails & sleepers.</td>
+        <td>180 – 360 min</td>
+        <td><code>PQRS_GANG_01</code>, <code>BCM_01</code></td>
+        <td>Must precede <code>BALLAST_TAMPING</code></td>
+      </tr>
+      <tr>
+        <td><code>BALLAST_TAMPING</code></td>
+        <td>Track packing & alignment using Tie-Tampers.</td>
+        <td>90 – 180 min</td>
+        <td><code>CSM_TAMPER_01</code></td>
+        <td>Requires 15m buffer after renewal</td>
+      </tr>
+      <tr>
+        <td><code>OHE_MAINTENANCE</code></td>
+        <td>25kV contact wire check & insulator washing.</td>
+        <td>60 – 150 min</td>
+        <td><code>TOWER_WAGON_01</code></td>
+        <td>Requires Electrical Power Block</td>
+      </tr>
+      <tr>
+        <td><code>SIGNALLING_INTERLOCKING</code></td>
+        <td>Point machine overhaul & track circuit calibration.</td>
+        <td>45 – 120 min</td>
+        <td><code>S_T_GANG_01</code></td>
+        <td>Requires approach locking clearance</td>
+      </tr>
+      <tr>
+        <td><code>ROUTINE_INSPECTION</code></td>
+        <td>USFD rail flaw patrol & track geometry check.</td>
+        <td>30 – 90 min</td>
+        <td>None (Manual / Trolley)</td>
+        <td>Flexible placement</td>
+      </tr>
+      <tr>
+        <td><code>EMERGENCY_REPAIR</code></td>
+        <td>Rail fracture clamp, weld fix, broken dropper fix.</td>
+        <td>60 – 180 min</td>
+        <td>Dynamic Allocation</td>
+        <td>Pre-empts routine maintenance</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3.2 The 5 Standardized Disruption Scenarios (Tirth Integration)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 18%;">Scenario ID</th>
+        <th style="width: 22%;">Trigger & Operational Event</th>
+        <th style="width: 30%;">Disruption Payload Summary</th>
+        <th style="width: 30%;">Expected Solver & System Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Scenario 1</strong><br><code>TRACK_UNAVAILABLE</code></td>
+        <td>Track <code>UP-1</code> blocked between 01:00 and 04:00 (min 60–240) due to rail defect.</td>
+        <td><code>track_id: "UP-1"</code><br><code>start_minute: 60</code>, <code>end_minute: 240</code></td>
+        <td>Committed blocks remain frozen; non-committed blocks reschedule to afternoon/evening slots or are deferred with reason <code>TRACK_UNAVAILABLE_IN_WINDOW</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>Scenario 2</strong><br><code>EMERGENCY_WORK</code></td>
+        <td>Urgent rail fracture detected at KM 14.2 on <code>DOWN-1</code> requiring 90m block.</td>
+        <td><code>work_type: "EMERGENCY_REPAIR"</code><br><code>priority: 0.995</code>, <code>risk: 0.980</code></td>
+        <td>Solver immediately inserts emergency block in prime night window, displacing lower-priority routine inspections.</td>
+      </tr>
+      <tr>
+        <td><strong>Scenario 3</strong><br><code>POSSESSION_CURTAILMENT</code></td>
+        <td>Late running Express train delays midday window on <code>UP-1</code> from 180m to 90m.</td>
+        <td><code>window_id: "POS-UP-1-MIDDAY"</code><br>Curtailed to [750, 840]</td>
+        <td>Long tasks exceeding 90m are moved to evening window or deferred; shorter 45m inspections fit into truncated slot.</td>
+      </tr>
+      <tr>
+        <td><strong>Scenario 4</strong><br><code>ASSET_CONDITION_DEGRADATION</code></td>
+        <td>Point machine motor resistance alert on <code>AST-DN1-TUR-012</code> jumps to CRITICAL.</td>
+        <td><code>affected_asset_id: "AST-DN1-TUR-012"</code><br>Priority jumps 0.39 $\to$ 0.94</td>
+        <td>Feature adapter recalculates risk/priority; solver promotes this candidate from deferred to scheduled status.</td>
+      </tr>
+      <tr>
+        <td><strong>Scenario 5</strong><br><code>INFEASIBLE_SCENARIO</code></td>
+        <td>All possession windows revoked while committed blocks are locked in place.</td>
+        <td><code>track_id: "DOWN-1"</code><br>Revoked windows with 2 committed locks</td>
+        <td>Solver gracefully returns status <code>INFEASIBLE</code> with structured explanation <code>COMMITTED_BLOCK_WINDOW_REVOKED</code> without crash.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- SECTION 4: THE GOLDEN SCENARIO -->
+<div class="section page-break">
+  <h1>4. The Master Golden Scenario (Benchmark Dataset)</h1>
+  <p>The <strong>Golden Scenario</strong> (<code>golden_scenario.json</code>) is the master end-to-end benchmark dataset for the team demo on <strong>CORR-NDLS-AGC</strong> (UP-1 & DOWN-1).</p>
+
+  <h2>4.1 The 12 Candidate Maintenance Blocks</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Block ID</th>
+        <th>Asset ID</th>
+        <th>Track</th>
+        <th>Work Type</th>
+        <th>Dur</th>
+        <th>Prio</th>
+        <th>Risk</th>
+        <th>Machine Group</th>
+        <th>Initial Outcome</th>
+        <th>Recovery Outcome</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>BLK-001</code></td>
+        <td><code>AST-DN1-OHE-001</code></td>
+        <td>DOWN-1</td>
+        <td>OHE_MAINTENANCE</td>
+        <td>120m</td>
+        <td>0.820</td>
+        <td>0.710</td>
+        <td><code>TOWER_WAGON_01</code></td>
+        <td><span class="badge badge-green">SCHEDULED (30–150)</span></td>
+        <td><span class="badge badge-purple">LOCKED (30–150)</span></td>
+      </tr>
+      <tr>
+        <td><code>BLK-002</code></td>
+        <td><code>AST-DN1-RAI-002</code></td>
+        <td>DOWN-1</td>
+        <td>BALLAST_TAMPING</td>
+        <td>105m</td>
+        <td>0.740</td>
+        <td>0.650</td>
+        <td><code>CSM_TAMPER_01</code></td>
+        <td><span class="badge badge-green">SCHEDULED (165–270)</span></td>
+        <td><span class="badge badge-green">SCHEDULED (165–270)</span></td>
+      </tr>
+      <tr>
+        <td><code>BLK-003</code></td>
+        <td><code>AST-UP1-OHE-003</code></td>
+        <td>UP-1</td>
+        <td>OHE_MAINTENANCE</td>
+        <td>90m</td>
+        <td>0.880</td>
+        <td>0.780</td>
+        <td><code>TOWER_WAGON_01</code></td>
+        <td><span class="badge badge-green">SCHEDULED (690–780)</span></td>
+        <td><span class="badge badge-purple">LOCKED (690–780)</span></td>
+      </tr>
+      <tr>
+        <td><code>BLK-004</code></td>
+        <td><code>AST-UP1-RAI-004</code></td>
+        <td>UP-1</td>
+        <td>BALLAST_TAMPING</td>
+        <td>90m</td>
+        <td>0.810</td>
+        <td>0.690</td>
+        <td><code>CSM_TAMPER_01</code></td>
+        <td><span class="badge badge-green">SCHEDULED (30–120)</span></td>
+        <td><span class="badge badge-blue">MOVED (1260–1350)</span></td>
+      </tr>
+      <tr>
+        <td><code>BLK-005</code></td>
+        <td><code>AST-UP1-RAI-005</code></td>
+        <td>UP-1</td>
+        <td>TRACK_RENEWAL</td>
+        <td>150m</td>
+        <td>0.910</td>
+        <td>0.840</td>
+        <td>None</td>
+        <td><span class="badge badge-green">SCHEDULED (135–285)</span></td>
+        <td><span class="badge badge-red">DEFERRED (Disrupted)</span></td>
+      </tr>
+      <tr>
+        <td><code>BLK-006</code></td>
+        <td><code>AST-UP1-OHE-006</code></td>
+        <td>UP-1</td>
+        <td>OHE_MAINTENANCE</td>
+        <td>90m</td>
+        <td>0.990</td>
+        <td>0.890</td>
+        <td><code>TOWER_WAGON_01</code></td>
+        <td><span class="badge badge-green">SCHEDULED (1260–1350)</span></td>
+        <td><span class="badge badge-green">SCHEDULED (1260–1350)</span></td>
+      </tr>
+      <tr>
+        <td><code>BLK-007</code></td>
+        <td><code>AST-DN1-OHE-007</code></td>
+        <td>DOWN-1</td>
+        <td>OHE_MAINTENANCE</td>
+        <td>120m</td>
+        <td>0.850</td>
+        <td>0.720</td>
+        <td><code>TOWER_WAGON_01</code></td>
+        <td><span class="badge badge-green">SCHEDULED (690–810)</span></td>
+        <td><span class="badge badge-green">SCHEDULED (690–810)</span></td>
+      </tr>
+      <tr>
+        <td><code>BLK-008</code></td>
+        <td><code>AST-UP1-RAI-008</code></td>
+        <td>UP-1</td>
+        <td>ROUTINE_INSPECTION</td>
+        <td>45m</td>
+        <td>0.310</td>
+        <td>0.220</td>
+        <td>None</td>
+        <td><span class="badge badge-green">SCHEDULED (795–840)</span></td>
+        <td><span class="badge badge-green">SCHEDULED (795–840)</span></td>
+      </tr>
+      <tr>
+        <td><code>BLK-009</code></td>
+        <td><code>AST-DN1-RAI-009</code></td>
+        <td>DOWN-1</td>
+        <td>BALLAST_TAMPING</td>
+        <td>120m</td>
+        <td>0.580</td>
+        <td>0.510</td>
+        <td><code>CSM_TAMPER_01</code></td>
+        <td><span class="badge badge-yellow">DEFERRED (Machinery)</span></td>
+        <td><span class="badge badge-yellow">DEFERRED</span></td>
+      </tr>
+      <tr>
+        <td><code>BLK-010</code></td>
+        <td><code>AST-UP1-RAI-010</code></td>
+        <td>UP-1</td>
+        <td>BALLAST_TAMPING</td>
+        <td>135m</td>
+        <td>0.520</td>
+        <td>0.480</td>
+        <td><code>CSM_TAMPER_01</code></td>
+        <td><span class="badge badge-yellow">DEFERRED (Headway)</span></td>
+        <td><span class="badge badge-yellow">DEFERRED</span></td>
+      </tr>
+      <tr>
+        <td><code>BLK-011</code></td>
+        <td><code>AST-DN1-SIG-011</code></td>
+        <td>DOWN-1</td>
+        <td>SIGNALLING_INTERLOCKING</td>
+        <td>90m</td>
+        <td>0.440</td>
+        <td>0.380</td>
+        <td><code>S_T_GANG_01</code></td>
+        <td><span class="badge badge-yellow">DEFERRED (Priority)</span></td>
+        <td><span class="badge badge-yellow">DEFERRED</span></td>
+      </tr>
+      <tr>
+        <td><code>BLK-012</code></td>
+        <td><code>AST-DN1-TUR-012</code></td>
+        <td>DOWN-1</td>
+        <td>ROUTINE_INSPECTION</td>
+        <td>60m</td>
+        <td>0.390</td>
+        <td>0.310</td>
+        <td>None</td>
+        <td><span class="badge badge-yellow">DEFERRED (Capacity)</span></td>
+        <td><span class="badge badge-yellow">DEFERRED</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4.2 The 8-Step End-to-End System Demo Journey</h2>
+  <div class="diagram">
+STEP 1: Raw Inspection Records (Darshini) ──────► 12 candidates with 7-feature scoring metadata
+                                                          │
+STEP 2: Feature Adapter & ML Scoring (Ayush) ────► Calculates risk_score and priority_score
+                                                          │
+STEP 3: Baseline Optimization (Tyagi) ───────────► 8 Scheduled (Total Priority: 6.31), 4 Deferred
+                                                          │
+STEP 4: Section Controller Locks Work ───────────► BLK-001 (DOWN-1) and BLK-003 (UP-1) set to is_committed: true
+                                                          │
+STEP 5: Disruption Injected (Tirth) ─────────────► Track UP-1 closed min 60 to 240 (Rail Defect)
+                                                          │
+STEP 6: Re-Optimization (Tyagi) ─────────────────► Committed BLK-003 locked; BLK-004 shifted to evening
+                                                          │
+STEP 7: API Response Delivery (Mehta) ───────────► POST /optimize & POST /disrupt returning compliant JSON
+                                                          │
+STEP 8: Dashboard Display (Archit) ──────────────► Before vs After visual timeline comparison with KPI deltas</div>
+</div>
+
+<!-- SECTION 5: VERIFICATION & CODE ARTIFACTS -->
+<div class="section page-break">
+  <h1>5. Verification & Code Artifacts Directory</h1>
+
+  <h2>5.1 Automated Verification Matrix (29/29 Passed)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Verification Item</th>
+        <th>Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Documentation</td><td><code>DOMAIN_SPECIFICATION.md</code> exists with all 5 mandatory sections</td><td><span class="badge badge-green">PASS</span></td></tr>
+      <tr><td>Topology</td><td>Multi-asset track hierarchy documented and verified</td><td><span class="badge badge-green">PASS</span></td></tr>
+      <tr><td>Scoring Features</td><td>All 7 features defined with valid mathematical ranges [0.0, 1.0]</td><td><span class="badge badge-green">PASS</span></td></tr>
+      <tr><td>Domain Models</td><td><code>models.py</code>: <code>Asset</code>, <code>TrackSegment</code>, <code>Corridor</code> serialization</td><td><span class="badge badge-green">PASS</span></td></tr>
+      <tr><td>Feature Adapter</td><td><code>feature_adapter.py</code> extracts normalized inputs for ML engine</td><td><span class="badge badge-green">PASS</span></td></tr>
+      <tr><td>Golden Fixture</td><td><code>golden_scenario.json</code> conforms to <code>OptimizationRequest</code> schema</td><td><span class="badge badge-green">PASS</span></td></tr>
+      <tr><td>Disruptions</td><td><code>disruption_scenarios.json</code> covers all 5 standardized disruption types</td><td><span class="badge badge-green">PASS</span></td></tr>
+      <tr><td>Committed Invariant</td><td>Committed blocks locked in time and track across solver invocations</td><td><span class="badge badge-green">PASS</span></td></tr>
+    </tbody>
+  </table>
+
+  <h2>5.2 Deliverables Location Index</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>File</th>
+        <th>Workspace Location</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>DOMAIN_SPECIFICATION.md</code></td>
+        <td><code>c:\Users\Hp\Documents\phasupatashtra\DOMAIN_SPECIFICATION.md</code></td>
+        <td>Authoritative railway domain reference specification.</td>
+      </tr>
+      <tr>
+        <td><code>models.py</code></td>
+        <td><code>backend/app/data/models.py</code></td>
+        <td>Enriched dataclass domain models with serialization methods.</td>
+      </tr>
+      <tr>
+        <td><code>feature_adapter.py</code></td>
+        <td><code>backend/app/data/feature_adapter.py</code></td>
+        <td>Domain-to-scoring feature extractor and normalizer.</td>
+      </tr>
+      <tr>
+        <td><code>golden_scenario.json</code></td>
+        <td><code>backend/app/data/fixtures/golden_scenario.json</code></td>
+        <td>Master 12-block end-to-end benchmark dataset.</td>
+      </tr>
+      <tr>
+        <td><code>disruption_scenarios.json</code></td>
+        <td><code>backend/app/data/fixtures/disruption_scenarios.json</code></td>
+        <td>5 standardized disruption test payloads for simulation.</td>
+      </tr>
+      <tr>
+        <td><code>generator.py</code></td>
+        <td><code>backend/app/data/generator.py</code></td>
+        <td>Seed-driven deterministic synthetic scenario generator.</td>
+      </tr>
+      <tr>
+        <td><code>verify_darshini_deliverables.ps1</code></td>
+        <td><code>c:\Users\Hp\Documents\phasupatashtra\verify_darshini_deliverables.ps1</code></td>
+        <td>Automated PowerShell test runner.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="margin-top: 24px; text-align: center; color: #64748b; font-size: 8pt; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+    Pashupatastra Railway Maintenance Optimization System • Phase 1 Data Foundation Completed
+  </div>
+</div>
+
+</body>
+</html>

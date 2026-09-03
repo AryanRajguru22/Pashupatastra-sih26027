@@ -1,2 +1,20 @@
-# Owner: Darshini. Synthetic data generators land here; fixtures/ holds
-# hand-written JSON datasets such as fixtures/corridor_a_blocks.json.
+"""Data layer package for Pashupatastra.
+"""
+
+from backend.app.data.models import (
+    Asset,
+    AssetType,
+    DefectSeverity,
+    TrackSegment,
+    Corridor,
+)
+from backend.app.data.generator import CorridorDataGenerator
+
+__all__ = [
+    "Asset",
+    "AssetType",
+    "DefectSeverity",
+    "TrackSegment",
+    "Corridor",
+    "CorridorDataGenerator",
+]
