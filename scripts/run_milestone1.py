@@ -31,9 +31,9 @@ def _assert_no_overlaps(result) -> None:
         by_track.setdefault(sb.track_id, []).append(sb)
 
     for track_id, blocks in by_track.items():
-        blocks.sort(key=lambda b: b.start)
+        blocks.sort(key=lambda b: b.start_minute)
         for a, b in zip(blocks, blocks[1:]):
-            assert a.end <= b.start, (
+            assert a.end_minute <= b.start_minute, (
                 f"Hard constraint violated: {a.block_id} and {b.block_id} "
                 f"overlap on track {track_id}"
             )
@@ -41,27 +41,32 @@ def _assert_no_overlaps(result) -> None:
 
 def main() -> None:
     raw = json.loads(FIXTURE_PATH.read_text())
-    request = OptimizationRequest.model_validate(raw)
+    request = OptimizationRequest.from_dict(raw)
 
     result = solve(request)
 
-    print(f"status: {result.status.value}")
-    print(f"solve_time_ms: {result.solve_time_ms}")
-    print(f"scheduled: {len(result.scheduled_blocks)} / {len(request.block_candidates)} blocks")
+    print(f"status: {result.status}")
+    print(f"solve_time_seconds: {result.solve_time_seconds}")
+    print(f"scheduled: {len(result.scheduled_blocks)} / {len(request.candidates)} blocks")
     print()
-    for sb in sorted(result.scheduled_blocks, key=lambda b: (b.track_id, b.start)):
-        print(f"  [{sb.track_id}] {sb.block_id}: {sb.start.isoformat()} -> {sb.end.isoformat()}")
+    for sb in sorted(result.scheduled_blocks, key=lambda b: (b.track_id, b.start_minute)):
+        print(f"  [{sb.track_id}] {sb.block_id}: {sb.start_minute} -> {sb.end_minute}")
     print()
     for ub in result.unscheduled_blocks:
-        print(f"  UNSCHEDULED {ub.block_id}: {ub.reason}")
+        reason = result.rejection_reasons.get(ub.block_id, "unknown")
+        print(f"  UNSCHEDULED {ub.block_id}: {reason}")
     print()
-    print(f"kpis: {result.kpis.model_dump()}")
+    print(
+        "kpis: "
+        f"total_priority_scheduled={result.total_priority_scheduled}, "
+        f"total_risk_mitigated={result.total_risk_mitigated}"
+    )
 
     _assert_no_overlaps(result)
     print("\nOK: no hard-constraint violations detected.")
 
     out_path = REPO_ROOT / "scripts" / "milestone1_result.json"
-    out_path.write_text(result.model_dump_json(indent=2))
+    out_path.write_text(json.dumps(result.to_dict(), indent=2))
     print(f"Full OptimizationResult written to {out_path}")
 
 
