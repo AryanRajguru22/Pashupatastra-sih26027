@@ -49,7 +49,15 @@ def apply_track_unavailable(
     request: OptimizationRequest,
     event: DisruptionEvent,
 ) -> OptimizationRequest:
-    """Remove candidates using the unavailable track."""
+    """Make a track unavailable during the disruption interval.
+
+    Non-committed candidates whose feasible window overlaps the outage
+    are pushed to the end of the outage. Candidates that do not overlap
+    the outage are left unchanged.
+
+    Committed blocks are preserved because committed placement is
+    immutable unless the disruption explicitly cancels them.
+    """
 
     updated = _copy_request(request)
 
@@ -57,21 +65,34 @@ def apply_track_unavailable(
         return updated
 
     affected_track = event.track_id
+    outage_start = int(event.start_minute)
+    outage_end = int(event.end_minute)
 
-    updated.candidates = [
-        block
-        for block in updated.candidates
-        if block.track_id != affected_track
-    ]
+    for block in updated.candidates:
+        if block.track_id != affected_track:
+            continue
 
-    updated.existing_committed_blocks = [
-        block
-        for block in updated.existing_committed_blocks
-        if block.track_id != affected_track
-    ]
+        # Committed work is not shifted automatically.
+        if block.is_committed:
+            continue
+
+        # No overlap between the candidate's feasible window and
+        # the disruption interval.
+        overlaps = (
+            block.earliest_start_minute < outage_end
+            and outage_start < block.latest_end_minute
+        )
+
+        if not overlaps:
+            continue
+
+        # The block cannot begin before the outage is cleared.
+        block.earliest_start_minute = max(
+            block.earliest_start_minute,
+            outage_end,
+        )
 
     return updated
-
 
 def apply_emergency_work(
     request: OptimizationRequest,

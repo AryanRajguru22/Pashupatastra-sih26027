@@ -102,26 +102,39 @@ def test_asset_breakdown_removes_blocks_using_affected_asset():
     assert "BLOCK_DOWN_1" in remaining_ids
 
 
-def test_track_unavailable_removes_blocks_on_affected_track():
+def test_track_unavailable_pushes_overlapping_work_after_outage():
     request = make_request()
 
     event = make_event(
         "DISRUPTION_002",
         DisruptionType.TRACK_UNAVAILABLE,
         track_id="UP",
-        description="UP track becomes unavailable.",
+        start_minute=60,
+        end_minute=240,
+        description="UP track unavailable from 60 to 240.",
     )
 
     updated = apply_disruption(request, event)
 
-    remaining_ids = {
-        block.block_id
+    affected = next(
+        block
         for block in updated.candidates
-    }
+        if block.block_id == "BLOCK_UP_1"
+    )
 
-    assert "BLOCK_UP_1" not in remaining_ids
-    assert "BLOCK_DOWN_1" in remaining_ids
+    unaffected = next(
+        block
+        for block in updated.candidates
+        if block.block_id == "BLOCK_DOWN_1"
+    )
 
+    # The UP block still exists, but cannot start during the outage.
+    assert affected.earliest_start_minute == 240
+    assert affected.latest_end_minute == 600
+
+    # The DOWN-track block is unchanged.
+    assert unaffected.earliest_start_minute == 0
+    assert unaffected.latest_end_minute == 600
 
 def test_invalidated_committed_block_is_removed():
     request = make_request()
@@ -297,3 +310,81 @@ def test_unsupported_disruption_type_is_rejected():
 
     with pytest.raises(ValueError):
         apply_disruption(request, event)
+
+def test_track_unavailable_only_affects_overlapping_non_committed_work():
+    request = make_request()
+
+    request.candidates.extend(
+        [
+            BlockCandidate(
+                block_id="UP_BEFORE_OUTAGE",
+                asset_id="ASSET_UP_2",
+                track_id="UP",
+                work_type="TRACK_RENEWAL",
+                duration_minutes=60,
+                earliest_start_minute=30,
+                latest_end_minute=360,
+                priority_score=0.8,
+                risk_score=0.8,
+            ),
+            BlockCandidate(
+                block_id="UP_AFTER_OUTAGE",
+                asset_id="ASSET_UP_3",
+                track_id="UP",
+                work_type="OHE_MAINTENANCE",
+                duration_minutes=60,
+                earliest_start_minute=600,
+                latest_end_minute=900,
+                priority_score=0.8,
+                risk_score=0.8,
+            ),
+            BlockCandidate(
+                block_id="DOWN_UNAFFECTED",
+                asset_id="ASSET_DOWN_2",
+                track_id="DOWN",
+                work_type="OHE_MAINTENANCE",
+                duration_minutes=60,
+                earliest_start_minute=30,
+                latest_end_minute=360,
+                priority_score=0.8,
+                risk_score=0.8,
+            ),
+        ]
+    )
+
+    event = make_event(
+        "TRACK-OUTAGE-001",
+        DisruptionType.TRACK_UNAVAILABLE,
+        track_id="UP",
+        start_minute=60,
+        end_minute=240,
+    )
+
+    updated = apply_disruption(request, event)
+
+    affected = next(
+        block
+        for block in updated.candidates
+        if block.block_id == "UP_BEFORE_OUTAGE"
+    )
+
+    unaffected = next(
+        block
+        for block in updated.candidates
+        if block.block_id == "UP_AFTER_OUTAGE"
+    )
+
+    down_track = next(
+        block
+        for block in updated.candidates
+        if block.block_id == "DOWN_UNAFFECTED"
+    )
+
+    assert affected.earliest_start_minute == 240
+    assert affected.latest_end_minute == 360
+
+    assert unaffected.earliest_start_minute == 600
+    assert unaffected.latest_end_minute == 900
+
+    assert down_track.earliest_start_minute == 30
+    assert down_track.latest_end_minute == 360
