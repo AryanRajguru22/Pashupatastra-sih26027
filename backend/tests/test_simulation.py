@@ -1,16 +1,16 @@
-from datetime import datetime, timezone
+from __future__ import annotations
+
+import copy
 
 import pytest
 
 from contracts import (
     BlockCandidate,
+    BlockStatus,
     DisruptionEvent,
-    DisruptionImpact,
     DisruptionType,
     OptimizationRequest,
     ScheduledBlock,
-    TimeWindow,
-    WorkType,
 )
 
 from backend.app.simulation.disruptions import apply_disruption
@@ -20,79 +20,103 @@ from backend.app.simulation.simulator import simulate_disruption
 def make_request() -> OptimizationRequest:
     """Create a small deterministic request for simulation tests."""
 
-    start = datetime(2026, 8, 29, 8, 0, tzinfo=timezone.utc)
-    end = datetime(2026, 8, 29, 18, 0, tzinfo=timezone.utc)
-
     blocks = [
         BlockCandidate(
             block_id="BLOCK_UP_1",
             asset_id="ASSET_UP",
-            corridor_id="CORRIDOR_A",
-            section_id="SECTION_1",
             track_id="UP",
-            work_type=WorkType.INSPECTION,
+            work_type="ROUTINE_INSPECTION",
             duration_minutes=60,
-            earliest_start=start,
-            latest_finish=end,
+            earliest_start_minute=0,
+            latest_end_minute=600,
             priority_score=0.8,
             risk_score=0.7,
         ),
         BlockCandidate(
             block_id="BLOCK_DOWN_1",
             asset_id="ASSET_DOWN",
-            corridor_id="CORRIDOR_A",
-            section_id="SECTION_1",
             track_id="DOWN",
-            work_type=WorkType.REPAIR,
+            work_type="EMERGENCY_REPAIR",
             duration_minutes=60,
-            earliest_start=start,
-            latest_finish=end,
+            earliest_start_minute=0,
+            latest_end_minute=600,
             priority_score=0.6,
             risk_score=0.5,
         ),
     ]
 
     return OptimizationRequest(
-        request_id="REQ_SIM_001",
         corridor_id="CORRIDOR_A",
-        planning_horizon=TimeWindow(
-            start=start,
-            end=end,
-        ),
-        block_candidates=blocks,
+        horizon_minutes=600,
+        tracks=["UP", "DOWN"],
+        candidates=blocks,
+        possession_windows=[],
+        existing_committed_blocks=[],
+        min_headway_minutes=10,
+        train_timetable=[],
     )
 
 
-def test_asset_failure_removes_blocks_using_affected_asset():
-    """An asset failure should remove blocks using that actual asset."""
+def make_event(
+    disruption_id: str,
+    disruption_type: DisruptionType,
+    *,
+    track_id: str | None = None,
+    affected_asset_id: str | None = None,
+    new_candidate: BlockCandidate | None = None,
+    start_minute: int = 0,
+    end_minute: int = 600,
+    description: str = "",
+) -> DisruptionEvent:
+    return DisruptionEvent(
+        disruption_id=disruption_id,
+        disruption_type=disruption_type.value,
+        corridor_id="CORRIDOR_A",
+        track_id=track_id,
+        start_minute=start_minute,
+        end_minute=end_minute,
+        affected_asset_id=affected_asset_id,
+        new_candidate=new_candidate,
+        description=description,
+    )
 
+
+def test_asset_breakdown_removes_blocks_using_affected_asset():
     request = make_request()
 
-    event = DisruptionEvent(
-        event_id="DISRUPTION_001",
-        event_type=DisruptionType.ASSET_FAILURE,
+    event = make_event(
+        "DISRUPTION_001",
+        DisruptionType.ASSET_BREAKDOWN,
         affected_asset_id="ASSET_UP",
-        timestamp=datetime(
-            2026,
-            8,
-            29,
-            9,
-            0,
-            tzinfo=timezone.utc,
-        ),
         description="Asset ASSET_UP becomes unavailable.",
-        impact=DisruptionImpact(
-            unavailable_asset_ids=["ASSET_UP"],
-            invalidated_block_ids=[],
-            newly_required_block_ids=[],
-        ),
     )
 
     updated = apply_disruption(request, event)
 
     remaining_ids = {
         block.block_id
-        for block in updated.block_candidates
+        for block in updated.candidates
+    }
+
+    assert "BLOCK_UP_1" not in remaining_ids
+    assert "BLOCK_DOWN_1" in remaining_ids
+
+
+def test_track_unavailable_removes_blocks_on_affected_track():
+    request = make_request()
+
+    event = make_event(
+        "DISRUPTION_002",
+        DisruptionType.TRACK_UNAVAILABLE,
+        track_id="UP",
+        description="UP track becomes unavailable.",
+    )
+
+    updated = apply_disruption(request, event)
+
+    remaining_ids = {
+        block.block_id
+        for block in updated.candidates
     }
 
     assert "BLOCK_UP_1" not in remaining_ids
@@ -100,51 +124,23 @@ def test_asset_failure_removes_blocks_using_affected_asset():
 
 
 def test_invalidated_committed_block_is_removed():
-    """An invalidated committed block should no longer remain committed."""
-
     request = make_request()
 
+    committed = copy.deepcopy(
+        request.candidates[0]
+    )
+
+    committed.is_committed = True
+    committed.status = BlockStatus.COMMITTED.value
+
     request.existing_committed_blocks = [
-        ScheduledBlock(
-            block_id="BLOCK_UP_1",
-            track_id="UP",
-            start=datetime(
-                2026,
-                8,
-                29,
-                10,
-                0,
-                tzinfo=timezone.utc,
-            ),
-            end=datetime(
-                2026,
-                8,
-                29,
-                11,
-                0,
-                tzinfo=timezone.utc,
-            ),
-        )
+        committed
     ]
 
-    event = DisruptionEvent(
-        event_id="DISRUPTION_002",
-        event_type=DisruptionType.ASSET_FAILURE,
+    event = make_event(
+        "DISRUPTION_003",
+        DisruptionType.ASSET_BREAKDOWN,
         affected_asset_id="ASSET_UP",
-        timestamp=datetime(
-            2026,
-            8,
-            29,
-            9,
-            0,
-            tzinfo=timezone.utc,
-        ),
-        description="Asset ASSET_UP becomes unavailable.",
-        impact=DisruptionImpact(
-            unavailable_asset_ids=["ASSET_UP"],
-            invalidated_block_ids=["BLOCK_UP_1"],
-            newly_required_block_ids=[],
-        ),
     )
 
     updated = apply_disruption(request, event)
@@ -152,157 +148,152 @@ def test_invalidated_committed_block_is_removed():
     assert updated.existing_committed_blocks == []
 
 
-def test_emergency_request_validates_existing_candidate():
-    """Emergency requests currently validate that the candidate exists."""
-
+def test_emergency_request_adds_new_candidate():
     request = make_request()
 
-    event = DisruptionEvent(
-        event_id="DISRUPTION_003",
-        event_type=DisruptionType.EMERGENCY_BLOCK_REQUEST,
-        timestamp=datetime(
-            2026,
-            8,
-            29,
-            9,
-            0,
-            tzinfo=timezone.utc,
-        ),
-        description="Emergency block requested.",
-        impact=DisruptionImpact(
-            newly_required_block_ids=["BLOCK_DOWN_1"],
-        ),
+    emergency = BlockCandidate(
+        block_id="EMERGENCY_001",
+        asset_id="ASSET_EMERGENCY",
+        track_id="UP",
+        work_type="EMERGENCY_REPAIR",
+        duration_minutes=30,
+        earliest_start_minute=100,
+        latest_end_minute=200,
+        priority_score=1.0,
+        risk_score=1.0,
+    )
+
+    event = make_event(
+        "DISRUPTION_004",
+        DisruptionType.EMERGENCY_WORK,
+        new_candidate=emergency,
+        description="Emergency maintenance required.",
     )
 
     updated = apply_disruption(request, event)
 
     ids = {
         block.block_id
-        for block in updated.block_candidates
+        for block in updated.candidates
     }
 
-    assert "BLOCK_DOWN_1" in ids
+    assert "EMERGENCY_001" in ids
 
 
-def test_emergency_request_fails_for_unknown_block():
-    """An unknown emergency block ID should be rejected."""
+def test_emergency_request_without_candidate_does_not_change_request():
+    request = make_request()
 
+    event = make_event(
+        "DISRUPTION_005",
+        DisruptionType.EMERGENCY_WORK,
+        description="Emergency work requested without candidate.",
+    )
+
+    updated = apply_disruption(request, event)
+
+    assert len(updated.candidates) == len(request.candidates)
+
+
+def test_possession_curtailment_removes_overlapping_window():
+    request = make_request()
+
+    from contracts import PossessionWindow
+
+    request.possession_windows = [
+        PossessionWindow(
+            window_id="POS-001",
+            track_id="UP",
+            start_minute=100,
+            end_minute=300,
+        ),
+        PossessionWindow(
+            window_id="POS-002",
+            track_id="DOWN",
+            start_minute=100,
+            end_minute=300,
+        ),
+    ]
+
+    event = make_event(
+        "DISRUPTION_006",
+        DisruptionType.POSSESSION_CURTAILMENT,
+        track_id="UP",
+        start_minute=150,
+        end_minute=200,
+    )
+
+    updated = apply_disruption(request, event)
+
+    remaining_window_ids = {
+        window.window_id
+        for window in updated.possession_windows
+    }
+
+    assert "POS-001" not in remaining_window_ids
+    assert "POS-002" in remaining_window_ids
+
+
+def test_disruption_does_not_mutate_original_request():
+    request = make_request()
+
+    original_candidates = copy.deepcopy(
+        request.candidates
+    )
+
+    event = make_event(
+        "DISRUPTION_007",
+        DisruptionType.ASSET_BREAKDOWN,
+        affected_asset_id="ASSET_UP",
+    )
+
+    updated = apply_disruption(request, event)
+
+    assert request.candidates == original_candidates
+    assert len(updated.candidates) < len(request.candidates)
+
+
+def test_full_simulation_returns_recovery_result():
+    request = make_request()
+
+    event = make_event(
+        "DISRUPTION_008",
+        DisruptionType.ASSET_BREAKDOWN,
+        affected_asset_id="ASSET_UP",
+        description="Asset ASSET_UP becomes unavailable.",
+    )
+
+    simulation = simulate_disruption(
+        request,
+        event,
+    )
+
+    assert (
+        simulation.event.disruption_id
+        == "DISRUPTION_008"
+    )
+
+    assert (
+        simulation.recovery_result.corridor_id
+        == request.corridor_id
+    )
+
+    assert all(
+        block.block_id != "BLOCK_UP_1"
+        for block in (
+            simulation.recovery_result.scheduled_blocks
+        )
+    )
+
+
+def test_unsupported_disruption_type_is_rejected():
     request = make_request()
 
     event = DisruptionEvent(
-        event_id="DISRUPTION_004",
-        event_type=DisruptionType.EMERGENCY_BLOCK_REQUEST,
-        timestamp=datetime(
-            2026,
-            8,
-            29,
-            9,
-            0,
-            tzinfo=timezone.utc,
-        ),
-        description="Unknown emergency block requested.",
-        impact=DisruptionImpact(
-            newly_required_block_ids=["DOES_NOT_EXIST"],
-        ),
+        disruption_id="DISRUPTION_009",
+        disruption_type="UNKNOWN_TYPE",
+        corridor_id="CORRIDOR_A",
+        description="Unsupported disruption.",
     )
 
     with pytest.raises(ValueError):
         apply_disruption(request, event)
-
-
-def test_block_overrun_invalidates_block():
-    """A block overrun should invalidate the affected block."""
-
-    request = make_request()
-
-    event = DisruptionEvent(
-        event_id="DISRUPTION_005",
-        event_type=DisruptionType.BLOCK_OVERRUN,
-        affected_block_id="BLOCK_UP_1",
-        timestamp=datetime(
-            2026,
-            8,
-            29,
-            11,
-            0,
-            tzinfo=timezone.utc,
-        ),
-        description="Maintenance block overran its planned window.",
-        impact=DisruptionImpact(
-            invalidated_block_ids=["BLOCK_UP_1"],
-        ),
-    )
-
-    updated = apply_disruption(request, event)
-
-    ids = {
-        block.block_id
-        for block in updated.block_candidates
-    }
-
-    assert "BLOCK_UP_1" not in ids
-
-
-def test_disruption_does_not_mutate_original_request():
-    """Applying a disruption must not modify the original request."""
-
-    request = make_request()
-
-    event = DisruptionEvent(
-        event_id="DISRUPTION_006",
-        event_type=DisruptionType.ASSET_FAILURE,
-        affected_asset_id="ASSET_UP",
-        timestamp=datetime(
-            2026,
-            8,
-            29,
-            9,
-            0,
-            tzinfo=timezone.utc,
-        ),
-        description="Asset ASSET_UP becomes unavailable.",
-        impact=DisruptionImpact(
-            unavailable_asset_ids=["ASSET_UP"],
-        ),
-    )
-
-    original_count = len(request.block_candidates)
-
-    updated = apply_disruption(request, event)
-
-    assert len(request.block_candidates) == original_count
-    assert len(updated.block_candidates) < original_count
-
-
-def test_full_simulation_returns_recovery_result():
-    """A disruption should produce a new optimization result."""
-
-    request = make_request()
-
-    event = DisruptionEvent(
-        event_id="DISRUPTION_007",
-        event_type=DisruptionType.ASSET_FAILURE,
-        affected_asset_id="ASSET_UP",
-        timestamp=datetime(
-            2026,
-            8,
-            29,
-            9,
-            0,
-            tzinfo=timezone.utc,
-        ),
-        description="Asset ASSET_UP becomes unavailable.",
-        impact=DisruptionImpact(
-            unavailable_asset_ids=["ASSET_UP"],
-        ),
-    )
-
-    simulation = simulate_disruption(request, event)
-
-    assert simulation.event.event_id == "DISRUPTION_007"
-    assert simulation.recovery_result.request_id == request.request_id
-
-    assert all(
-        block.block_id != "BLOCK_UP_1"
-        for block in simulation.recovery_result.scheduled_blocks
-    )

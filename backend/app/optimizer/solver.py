@@ -1,81 +1,118 @@
-"""CP-SAT block scheduling engine - Milestone 1.
+"""CP-SAT block scheduling engine.
 
-Takes an OptimizationRequest (a fixed set of BlockCandidates with AI/ML
-priority/risk scores already attached) and produces a feasible
-OptimizationResult using OR-Tools CP-SAT. The optimizer treats
-priority_score/risk_score purely as objective-function weights: they
-influence *which* feasible schedule is chosen, never whether a hard
-safety constraint (track no-overlap, headway, dependency ordering,
-crew mutual exclusion, block time windows) is honored.
+Consumes the shared OptimizationRequest contract and produces
+OptimizationResult using OR-Tools CP-SAT.
 
-This module is intentionally standalone - it has no dependency on
-FastAPI, the frontend, or a database, so it can be exercised directly
-via scripts/run_milestone1.py to prove CP-SAT can solve this problem
-shape before the rest of the stack exists.
+Hard constraints:
+- block time windows
+- track no-overlap
+- configured minimum headway
+- dependency ordering
+- mutual-exclusion groups
+- possession windows
+- committed-block pinning
+
+priority_score and risk_score are objective weights only.
 """
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from typing import Dict, List, Set
 
 from ortools.sat.python import cp_model
 
 from contracts import (
     BlockCandidate,
-    ExplanationEntry,
-    OptimizationKPIs,
+    BlockStatus,
     OptimizationRequest,
     OptimizationResult,
-    OptimizationStatus,
     ScheduledBlock,
-    UnscheduledBlock,
+    SolverStatus,
 )
+
 
 _SCORE_SCALE = 1000
 _SOLVE_TIME_LIMIT_SECONDS = 10.0
 
 
-def _minutes(delta: timedelta) -> int:
-    return int(delta.total_seconds() // 60)
+def _objective_score(
+    request: OptimizationRequest,
+    block: BlockCandidate,
+) -> float:
+    """Calculate the normalized objective contribution of one block.
+
+    The new shared contract does not expose separate objective-weight
+    configuration, so risk and priority are combined directly.
+    """
+    return block.risk_score + block.priority_score
+
+
+def _clamp_window(
+    block: BlockCandidate,
+    horizon_minutes: int,
+) -> tuple[int, int, int]:
+    """Return feasible [earliest, latest_end, latest_start] values.
+
+    The optimizer operates entirely in integer minutes relative to the
+    planning horizon.
+    """
+    earliest = max(0, int(block.earliest_start_minute))
+    latest_end = min(horizon_minutes, int(block.latest_end_minute))
+    latest_start = latest_end - int(block.duration_minutes)
+
+    return earliest, latest_end, latest_start
 
 
 def solve(request: OptimizationRequest) -> OptimizationResult:
-    horizon_start = request.planning_horizon.start
-    blocks: list[BlockCandidate] = request.block_candidates
-    by_id = {b.block_id: b for b in blocks}
+    """Solve an optimization request using CP-SAT."""
+
+    horizon_minutes = max(0, int(request.horizon_minutes))
+    blocks: List[BlockCandidate] = list(request.candidates)
+
+    by_id: Dict[str, BlockCandidate] = {
+        block.block_id: block for block in blocks
+    }
 
     model = cp_model.CpModel()
 
-    presence: dict[str, cp_model.IntVar] = {}
-    start: dict[str, cp_model.IntVar] = {}
-    end: dict[str, cp_model.IntVar] = {}
-    window_infeasible: set[str] = set()
+    presence: Dict[str, cp_model.IntVar] = {}
+    start: Dict[str, cp_model.IntVar] = {}
+    end: Dict[str, cp_model.IntVar] = {}
 
-    # Blocks from a previous plan that are already committed.
-    # These are pinned to their existing placement during re-optimization.
-    committed_by_id = {
+    # Blocks which cannot fit inside their own time windows.
+    window_infeasible: Set[str] = set()
+
+    # ------------------------------------------------------------------
+    # Committed blocks
+    # ------------------------------------------------------------------
+    # A committed block from a previous plan is pinned to exactly the
+    # same start/end placement during re-optimization.
+    committed_by_id: Dict[str, BlockCandidate] = {
         block.block_id: block
         for block in request.existing_committed_blocks
     }
 
+    # ------------------------------------------------------------------
+    # Create variables
+    # ------------------------------------------------------------------
     for block in blocks:
-        earliest = _minutes(block.earliest_start - horizon_start)
-        latest = _minutes(block.latest_finish - horizon_start)
-        latest_start = latest - block.duration_minutes
+        earliest, latest_end, latest_start = _clamp_window(
+            block,
+            horizon_minutes,
+        )
 
         presence_var = model.NewBoolVar(
             f"presence_{block.block_id}"
         )
         presence[block.block_id] = presence_var
 
+        # A block whose duration cannot fit in its own time window must
+        # simply remain unscheduled. This keeps CP-SAT domains valid.
         if latest_start < earliest:
-            # The block cannot fit inside its own time window.
-            # Keep it out of the optimization model while preserving
-            # well-formed CP-SAT variable domains.
             window_infeasible.add(block.block_id)
+
             model.Add(presence_var == 0)
 
-            # Since the block is absent, these values are only placeholders.
             start_var = model.NewIntVar(
                 earliest,
                 earliest,
@@ -97,25 +134,43 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
 
             end_var = model.NewIntVar(
                 earliest,
-                latest,
+                latest_end,
                 f"end_{block.block_id}",
             )
 
             model.Add(
-                end_var == start_var + block.duration_minutes
+                end_var
+                == start_var + int(block.duration_minutes)
             )
 
-        # If this block already exists in the committed plan,
-        # preserve its existing operational placement.
+        # --------------------------------------------------------------
+        # Committed block pinning
+        # --------------------------------------------------------------
         committed = committed_by_id.get(block.block_id)
 
         if committed is not None:
-            committed_start = _minutes(
-                committed.start - horizon_start
-            )
-            committed_end = _minutes(
-                committed.end - horizon_start
-            )
+            committed_start = int(committed.earliest_start_minute)
+
+            # Prefer metadata values for an exact old placement when
+            # available. The shared contract represents block windows,
+            # so for committed candidates we use the candidate's exact
+            # start/end values when encoded in metadata.
+            committed_end = None
+
+            if "committed_start_minute" in committed.metadata:
+                committed_start = int(
+                    committed.metadata["committed_start_minute"]
+                )
+
+            if "committed_end_minute" in committed.metadata:
+                committed_end = int(
+                    committed.metadata["committed_end_minute"]
+                )
+
+            if committed_end is None:
+                committed_end = committed_start + int(
+                    committed.duration_minutes
+                )
 
             model.Add(presence_var == 1)
             model.Add(start_var == committed_start)
@@ -124,11 +179,77 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
         start[block.block_id] = start_var
         end[block.block_id] = end_var
 
-    # Track no-overlap, with each interval padded by the configured
-    # minimum headway so consecutive blocks on the same track are
-    # never back-to-back.
-    headway = request.constraints_config.min_headway_minutes
-    by_track: dict[str, list[str]] = {}
+    # ------------------------------------------------------------------
+    # Possession windows
+    # ------------------------------------------------------------------
+    # A block may only be scheduled if it lies completely inside at
+    # least one possession window belonging to the same track.
+    for block in blocks:
+        if block.block_id in window_infeasible:
+            continue
+
+        matching_windows = [
+            window
+            for window in request.possession_windows
+            if window.track_id == block.track_id
+        ]
+
+        # No possession windows means that there is no additional
+        # possession restriction for this request.
+        if not matching_windows:
+            continue
+
+        eligible_windows = []
+
+        for index, window in enumerate(matching_windows):
+            window_start = max(
+                0,
+                int(window.start_minute),
+            )
+            window_end = min(
+                horizon_minutes,
+                int(window.end_minute),
+            )
+
+            # Skip impossible/empty windows.
+            if window_end <= window_start:
+                continue
+
+            selection = model.NewBoolVar(
+                f"possession_{block.block_id}_{index}"
+            )
+
+            eligible_windows.append(selection)
+
+            model.Add(
+                start[block.block_id] >= window_start
+            ).OnlyEnforceIf(selection)
+
+            model.Add(
+                end[block.block_id] <= window_end
+            ).OnlyEnforceIf(selection)
+
+            model.Add(
+                selection <= presence[block.block_id]
+            )
+
+        if not eligible_windows:
+            model.Add(presence[block.block_id] == 0)
+
+        else:
+            # If the block is scheduled, exactly one possession window
+            # must contain it. If it is unscheduled, none is selected.
+            model.Add(
+                sum(eligible_windows)
+                == presence[block.block_id]
+            )
+
+    # ------------------------------------------------------------------
+    # Track no-overlap + headway
+    # ------------------------------------------------------------------
+    headway = max(0, int(request.min_headway_minutes))
+
+    by_track: Dict[str, List[str]] = {}
 
     for block in blocks:
         by_track.setdefault(block.track_id, []).append(
@@ -142,12 +263,12 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
             block = by_id[block_id]
 
             buffered_size = (
-                block.duration_minutes + headway
+                int(block.duration_minutes) + headway
             )
 
             buffered_end = model.NewIntVar(
                 0,
-                10**9,
+                horizon_minutes + buffered_size,
                 f"buffered_end_{block_id}",
             )
 
@@ -168,100 +289,87 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
 
         model.AddNoOverlap(buffered_intervals)
 
-    # Dependencies: a block can only be scheduled if every block it
-    # depends on is also scheduled and finishes before it starts.
+    # ------------------------------------------------------------------
+    # Dependencies
+    # ------------------------------------------------------------------
     for block in blocks:
         for dep_id in block.dependencies:
+            # Preserve the existing v0.1 behavior for an unknown
+            # dependency: it cannot be modeled without a candidate.
             if dep_id not in by_id:
-                continue  # unknown dependency - ignored in v0.1
+                continue
 
+            # Dependent block cannot exist without its dependency.
             model.Add(
                 presence[block.block_id]
                 <= presence[dep_id]
             )
 
+            # If the dependent block is scheduled, the dependency
+            # must finish before it starts.
             model.Add(
                 start[block.block_id] >= end[dep_id]
             ).OnlyEnforceIf(
                 presence[block.block_id]
             )
 
-    # Mutual exclusion (e.g. shared crew) across blocks that may sit on
-    # different tracks, so ordinary same-track no-overlap doesn't cover them.
-    seen_pairs: set[frozenset[str]] = set()
+    # ------------------------------------------------------------------
+    # Mutual exclusion groups
+    # ------------------------------------------------------------------
+    # All blocks in the same mutual_exclusion_group share a resource,
+    # such as a crew/resource pool, and therefore cannot overlap.
+    by_mutex_group: Dict[str, List[str]] = {}
 
     for block in blocks:
-        for other_id in block.mutually_exclusive_with:
-            if other_id not in by_id:
-                continue
+        group = block.mutual_exclusion_group
 
-            pair = frozenset(
-                (block.block_id, other_id)
+        if group:
+            by_mutex_group.setdefault(group, []).append(
+                block.block_id
             )
 
-            if pair in seen_pairs:
-                continue
+    for group, block_ids in by_mutex_group.items():
+        intervals = []
 
-            seen_pairs.add(pair)
+        for block_id in block_ids:
+            block = by_id[block_id]
 
-            both_present = model.NewBoolVar(
-                f"both_present_{'_'.join(sorted(pair))}"
+            intervals.append(
+                model.NewOptionalIntervalVar(
+                    start[block_id],
+                    int(block.duration_minutes),
+                    end[block_id],
+                    presence[block_id],
+                    f"mutex_{group}_{block_id}",
+                )
             )
 
-            model.AddBoolAnd(
-                [
-                    presence[block.block_id],
-                    presence[other_id],
-                ]
-            ).OnlyEnforceIf(both_present)
+        model.AddNoOverlap(intervals)
 
-            model.AddBoolOr(
-                [
-                    presence[block.block_id].Not(),
-                    presence[other_id].Not(),
-                ]
-            ).OnlyEnforceIf(
-                both_present.Not()
-            )
-
-            order = model.NewBoolVar(
-                f"order_{'_'.join(sorted(pair))}"
-            )
-
-            model.Add(
-                end[block.block_id] <= start[other_id]
-            ).OnlyEnforceIf(
-                [both_present, order]
-            )
-
-            model.Add(
-                end[other_id] <= start[block.block_id]
-            ).OnlyEnforceIf(
-                [both_present, order.Not()]
-            )
-
-    # Objective:
-    # maximize weighted risk reduction + weighted completed blocks.
-    weights = request.objective_weights
+    # ------------------------------------------------------------------
+    # Objective
+    # ------------------------------------------------------------------
+    # The new shared contract exposes risk_score and priority_score
+    # directly on BlockCandidate. Since no objective-weight structure is
+    # present in the new contract, both contribute directly and equally.
     objective_terms = []
 
     for block in blocks:
         coefficient = round(
             _SCORE_SCALE
-            * (
-                weights.risk_reduction_weight
-                * block.risk_score
-                + weights.blocks_completed_weight
-                * block.priority_score
-            )
+            * _objective_score(request, block)
         )
 
         objective_terms.append(
             coefficient * presence[block.block_id]
         )
 
-    model.Maximize(sum(objective_terms))
+    if objective_terms:
+        model.Maximize(sum(objective_terms))
 
+    # ------------------------------------------------------------------
+    # Solve
+    # ------------------------------------------------------------------
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = (
         _SOLVE_TIME_LIMIT_SECONDS
@@ -270,125 +378,111 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
     solve_status = solver.Solve(model)
 
     status_map = {
-        cp_model.OPTIMAL: OptimizationStatus.OPTIMAL,
-        cp_model.FEASIBLE: OptimizationStatus.FEASIBLE,
-        cp_model.INFEASIBLE: OptimizationStatus.INFEASIBLE,
-        cp_model.UNKNOWN: OptimizationStatus.TIMEOUT,
+        cp_model.OPTIMAL: SolverStatus.OPTIMAL.value,
+        cp_model.FEASIBLE: SolverStatus.FEASIBLE.value,
+        cp_model.INFEASIBLE: SolverStatus.INFEASIBLE.value,
+        cp_model.UNKNOWN: SolverStatus.NO_SOLUTION.value,
     }
 
     status = status_map.get(
         solve_status,
-        OptimizationStatus.INFEASIBLE,
+        SolverStatus.NO_SOLUTION.value,
     )
 
-    # If there is no usable solution, return an explicit result.
+    solve_time_seconds = float(solver.WallTime())
+
+    # ------------------------------------------------------------------
+    # Explicit infeasibility / no-solution result
+    # ------------------------------------------------------------------
     if status not in (
-        OptimizationStatus.OPTIMAL,
-        OptimizationStatus.FEASIBLE,
+        SolverStatus.OPTIMAL.value,
+        SolverStatus.FEASIBLE.value,
     ):
+        reasons = [
+            "solver found no feasible solution"
+        ]
+
+        unscheduled = list(blocks)
+
+        rejection_reasons = {
+            block.block_id:
+            "solver found no feasible solution"
+            for block in blocks
+        }
+
         return OptimizationResult(
-            request_id=request.request_id,
+            corridor_id=request.corridor_id,
             status=status,
             scheduled_blocks=[],
-            unscheduled_blocks=[
-                UnscheduledBlock(
-                    block_id=b.block_id,
-                    reason="solver found no feasible solution",
-                )
-                for b in blocks
-            ],
-            kpis=OptimizationKPIs(
-                asset_availability_pct=100.0,
-                trains_affected=0,
-                blocks_scheduled=0,
-                risk_reduction_score=0.0,
-            ),
-            explainability=[],
-            solve_time_ms=int(
-                solver.WallTime() * 1000
-            ),
-            generated_at=datetime.utcnow(),
+            unscheduled_blocks=unscheduled,
+            total_priority_scheduled=0.0,
+            total_risk_mitigated=0.0,
+            solve_time_seconds=solve_time_seconds,
+            infeasibility_reasons=reasons,
+            rejection_reasons=rejection_reasons,
         )
 
-    scheduled_blocks: list[ScheduledBlock] = []
-    unscheduled_blocks: list[UnscheduledBlock] = []
-    explainability: list[ExplanationEntry] = []
-    scheduled_ids: set[str] = set()
+    # ------------------------------------------------------------------
+    # Build result
+    # ------------------------------------------------------------------
+    scheduled_blocks: List[ScheduledBlock] = []
+    unscheduled_blocks: List[BlockCandidate] = []
+    scheduled_ids: Set[str] = set()
 
     for block in blocks:
-        if solver.Value(
-            presence[block.block_id]
-        ):
-            start_dt = (
-                horizon_start
-                + timedelta(
-                    minutes=solver.Value(
-                        start[block.block_id]
-                    )
-                )
+        block_id = block.block_id
+
+        if solver.Value(presence[block_id]):
+            start_minute = int(
+                solver.Value(start[block_id])
+            )
+            end_minute = int(
+                solver.Value(end[block_id])
             )
 
-            end_dt = (
-                horizon_start
-                + timedelta(
-                    minutes=solver.Value(
-                        end[block.block_id]
-                    )
-                )
+            is_committed = (
+                block.is_committed
+                or block_id in committed_by_id
             )
 
             scheduled_blocks.append(
                 ScheduledBlock(
-                    block_id=block.block_id,
+                    block_id=block_id,
                     track_id=block.track_id,
-                    start=start_dt,
-                    end=end_dt,
+                    start_minute=start_minute,
+                    end_minute=end_minute,
+                    work_type=block.work_type,
+                    priority_score=block.priority_score,
+                    risk_score=block.risk_score,
+                    is_committed=is_committed,
+                    status=(
+                        BlockStatus.COMMITTED.value
+                        if is_committed
+                        else BlockStatus.SCHEDULED.value
+                    ),
                 )
             )
 
-            scheduled_ids.add(block.block_id)
+            scheduled_ids.add(block_id)
 
-            binding = [
-                f"track_no_overlap:{block.track_id}"
-            ]
+    # ------------------------------------------------------------------
+    # Explain unscheduled blocks through rejection_reasons
+    # ------------------------------------------------------------------
+    rejection_reasons: Dict[str, str] = {}
 
-            binding += [
-                f"depends_on:{dep}"
-                for dep in block.dependencies
-            ]
+    for block in blocks:
+        block_id = block.block_id
 
-            binding += [
-                f"mutually_exclusive_with:{ex}"
-                for ex in block.mutually_exclusive_with
-            ]
+        if block_id in scheduled_ids:
+            continue
 
-            explainability.append(
-                ExplanationEntry(
-                    block_id=block.block_id,
-                    reason=(
-                        f"Scheduled on track {block.track_id} "
-                        f"{start_dt.isoformat()} - "
-                        f"{end_dt.isoformat()} "
-                        f"(priority={block.priority_score}, "
-                        f"risk={block.risk_score})."
-                    ),
-                    binding_constraints=binding,
-                )
-            )
-
-        elif block.block_id in window_infeasible:
-            unscheduled_blocks.append(
-                UnscheduledBlock(
-                    block_id=block.block_id,
-                    reason=(
-                        "duration does not fit within "
-                        "earliest_start/latest_finish window"
-                    ),
-                )
+        if block_id in window_infeasible:
+            reason = (
+                "duration does not fit within "
+                "earliest_start_minute/latest_end_minute window"
             )
 
         else:
-            # First check whether a required dependency was not scheduled.
             unscheduled_dependency = next(
                 (
                     dep_id
@@ -401,138 +495,114 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
                 None,
             )
 
-            # Then check whether a mutually exclusive block was scheduled.
-            scheduled_mutex = next(
-                (
-                    other_id
-                    for other_id in block.mutually_exclusive_with
-                    if other_id in scheduled_ids
-                ),
-                None,
-            )
-
             if unscheduled_dependency is not None:
                 reason = (
                     "dependency not scheduled: "
                     f"{unscheduled_dependency}"
                 )
 
-            elif scheduled_mutex is not None:
-                reason = (
-                    "mutual exclusion with scheduled block: "
-                    f"{scheduled_mutex}"
-                )
-
             else:
-                # Check whether a scheduled block on the same track
-                # has a higher objective value.
-                scheduled_competing_block = next(
-                    (
-                        other_id
-                        for other_id in scheduled_ids
-                        if (
-                            other_id != block.block_id
-                            and by_id[other_id].track_id
-                            == block.track_id
-                        )
-                    ),
-                    None,
-                )
+                scheduled_mutex = None
 
-                if scheduled_competing_block is not None:
-                    scheduled_block = by_id[
-                        scheduled_competing_block
-                    ]
-
-                    block_score = (
-                        request.objective_weights.risk_reduction_weight
-                        * block.risk_score
-                        + request.objective_weights.blocks_completed_weight
-                        * block.priority_score
+                if block.mutual_exclusion_group:
+                    scheduled_mutex = next(
+                        (
+                            other_id
+                            for other_id in scheduled_ids
+                            if (
+                                by_id[other_id]
+                                .mutual_exclusion_group
+                                == block.mutual_exclusion_group
+                            )
+                        ),
+                        None,
                     )
 
-                    competing_score = (
-                        request.objective_weights.risk_reduction_weight
-                        * scheduled_block.risk_score
-                        + request.objective_weights.blocks_completed_weight
-                        * scheduled_block.priority_score
+                if scheduled_mutex is not None:
+                    reason = (
+                        "mutual exclusion group conflict with "
+                        f"scheduled block: {scheduled_mutex}"
                     )
 
-                    if block_score < competing_score:
-                        reason = (
-                            "lower objective value than scheduled "
-                            "competing block: "
-                            f"{scheduled_competing_block}"
+                else:
+                    # Look for a same-track scheduled block with a
+                    # stronger objective contribution.
+                    scheduled_competitor = next(
+                        (
+                            other_id
+                            for other_id in scheduled_ids
+                            if (
+                                by_id[other_id].track_id
+                                == block.track_id
+                            )
+                        ),
+                        None,
+                    )
+
+                    if scheduled_competitor is not None:
+                        competing_block = by_id[
+                            scheduled_competitor
+                        ]
+
+                        block_score = _objective_score(
+                            request,
+                            block,
                         )
+
+                        competing_score = _objective_score(
+                            request,
+                            competing_block,
+                        )
+
+                        if block_score < competing_score:
+                            reason = (
+                                "lower objective value than "
+                                "scheduled competing block: "
+                                f"{scheduled_competitor}"
+                            )
+                        else:
+                            reason = (
+                                "excluded by optimizer: "
+                                "capacity/priority trade-off"
+                            )
                     else:
                         reason = (
                             "excluded by optimizer: "
-                            "capacity/priority trade-off on this track"
+                            "capacity/priority trade-off"
                         )
-                else:
-                    reason = (
-                        "excluded by optimizer: "
-                        "capacity/priority trade-off on this track"
-                    )
 
-            unscheduled_blocks.append(
-                UnscheduledBlock(
-                    block_id=block.block_id,
-                    reason=reason,
-                )
-            )
+        rejection_reasons[block_id] = reason
+        unscheduled_blocks.append(block)
 
-    horizon_minutes = _minutes(
-        request.planning_horizon.end - horizon_start
+    # ------------------------------------------------------------------
+    # Aggregate KPIs represented by the new contract
+    # ------------------------------------------------------------------
+    total_priority_scheduled = sum(
+        block.priority_score
+        for block in blocks
+        if block.block_id in scheduled_ids
     )
 
-    tracks = set(by_track.keys())
-
-    total_track_minutes = (
-        horizon_minutes * max(len(tracks), 1)
-    )
-
-    total_blocked_minutes = sum(
-        _minutes(sb.end - sb.start)
-        for sb in scheduled_blocks
-    )
-
-    asset_availability_pct = (
-        100.0
-        * (
-            1
-            - total_blocked_minutes
-            / total_track_minutes
-        )
-        if total_track_minutes
-        else 100.0
-    )
-
-    kpis = OptimizationKPIs(
-        asset_availability_pct=round(
-            asset_availability_pct,
-            2,
-        ),
-        trains_affected=0,
-        blocks_scheduled=len(scheduled_blocks),
-        risk_reduction_score=round(
-            sum(
-                by_id[sb.block_id].risk_score
-                for sb in scheduled_blocks
-            ),
-            3,
-        ),
+    total_risk_mitigated = sum(
+        block.risk_score
+        for block in blocks
+        if block.block_id in scheduled_ids
     )
 
     return OptimizationResult(
-        request_id=request.request_id,
+        corridor_id=request.corridor_id,
         status=status,
         scheduled_blocks=scheduled_blocks,
         unscheduled_blocks=unscheduled_blocks,
-        kpis=kpis,
-        explainability=explainability,
-        solve_time_ms=int(
-            solver.WallTime() * 1000
+        total_priority_scheduled=round(
+            total_priority_scheduled,
+            3,
         ),
-        generated_at=datetime.utcnow(),
+        total_risk_mitigated=round(
+            total_risk_mitigated,
+            3,
+        ),
+        solve_time_seconds=solve_time_seconds,
+        infeasibility_reasons=[],
+        rejection_reasons=rejection_reasons,
     )
