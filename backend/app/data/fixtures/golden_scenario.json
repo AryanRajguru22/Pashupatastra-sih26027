@@ -1,0 +1,563 @@
+{
+  "scenario_id": "GOLDEN_SCENARIO_NDLS_AGC",
+  "title": "Pashupatastra Golden Benchmark — NDLS to AGC Mainline Corridor",
+  "description": "Master end-to-end benchmark scenario demonstrating baseline optimization (12 blocks -> 8 scheduled / 4 deferred), committed block locking, track unavailability disruption on UP-1, and deterministic recovery.",
+  "corridor": {
+    "corridor_id": "CORR-NDLS-AGC",
+    "name": "New Delhi - Agra Cantt High Speed Trunk Corridor",
+    "zone": "Northern Railway / NCR",
+    "division": "Delhi / Agra",
+    "length_km": 195.0,
+    "tracks": [
+      {
+        "track_id": "UP-1",
+        "direction": "UP",
+        "section_name": "NDLS-AGC Up Mainline",
+        "speed_limit_kmh": 160,
+        "daily_train_density": 110,
+        "route_classification": "GROUP_A"
+      },
+      {
+        "track_id": "DOWN-1",
+        "direction": "DOWN",
+        "section_name": "AGC-NDLS Down Mainline",
+        "speed_limit_kmh": 160,
+        "daily_train_density": 115,
+        "route_classification": "GROUP_A"
+      }
+    ]
+  },
+  "initial_request": {
+    "corridor_id": "CORR-NDLS-AGC",
+    "horizon_minutes": 1440,
+    "tracks": ["UP-1", "DOWN-1"],
+    "min_headway_minutes": 15,
+    "possession_windows": [
+      {
+        "window_id": "POS-UP-1-NIGHT",
+        "track_id": "UP-1",
+        "start_minute": 30,
+        "end_minute": 300,
+        "window_type": "NIGHT_TRAFFIC_BLOCK"
+      },
+      {
+        "window_id": "POS-UP-1-MIDDAY",
+        "track_id": "UP-1",
+        "start_minute": 690,
+        "end_minute": 870,
+        "window_type": "MIDDAY_MAINTENANCE_SLOT"
+      },
+      {
+        "window_id": "POS-UP-1-EVENING",
+        "track_id": "UP-1",
+        "start_minute": 1260,
+        "end_minute": 1410,
+        "window_type": "EVENING_OFF_PEAK"
+      },
+      {
+        "window_id": "POS-DOWN-1-NIGHT",
+        "track_id": "DOWN-1",
+        "start_minute": 30,
+        "end_minute": 300,
+        "window_type": "NIGHT_TRAFFIC_BLOCK"
+      },
+      {
+        "window_id": "POS-DOWN-1-MIDDAY",
+        "track_id": "DOWN-1",
+        "start_minute": 690,
+        "end_minute": 870,
+        "window_type": "MIDDAY_MAINTENANCE_SLOT"
+      },
+      {
+        "window_id": "POS-DOWN-1-EVENING",
+        "track_id": "DOWN-1",
+        "start_minute": 1260,
+        "end_minute": 1410,
+        "window_type": "EVENING_OFF_PEAK"
+      }
+    ],
+    "existing_committed_blocks": [],
+    "candidates": [
+      {
+        "block_id": "BLK-001",
+        "asset_id": "AST-DN1-OHE-001",
+        "track_id": "DOWN-1",
+        "work_type": "OHE_MAINTENANCE",
+        "duration_minutes": 120,
+        "earliest_start_minute": 30,
+        "latest_end_minute": 360,
+        "priority_score": 0.820,
+        "risk_score": 0.710,
+        "dependencies": [],
+        "mutual_exclusion_group": "TOWER_WAGON_01",
+        "is_committed": false,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "OHE Mast & Catenary @ KM 12.4 (DOWN-1)",
+          "defect_severity": "MODERATE",
+          "km_location": 12.4,
+          "scoring_features": {
+            "asset_criticality": 0.85,
+            "defect_severity": 0.60,
+            "days_overdue": 45,
+            "failure_probability": 0.62,
+            "train_impact": 0.65,
+            "maintenance_duration": 120,
+            "historical_failure_rate": 0.50
+          }
+        }
+      },
+      {
+        "block_id": "BLK-002",
+        "asset_id": "AST-DN1-RAI-002",
+        "track_id": "DOWN-1",
+        "work_type": "BALLAST_TAMPING",
+        "duration_minutes": 105,
+        "earliest_start_minute": 30,
+        "latest_end_minute": 360,
+        "priority_score": 0.740,
+        "risk_score": 0.650,
+        "dependencies": [],
+        "mutual_exclusion_group": "CSM_TAMPER_01",
+        "is_committed": false,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "Rail Section & Sleeper Bed @ KM 18.2 (DOWN-1)",
+          "defect_severity": "MODERATE",
+          "km_location": 18.2,
+          "scoring_features": {
+            "asset_criticality": 0.82,
+            "defect_severity": 0.60,
+            "days_overdue": 30,
+            "failure_probability": 0.55,
+            "train_impact": 0.60,
+            "maintenance_duration": 105,
+            "historical_failure_rate": 0.33
+          }
+        }
+      },
+      {
+        "block_id": "BLK-003",
+        "asset_id": "AST-UP1-OHE-003",
+        "track_id": "UP-1",
+        "work_type": "OHE_MAINTENANCE",
+        "duration_minutes": 90,
+        "earliest_start_minute": 600,
+        "latest_end_minute": 900,
+        "priority_score": 0.880,
+        "risk_score": 0.780,
+        "dependencies": [],
+        "mutual_exclusion_group": "TOWER_WAGON_01",
+        "is_committed": false,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "OHE Cantilever Assembly @ KM 24.1 (UP-1)",
+          "defect_severity": "CRITICAL",
+          "km_location": 24.1,
+          "scoring_features": {
+            "asset_criticality": 0.90,
+            "defect_severity": 1.00,
+            "days_overdue": 60,
+            "failure_probability": 0.75,
+            "train_impact": 0.70,
+            "maintenance_duration": 90,
+            "historical_failure_rate": 0.66
+          }
+        }
+      },
+      {
+        "block_id": "BLK-004",
+        "asset_id": "AST-UP1-RAI-004",
+        "track_id": "UP-1",
+        "work_type": "BALLAST_TAMPING",
+        "duration_minutes": 90,
+        "earliest_start_minute": 30,
+        "latest_end_minute": 360,
+        "priority_score": 0.810,
+        "risk_score": 0.690,
+        "dependencies": [],
+        "mutual_exclusion_group": "CSM_TAMPER_01",
+        "is_committed": false,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "Rail Section & Joint Packing @ KM 08.5 (UP-1)",
+          "defect_severity": "MODERATE",
+          "km_location": 8.5,
+          "scoring_features": {
+            "asset_criticality": 0.88,
+            "defect_severity": 0.60,
+            "days_overdue": 40,
+            "failure_probability": 0.58,
+            "train_impact": 0.65,
+            "maintenance_duration": 90,
+            "historical_failure_rate": 0.50
+          }
+        }
+      },
+      {
+        "block_id": "BLK-005",
+        "asset_id": "AST-UP1-RAI-005",
+        "track_id": "UP-1",
+        "work_type": "TRACK_RENEWAL",
+        "duration_minutes": 150,
+        "earliest_start_minute": 30,
+        "latest_end_minute": 360,
+        "priority_score": 0.910,
+        "risk_score": 0.840,
+        "dependencies": [],
+        "mutual_exclusion_group": null,
+        "is_committed": false,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "Through Rail Renewal Section @ KM 32.0 (UP-1)",
+          "defect_severity": "CRITICAL",
+          "km_location": 32.0,
+          "scoring_features": {
+            "asset_criticality": 0.95,
+            "defect_severity": 1.00,
+            "days_overdue": 75,
+            "failure_probability": 0.85,
+            "train_impact": 0.80,
+            "maintenance_duration": 150,
+            "historical_failure_rate": 0.66
+          }
+        }
+      },
+      {
+        "block_id": "BLK-006",
+        "asset_id": "AST-UP1-OHE-006",
+        "track_id": "UP-1",
+        "work_type": "OHE_MAINTENANCE",
+        "duration_minutes": 90,
+        "earliest_start_minute": 1200,
+        "latest_end_minute": 1440,
+        "priority_score": 0.990,
+        "risk_score": 0.890,
+        "dependencies": [],
+        "mutual_exclusion_group": "TOWER_WAGON_01",
+        "is_committed": false,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "OHE Contact Wire Splice @ KM 44.0 (UP-1)",
+          "defect_severity": "CRITICAL",
+          "km_location": 44.0,
+          "scoring_features": {
+            "asset_criticality": 0.98,
+            "defect_severity": 1.00,
+            "days_overdue": 90,
+            "failure_probability": 0.92,
+            "train_impact": 0.75,
+            "maintenance_duration": 90,
+            "historical_failure_rate": 0.83
+          }
+        }
+      },
+      {
+        "block_id": "BLK-007",
+        "asset_id": "AST-DN1-OHE-007",
+        "track_id": "DOWN-1",
+        "work_type": "OHE_MAINTENANCE",
+        "duration_minutes": 120,
+        "earliest_start_minute": 600,
+        "latest_end_minute": 900,
+        "priority_score": 0.850,
+        "risk_score": 0.720,
+        "dependencies": [],
+        "mutual_exclusion_group": "TOWER_WAGON_01",
+        "is_committed": false,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "OHE Isolator Switch @ KM 28.5 (DOWN-1)",
+          "defect_severity": "MODERATE",
+          "km_location": 28.5,
+          "scoring_features": {
+            "asset_criticality": 0.85,
+            "defect_severity": 0.60,
+            "days_overdue": 50,
+            "failure_probability": 0.64,
+            "train_impact": 0.65,
+            "maintenance_duration": 120,
+            "historical_failure_rate": 0.50
+          }
+        }
+      },
+      {
+        "block_id": "BLK-008",
+        "asset_id": "AST-UP1-RAI-008",
+        "track_id": "UP-1",
+        "work_type": "ROUTINE_INSPECTION",
+        "duration_minutes": 45,
+        "earliest_start_minute": 690,
+        "latest_end_minute": 870,
+        "priority_score": 0.310,
+        "risk_score": 0.220,
+        "dependencies": [],
+        "mutual_exclusion_group": null,
+        "is_committed": false,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "Ultrasonic Flaw Detection Patrol (UP-1)",
+          "defect_severity": "NONE",
+          "km_location": 15.0,
+          "scoring_features": {
+            "asset_criticality": 0.70,
+            "defect_severity": 0.00,
+            "days_overdue": 0,
+            "failure_probability": 0.08,
+            "train_impact": 0.30,
+            "maintenance_duration": 45,
+            "historical_failure_rate": 0.16
+          }
+        }
+      },
+      {
+        "block_id": "BLK-009",
+        "asset_id": "AST-DN1-RAI-009",
+        "track_id": "DOWN-1",
+        "work_type": "BALLAST_TAMPING",
+        "duration_minutes": 120,
+        "earliest_start_minute": 30,
+        "latest_end_minute": 1410,
+        "priority_score": 0.580,
+        "risk_score": 0.510,
+        "dependencies": [],
+        "mutual_exclusion_group": "CSM_TAMPER_01",
+        "is_committed": false,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "Sleeper Alignment Tamping @ KM 35.0 (DOWN-1)",
+          "defect_severity": "MINOR",
+          "km_location": 35.0,
+          "scoring_features": {
+            "asset_criticality": 0.75,
+            "defect_severity": 0.25,
+            "days_overdue": 20,
+            "failure_probability": 0.35,
+            "train_impact": 0.55,
+            "maintenance_duration": 120,
+            "historical_failure_rate": 0.33
+          }
+        }
+      },
+      {
+        "block_id": "BLK-010",
+        "asset_id": "AST-UP1-RAI-010",
+        "track_id": "UP-1",
+        "work_type": "BALLAST_TAMPING",
+        "duration_minutes": 135,
+        "earliest_start_minute": 30,
+        "latest_end_minute": 1410,
+        "priority_score": 0.520,
+        "risk_score": 0.480,
+        "dependencies": [],
+        "mutual_exclusion_group": "CSM_TAMPER_01",
+        "is_committed": false,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "Ballast Regulation & Tamping @ KM 40.0 (UP-1)",
+          "defect_severity": "MINOR",
+          "km_location": 40.0,
+          "scoring_features": {
+            "asset_criticality": 0.72,
+            "defect_severity": 0.25,
+            "days_overdue": 15,
+            "failure_probability": 0.30,
+            "train_impact": 0.50,
+            "maintenance_duration": 135,
+            "historical_failure_rate": 0.33
+          }
+        }
+      },
+      {
+        "block_id": "BLK-011",
+        "asset_id": "AST-DN1-SIG-011",
+        "track_id": "DOWN-1",
+        "work_type": "SIGNALLING_INTERLOCKING",
+        "duration_minutes": 90,
+        "earliest_start_minute": 30,
+        "latest_end_minute": 1410,
+        "priority_score": 0.440,
+        "risk_score": 0.380,
+        "dependencies": [],
+        "mutual_exclusion_group": "S_T_GANG_01",
+        "is_committed": false,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "Signal Post LED Array Calibration @ KM 22.0 (DOWN-1)",
+          "defect_severity": "MINOR",
+          "km_location": 22.0,
+          "scoring_features": {
+            "asset_criticality": 0.65,
+            "defect_severity": 0.25,
+            "days_overdue": 10,
+            "failure_probability": 0.22,
+            "train_impact": 0.40,
+            "maintenance_duration": 90,
+            "historical_failure_rate": 0.16
+          }
+        }
+      },
+      {
+        "block_id": "BLK-012",
+        "asset_id": "AST-DN1-TUR-012",
+        "track_id": "DOWN-1",
+        "work_type": "ROUTINE_INSPECTION",
+        "duration_minutes": 60,
+        "earliest_start_minute": 30,
+        "latest_end_minute": 1410,
+        "priority_score": 0.390,
+        "risk_score": 0.310,
+        "dependencies": [],
+        "mutual_exclusion_group": null,
+        "is_committed": false,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "Turnout Point Geometry Patrol @ KM 48.0 (DOWN-1)",
+          "defect_severity": "NONE",
+          "km_location": 48.0,
+          "scoring_features": {
+            "asset_criticality": 0.60,
+            "defect_severity": 0.00,
+            "days_overdue": 0,
+            "failure_probability": 0.12,
+            "train_impact": 0.35,
+            "maintenance_duration": 60,
+            "historical_failure_rate": 0.16
+          }
+        }
+      }
+    ]
+  },
+  "initial_expected_solution": {
+    "status": "OPTIMAL",
+    "scheduled_count": 8,
+    "unscheduled_count": 4,
+    "total_priority_scheduled": 6.310,
+    "total_risk_mitigated": 5.600,
+    "scheduled_blocks": [
+      {
+        "block_id": "BLK-001",
+        "track_id": "DOWN-1",
+        "start_minute": 30,
+        "end_minute": 150,
+        "work_type": "OHE_MAINTENANCE",
+        "priority_score": 0.820,
+        "risk_score": 0.710,
+        "is_committed": false
+      },
+      {
+        "block_id": "BLK-002",
+        "track_id": "DOWN-1",
+        "start_minute": 165,
+        "end_minute": 270,
+        "work_type": "BALLAST_TAMPING",
+        "priority_score": 0.740,
+        "risk_score": 0.650,
+        "is_committed": false
+      },
+      {
+        "block_id": "BLK-004",
+        "track_id": "UP-1",
+        "start_minute": 30,
+        "end_minute": 120,
+        "work_type": "BALLAST_TAMPING",
+        "priority_score": 0.810,
+        "risk_score": 0.690,
+        "is_committed": false
+      },
+      {
+        "block_id": "BLK-005",
+        "track_id": "UP-1",
+        "start_minute": 135,
+        "end_minute": 285,
+        "work_type": "TRACK_RENEWAL",
+        "priority_score": 0.910,
+        "risk_score": 0.840,
+        "is_committed": false
+      },
+      {
+        "block_id": "BLK-007",
+        "track_id": "DOWN-1",
+        "start_minute": 690,
+        "end_minute": 810,
+        "work_type": "OHE_MAINTENANCE",
+        "priority_score": 0.850,
+        "risk_score": 0.720,
+        "is_committed": false
+      },
+      {
+        "block_id": "BLK-003",
+        "track_id": "UP-1",
+        "start_minute": 690,
+        "end_minute": 780,
+        "work_type": "OHE_MAINTENANCE",
+        "priority_score": 0.880,
+        "risk_score": 0.780,
+        "is_committed": false
+      },
+      {
+        "block_id": "BLK-008",
+        "track_id": "UP-1",
+        "start_minute": 795,
+        "end_minute": 840,
+        "work_type": "ROUTINE_INSPECTION",
+        "priority_score": 0.310,
+        "risk_score": 0.220,
+        "is_committed": false
+      },
+      {
+        "block_id": "BLK-006",
+        "track_id": "UP-1",
+        "start_minute": 1260,
+        "end_minute": 1350,
+        "work_type": "OHE_MAINTENANCE",
+        "priority_score": 0.990,
+        "risk_score": 0.890,
+        "is_committed": false
+      }
+    ],
+    "unscheduled_blocks": [
+      {
+        "block_id": "BLK-009",
+        "reason": "WINDOW_CAPACITY_EXCEEDED_FOR_EQUIPMENT_CSM_TAMPER_01"
+      },
+      {
+        "block_id": "BLK-010",
+        "reason": "HEADWAY_AND_TIME_WINDOW_CAPACITY_LIMIT"
+      },
+      {
+        "block_id": "BLK-011",
+        "reason": "LOWER_PRIORITY_IN_COMPETITIVE_WINDOW"
+      },
+      {
+        "block_id": "BLK-012",
+        "reason": "WINDOW_CAPACITY_LIMIT"
+      }
+    ]
+  },
+  "committed_locks": [
+    {
+      "block_id": "BLK-001",
+      "track_id": "DOWN-1",
+      "start_minute": 30,
+      "end_minute": 150,
+      "is_committed": true
+    },
+    {
+      "block_id": "BLK-003",
+      "track_id": "UP-1",
+      "start_minute": 690,
+      "end_minute": 780,
+      "is_committed": true
+    }
+  ],
+  "disruption_event": {
+    "disruption_id": "DISR-GOLDEN-001",
+    "disruption_type": "TRACK_UNAVAILABLE",
+    "corridor_id": "CORR-NDLS-AGC",
+    "track_id": "UP-1",
+    "start_minute": 60,
+    "end_minute": 240,
+    "description": "Emergency track blockage on UP-1 between KM 12 and 28 (01:00 to 04:00) during Night Possession."
+  }
+}

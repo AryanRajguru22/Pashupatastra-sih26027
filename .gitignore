@@ -1,32 +1,8 @@
-# Python
 __pycache__/
 *.pyc
-.venv/
-venv/
-*.egg-info/
+*.pyo
 .pytest_cache/
-.mypy_cache/
-.ruff_cache/
-
-# Node / frontend
-node_modules/
-dist/
-.vite/
-.next/
-frontend/build/
-
-# Env / secrets
-.env
-.env.local
-
-# OS / editor
+.venv/
+env/
+venv/
 .DS_Store
-Thumbs.db
-.vscode/
-.idea/
-
-# Misc
-*.log
-
-# Generated milestone-run output, not source
-scripts/milestone1_result.json

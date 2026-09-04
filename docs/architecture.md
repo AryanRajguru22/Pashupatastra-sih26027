@@ -1,53 +1,64 @@
-# Architecture
+# System Architecture — Pashupatastra
 
-## Pipeline
+Pashupatastra is an AI-assisted railway maintenance scheduling and disruption recovery system designed for Indian Railways.
 
 ```
-DATA (domain model + synthetic corridor/asset/timetable data)
-  -> AI/ML priority & risk scoring        (backend/app/ml)
-  -> CP-SAT deterministic optimization    (backend/app/optimizer)
-  -> optimized maintenance block plan
-  -> command-center visualization         (frontend)
-  -> DISRUPT                              (backend/app/simulation)
-  -> automatic RE-OPTIMIZE                (same optimizer, new request)
-  -> RECOVER
-  -> explainability + audit               (OptimizationResult.explainability)
++-------------------------------------------------------------+
+|                 RAILWAY DOMAIN & SYNTHETIC DATA             |
+|                       (Darshini)                            |
+|        - Corridor Topology & Asset Hierarchy                |
+|        - Deterministic Synthetic Scenario Generator         |
++-------------------------------------------------------------+
+                              |
+                              v
++-------------------------------------------------------------+
+|                   AI / ML PRIORITY & RISK SCORER            |
+|                          (Ayush)                            |
+|        - Asset Criticality & Defect Urgency Scoring         |
+|        - Explainable Priority and Risk Metric Attribution   |
++-------------------------------------------------------------+
+                              |
+                              v
++-------------------------------------------------------------+
+|                    CP-SAT OPTIMIZER CORE                    |
+|                          (Tyagi)                            |
+|        - No-overlap, Headway, Precedence Constraints        |
+|        - Committed-Block Stability & Re-optimization        |
+|        - Infeasibility Detection & Reason Codes             |
++-------------------------------------------------------------+
+                              |
+                              v
++-------------------------------------------------------------+
+|                  FASTAPI BACKEND & ORCHESTRATION            |
+|                          (Aryan)                            |
+|        - POST /optimize, GET /health, POST /disrupt         |
+|        - Contract Validation & Pipeline Integration         |
++-------------------------------------------------------------+
+                              |
+                              v
++-------------------------------------------------------------+
+|                FRONTEND OPERATIONS CONTROL VIEW             |
+|                         (Archit)                            |
+|        - Railway Corridor Timeline (Time x Tracks)          |
+|        - Plan -> Disrupt -> Recover Visualizer             |
++-------------------------------------------------------------+
+                              |
+                     ... DISRUPTION ...
+                              |
+                              v
++-------------------------------------------------------------+
+|               DISRUPTION & RECOVERY SIMULATOR               |
+|                         (Tirth)                             |
+|        - Deterministic Disruption Scenarios                 |
+|        - Mutated Optimization Request Generator             |
++-------------------------------------------------------------+
 ```
 
-## Non-negotiable boundary
+---
 
-AI/ML output (`priority_score`, `risk_score` on `BlockCandidate`) is an
-**objective-function input only**. It can change which feasible schedule
-the optimizer prefers; it can never let the optimizer violate a hard
-constraint (track no-overlap, headway, dependency ordering, mutual
-exclusion, time windows). If this boundary blurs anywhere in the code,
-that's a bug, not a design choice.
+## The 4-Step Demo Lifecycle
 
-## Why a single Python backend for optimizer + ML + domain + simulation
-
-CP-SAT's most mature bindings are Python; the ML scorer is a simple
-tabular model that's naturally Python too. Keeping optimizer, ML, domain
-model, and simulation in one language avoids cross-process serialization
-and lets each owner iterate against the same in-process contracts
-without standing up extra infrastructure.
-
-## Why no database yet
-
-The demo runs against synthetic fixtures and in-memory state. SQLite is
-the fallback if persisting scenarios across restarts becomes necessary;
-Postgres/Docker/auth are explicitly out of scope for the prototype
-timeline.
-
-## Milestones
-
-1. **CP-SAT feasibility proof** (this state) — standalone script, no API,
-   no frontend. Proves the highest-risk assumption: CP-SAT can solve this
-   problem shape under real constraints.
-2. **Minimal API + real frontend against fixtures** — FastAPI `/optimize`
-   endpoint; frontend timeline/KPI panel built against a static
-   `OptimizationResult.json` before the two are wired together.
-3. **Full PLAN -> DISRUPT -> RECOVER loop** — disruption injection calls
-   re-optimization, frontend updates live, explainability/audit surfaced
-   in the UI.
-
-See the repository README for how to run Milestone 1 today.
+1. **PLAN:** Load corridor candidates $\to$ ML Scorer calculates Priority/Risk $\to$ CP-SAT produces optimal baseline schedule $\to$ Dashboard renders timeline.
+2. **DISRUPT:** Inject disruption (e.g. `TRACK_UNAVAILABLE` on UP-1 from 02:00 to 05:00) $\to$ Simulator identifies affected vs. committed blocks.
+3. **RECOVER:** Mutated request re-submitted to CP-SAT with committed blocks pinned $\to$ CP-SAT re-routes remaining blocks to alternative tracks/times.
+4. **VERIFY:** Confirm zero hard-constraint violations, zero overlap, all precedence dependencies intact, and before/after recovery metrics clearly displayed.
