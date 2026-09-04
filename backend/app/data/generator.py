@@ -239,8 +239,19 @@ class CorridorDataGenerator:
                 explicit_defect_severity=asset.defect_severity,
             )
 
-            priority = features["baseline_priority_score"]
-            risk = features["baseline_risk_score"]
+            # The adapter now feeds the canonical scorer.  Do not calculate
+            # a second scoring formula here; the scorer is the single source
+            # of truth for risk and priority.
+            scored = ScoringFeatureAdapter.score_domain_block(
+                asset=asset,
+                track=track_obj,
+                work_type=work_type,
+                duration_minutes=duration,
+                days_overdue=days_overdue,
+                explicit_defect_severity=asset.defect_severity,
+            )
+            priority = scored["priority_score"]
+            risk = scored["risk_score"]
 
             slot_choice = self.rng.choice(["NIGHT", "MIDDAY", "ANYTIME"])
             if slot_choice == "NIGHT":
@@ -274,7 +285,8 @@ class CorridorDataGenerator:
                     "asset_name": asset.name,
                     "km_location": asset.km_location,
                     "defect_severity": asset.defect_severity,
-                    "scoring_features": features,
+                    "scoring_features": scored["scoring_input"],
+                    "scoring_explanation": scored["explanation"],
                 },
             )
             candidates.append(candidate)
