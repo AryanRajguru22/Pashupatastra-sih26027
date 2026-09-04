@@ -1,135 +1,138 @@
-"""Utilities for applying railway disruptions to an optimization request.
-
-This module does not modify the shared contract schemas or the optimizer.
-It creates a new OptimizationRequest representing the situation after
-a disruption.
-
-Emergency block requests are validation-only in Phase 1 because the
-DisruptionEvent contract provides block IDs but does not contain enough
-information to construct a brand-new BlockCandidate.
-"""
+"""Utilities for applying railway disruptions to an optimization request."""
 
 from __future__ import annotations
 
 from contracts import (
-    BlockCandidate,
+    BlockStatus,
     DisruptionEvent,
     DisruptionType,
     OptimizationRequest,
 )
 
 
-def _copy_request(request: OptimizationRequest) -> OptimizationRequest:
+def _copy_request(
+    request: OptimizationRequest,
+) -> OptimizationRequest:
     """Return an independent copy of the optimization request."""
-    return request.model_copy(deep=True)
+    return OptimizationRequest.from_dict(request.to_dict())
 
 
-def _is_affected_by_asset(
-    block: BlockCandidate,
-    event: DisruptionEvent,
-) -> bool:
-    """Return True when a block uses an asset affected by the disruption."""
-
-    affected_assets = set(event.impact.unavailable_asset_ids)
-
-    if event.affected_asset_id:
-        affected_assets.add(event.affected_asset_id)
-
-    return (
-        block.asset_id in affected_assets
-        or block.track_id in affected_assets
-    )
-
-
-def apply_asset_failure(
+def apply_asset_breakdown(
     request: OptimizationRequest,
     event: DisruptionEvent,
 ) -> OptimizationRequest:
-    """Remove maintenance candidates that use an unavailable asset/track."""
+    """Remove candidates using the failed asset."""
 
     updated = _copy_request(request)
 
-    unavailable_block_ids = {
-        block.block_id
-        for block in updated.block_candidates
-        if _is_affected_by_asset(block, event)
-    }
+    if not event.affected_asset_id:
+        return updated
 
-    unavailable_block_ids.update(event.impact.invalidated_block_ids)
+    affected_asset = event.affected_asset_id
 
-    updated.block_candidates = [
+    updated.candidates = [
         block
-        for block in updated.block_candidates
-        if block.block_id not in unavailable_block_ids
+        for block in updated.candidates
+        if block.asset_id != affected_asset
     ]
 
     updated.existing_committed_blocks = [
         block
         for block in updated.existing_committed_blocks
-        if block.block_id not in unavailable_block_ids
+        if block.asset_id != affected_asset
     ]
 
     return updated
 
 
-def validate_emergency_block_request(
+def apply_track_unavailable(
     request: OptimizationRequest,
     event: DisruptionEvent,
 ) -> OptimizationRequest:
-    """Validate emergency block IDs against existing candidates.
-
-    Phase 1 is validation-only: DisruptionEvent contains only IDs for
-    newly required blocks, not enough information to construct a new
-    BlockCandidate. The actual candidate must therefore already exist
-    in OptimizationRequest.block_candidates.
-    """
+    """Remove candidates using the unavailable track."""
 
     updated = _copy_request(request)
 
-    existing_ids = {
-        block.block_id
-        for block in updated.block_candidates
-    }
+    if not event.track_id:
+        return updated
 
-    missing_ids = [
-        block_id
-        for block_id in event.impact.newly_required_block_ids
-        if block_id not in existing_ids
+    affected_track = event.track_id
+
+    updated.candidates = [
+        block
+        for block in updated.candidates
+        if block.track_id != affected_track
     ]
 
-    if missing_ids:
-        raise ValueError(
-            "Emergency disruption references block candidates that are "
-            f"not present in the request: {missing_ids}"
+    updated.existing_committed_blocks = [
+        block
+        for block in updated.existing_committed_blocks
+        if block.track_id != affected_track
+    ]
+
+    return updated
+
+
+def apply_emergency_work(
+    request: OptimizationRequest,
+    event: DisruptionEvent,
+) -> OptimizationRequest:
+    """Add a new emergency candidate when one is supplied."""
+
+    updated = _copy_request(request)
+
+    if event.new_candidate is None:
+        return updated
+
+    existing_ids = {
+        block.block_id
+        for block in updated.candidates
+    }
+
+    if event.new_candidate.block_id not in existing_ids:
+        emergency_candidate = event.new_candidate
+
+        emergency_candidate.status = BlockStatus.PLANNED.value
+
+        updated.candidates.append(
+            emergency_candidate
         )
 
     return updated
 
 
-def apply_block_overrun(
+def apply_possession_curtailment(
     request: OptimizationRequest,
     event: DisruptionEvent,
 ) -> OptimizationRequest:
-    """Invalidate blocks affected by a block overrun."""
+    """Reduce possession availability during a disruption interval.
+
+    Windows overlapping the disruption are removed. This deliberately
+    avoids inventing partial-window semantics not represented by the
+    current shared contract.
+    """
 
     updated = _copy_request(request)
 
-    invalidated_ids = set(event.impact.invalidated_block_ids)
+    remaining_windows = []
 
-    if event.affected_block_id:
-        invalidated_ids.add(event.affected_block_id)
+    for window in updated.possession_windows:
+        same_track = (
+            event.track_id is None
+            or window.track_id == event.track_id
+        )
 
-    updated.block_candidates = [
-        block
-        for block in updated.block_candidates
-        if block.block_id not in invalidated_ids
-    ]
+        overlaps = (
+            window.start_minute < event.end_minute
+            and event.start_minute < window.end_minute
+        )
 
-    updated.existing_committed_blocks = [
-        block
-        for block in updated.existing_committed_blocks
-        if block.block_id not in invalidated_ids
-    ]
+        if same_track and overlaps:
+            continue
+
+        remaining_windows.append(window)
+
+    updated.possession_windows = remaining_windows
 
     return updated
 
@@ -138,26 +141,34 @@ def apply_disruption(
     request: OptimizationRequest,
     event: DisruptionEvent,
 ) -> OptimizationRequest:
-    """Apply a supported disruption and return the resulting request."""
+    """Apply a supported Phase 1 disruption."""
 
-    if event.event_type == DisruptionType.ASSET_FAILURE:
-        return apply_asset_failure(request, event)
+    disruption_type = event.disruption_type
 
-    if event.event_type == DisruptionType.EMERGENCY_BLOCK_REQUEST:
-        return validate_emergency_block_request(request, event)
+    if disruption_type == DisruptionType.ASSET_BREAKDOWN.value:
+        return apply_asset_breakdown(
+            request,
+            event,
+        )
 
-    if event.event_type == DisruptionType.BLOCK_OVERRUN:
-        return apply_block_overrun(request, event)
+    if disruption_type == DisruptionType.TRACK_UNAVAILABLE.value:
+        return apply_track_unavailable(
+            request,
+            event,
+        )
 
-    if event.event_type in (
-        DisruptionType.WEATHER,
-        DisruptionType.TRAIN_DELAY,
-    ):
-        raise NotImplementedError(
-            f"Disruption type {event.event_type.value} is not yet supported "
-            "by the Phase 1 simulation layer."
+    if disruption_type == DisruptionType.EMERGENCY_WORK.value:
+        return apply_emergency_work(
+            request,
+            event,
+        )
+
+    if disruption_type == DisruptionType.POSSESSION_CURTAILMENT.value:
+        return apply_possession_curtailment(
+            request,
+            event,
         )
 
     raise ValueError(
-        f"Unsupported disruption type: {event.event_type}"
+        f"Unsupported disruption type: {disruption_type}"
     )

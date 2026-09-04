@@ -27,15 +27,12 @@ def simulate_disruption(
     request: OptimizationRequest,
     event: DisruptionEvent,
 ) -> RecoverySimulation:
-    """Apply a disruption and optionally re-optimize the situation."""
+    """Apply a disruption and re-optimize the resulting request."""
 
-    updated_request = apply_disruption(request, event)
-
-    if not event.triggers_reoptimization:
-        raise ValueError(
-            "This Phase 1 simulator expects disruptions that trigger "
-            "re-optimization."
-        )
+    updated_request = apply_disruption(
+        request,
+        event,
+    )
 
     recovery_result = solve(updated_request)
 
