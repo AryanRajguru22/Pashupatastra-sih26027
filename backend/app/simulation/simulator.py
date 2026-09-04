@@ -34,7 +34,9 @@ def simulate_disruption(
         event,
     )
 
-    recovery_result = solve(updated_request)
+    recovery_result = solve(
+        updated_request,
+    )
 
     return RecoverySimulation(
         event=event,
