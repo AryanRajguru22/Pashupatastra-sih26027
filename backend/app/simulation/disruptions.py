@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+
 from contracts import (
     BlockStatus,
     DisruptionEvent,
@@ -14,14 +16,16 @@ def _copy_request(
     request: OptimizationRequest,
 ) -> OptimizationRequest:
     """Return an independent copy of the optimization request."""
-    return OptimizationRequest.from_dict(request.to_dict())
+    return OptimizationRequest.from_dict(
+        request.to_dict()
+    )
 
 
 def apply_asset_breakdown(
     request: OptimizationRequest,
     event: DisruptionEvent,
 ) -> OptimizationRequest:
-    """Remove candidates using the failed asset."""
+    """Remove candidates and committed blocks using the failed asset."""
 
     updated = _copy_request(request)
 
@@ -49,7 +53,7 @@ def apply_track_unavailable(
     request: OptimizationRequest,
     event: DisruptionEvent,
 ) -> OptimizationRequest:
-    """Remove candidates using the unavailable track."""
+    """Remove candidates and committed blocks on the unavailable track."""
 
     updated = _copy_request(request)
 
@@ -89,14 +93,23 @@ def apply_emergency_work(
         for block in updated.candidates
     }
 
-    if event.new_candidate.block_id not in existing_ids:
-        emergency_candidate = event.new_candidate
+    # Do not add a duplicate candidate.
+    if event.new_candidate.block_id in existing_ids:
+        return updated
 
-        emergency_candidate.status = BlockStatus.PLANNED.value
+    # Use deepcopy because the active contract does not provide
+    # Pydantic's model_copy() method.
+    emergency_candidate = copy.deepcopy(
+        event.new_candidate
+    )
 
-        updated.candidates.append(
-            emergency_candidate
-        )
+    emergency_candidate.status = (
+        BlockStatus.PLANNED.value
+    )
+
+    updated.candidates.append(
+        emergency_candidate
+    )
 
     return updated
 
@@ -105,18 +118,14 @@ def apply_possession_curtailment(
     request: OptimizationRequest,
     event: DisruptionEvent,
 ) -> OptimizationRequest:
-    """Reduce possession availability during a disruption interval.
-
-    Windows overlapping the disruption are removed. This deliberately
-    avoids inventing partial-window semantics not represented by the
-    current shared contract.
-    """
+    """Remove possession windows overlapping the disruption interval."""
 
     updated = _copy_request(request)
 
     remaining_windows = []
 
     for window in updated.possession_windows:
+
         same_track = (
             event.track_id is None
             or window.track_id == event.track_id
@@ -130,9 +139,13 @@ def apply_possession_curtailment(
         if same_track and overlaps:
             continue
 
-        remaining_windows.append(window)
+        remaining_windows.append(
+            window
+        )
 
-    updated.possession_windows = remaining_windows
+    updated.possession_windows = (
+        remaining_windows
+    )
 
     return updated
 
@@ -143,27 +156,43 @@ def apply_disruption(
 ) -> OptimizationRequest:
     """Apply a supported Phase 1 disruption."""
 
+    # IMPORTANT:
+    # The active contracts.schemas.DisruptionEvent uses
+    # `disruption_type`, not `event_type`.
+
     disruption_type = event.disruption_type
 
-    if disruption_type == DisruptionType.ASSET_BREAKDOWN.value:
+    if (
+        disruption_type
+        == DisruptionType.ASSET_BREAKDOWN.value
+    ):
         return apply_asset_breakdown(
             request,
             event,
         )
 
-    if disruption_type == DisruptionType.TRACK_UNAVAILABLE.value:
+    if (
+        disruption_type
+        == DisruptionType.TRACK_UNAVAILABLE.value
+    ):
         return apply_track_unavailable(
             request,
             event,
         )
 
-    if disruption_type == DisruptionType.EMERGENCY_WORK.value:
+    if (
+        disruption_type
+        == DisruptionType.EMERGENCY_WORK.value
+    ):
         return apply_emergency_work(
             request,
             event,
         )
 
-    if disruption_type == DisruptionType.POSSESSION_CURTAILMENT.value:
+    if (
+        disruption_type
+        == DisruptionType.POSSESSION_CURTAILMENT.value
+    ):
         return apply_possession_curtailment(
             request,
             event,
