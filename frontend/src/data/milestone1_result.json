@@ -1,140 +1,194 @@
 {
-  "request_id": "REQ-MILESTONE-1",
-  "status": "OPTIMAL",
-  "scheduled_blocks": [
-    {
-      "block_id": "BLK-001",
-      "track_id": "UP",
-      "start": "2026-09-01T00:00:00",
-      "end": "2026-09-01T03:00:00"
-    },
-    {
-      "block_id": "BLK-002",
-      "track_id": "DOWN",
-      "start": "2026-09-01T00:00:00",
-      "end": "2026-09-01T01:30:00"
-    },
-    {
-      "block_id": "BLK-003",
-      "track_id": "UP",
-      "start": "2026-09-01T05:00:00",
-      "end": "2026-09-01T07:00:00"
-    },
-    {
-      "block_id": "BLK-004",
-      "track_id": "DOWN",
-      "start": "2026-09-01T01:40:00",
-      "end": "2026-09-01T02:40:00"
-    },
-    {
-      "block_id": "BLK-007",
-      "track_id": "DOWN",
-      "start": "2026-09-01T02:50:00",
-      "end": "2026-09-01T06:10:00"
-    },
-    {
-      "block_id": "BLK-009",
-      "track_id": "DOWN",
-      "start": "2026-09-01T07:00:00",
-      "end": "2026-09-01T08:30:00"
-    },
-    {
-      "block_id": "BLK-010",
-      "track_id": "UP",
-      "start": "2026-09-01T07:10:00",
-      "end": "2026-09-01T08:10:00"
-    },
-    {
-      "block_id": "BLK-012",
-      "track_id": "UP",
-      "start": "2026-09-01T03:10:00",
-      "end": "2026-09-01T04:50:00"
+    "corridor_id": "CORRIDOR_A",
+    "status": "OPTIMAL",
+    "scheduled_blocks": [
+        {
+            "block_id": "BLK-001",
+            "track_id": "UP-1",
+            "start_minute": 135,
+            "end_minute": 195,
+            "work_type": "ROUTINE_INSPECTION",
+            "priority_score": 0.591,
+            "risk_score": 0.358,
+            "is_committed": false,
+            "status": "SCHEDULED"
+        },
+        {
+            "block_id": "BLK-002",
+            "track_id": "UP-1",
+            "start_minute": 210,
+            "end_minute": 270,
+            "work_type": "SIGNALLING_INTERLOCKING",
+            "priority_score": 0.598,
+            "risk_score": 0.264,
+            "is_committed": false,
+            "status": "SCHEDULED"
+        },
+        {
+            "block_id": "BLK-003",
+            "track_id": "UP-1",
+            "start_minute": 690,
+            "end_minute": 750,
+            "work_type": "SIGNALLING_INTERLOCKING",
+            "priority_score": 0.491,
+            "risk_score": 0.171,
+            "is_committed": false,
+            "status": "SCHEDULED"
+        },
+        {
+            "block_id": "BLK-004",
+            "track_id": "DOWN-1",
+            "start_minute": 690,
+            "end_minute": 735,
+            "work_type": "ROUTINE_INSPECTION",
+            "priority_score": 0.617,
+            "risk_score": 0.487,
+            "is_committed": false,
+            "status": "SCHEDULED"
+        },
+        {
+            "block_id": "BLK-005",
+            "track_id": "DOWN-1",
+            "start_minute": 210,
+            "end_minute": 300,
+            "work_type": "OHE_MAINTENANCE",
+            "priority_score": 0.605,
+            "risk_score": 0.455,
+            "is_committed": false,
+            "status": "SCHEDULED"
+        },
+        {
+            "block_id": "BLK-006",
+            "track_id": "DOWN-1",
+            "start_minute": 30,
+            "end_minute": 120,
+            "work_type": "EMERGENCY_REPAIR",
+            "priority_score": 0.543,
+            "risk_score": 0.17,
+            "is_committed": false,
+            "status": "SCHEDULED"
+        },
+        {
+            "block_id": "BLK-008",
+            "track_id": "UP-1",
+            "start_minute": 765,
+            "end_minute": 810,
+            "work_type": "ROUTINE_INSPECTION",
+            "priority_score": 0.554,
+            "risk_score": 0.304,
+            "is_committed": false,
+            "status": "SCHEDULED"
+        },
+        {
+            "block_id": "BLK-009",
+            "track_id": "DOWN-1",
+            "start_minute": 750,
+            "end_minute": 870,
+            "work_type": "OHE_MAINTENANCE",
+            "priority_score": 0.598,
+            "risk_score": 0.388,
+            "is_committed": false,
+            "status": "SCHEDULED"
+        },
+        {
+            "block_id": "BLK-011",
+            "track_id": "DOWN-1",
+            "start_minute": 135,
+            "end_minute": 195,
+            "work_type": "ROUTINE_INSPECTION",
+            "priority_score": 0.562,
+            "risk_score": 0.314,
+            "is_committed": false,
+            "status": "SCHEDULED"
+        },
+        {
+            "block_id": "BLK-012",
+            "track_id": "UP-1",
+            "start_minute": 30,
+            "end_minute": 120,
+            "work_type": "OHE_MAINTENANCE",
+            "priority_score": 0.577,
+            "risk_score": 0.444,
+            "is_committed": false,
+            "status": "SCHEDULED"
+        }
+    ],
+    "unscheduled_blocks": [
+        {
+            "block_id": "BLK-007",
+            "asset_id": "AST-DOWN-1-RAI-011",
+            "track_id": "DOWN-1",
+            "work_type": "TRACK_RENEWAL",
+            "duration_minutes": 240,
+            "earliest_start_minute": 30,
+            "latest_end_minute": 1410,
+            "priority_score": 0.559,
+            "risk_score": 0.363,
+            "dependencies": [],
+            "mutual_exclusion_group": null,
+            "is_committed": false,
+            "status": "PLANNED",
+            "metadata": {
+                "asset_name": "Rail Section @ KM 11.86 (DOWN-1)",
+                "km_location": 11.86,
+                "defect_severity": "MINOR",
+                "scoring_features": {
+                    "asset_criticality": 0.84,
+                    "defect_severity": 0.25,
+                    "defect_severity_name": "MINOR",
+                    "days_overdue": 8,
+                    "days_overdue_norm": 0.089,
+                    "failure_probability": 0.455,
+                    "train_impact": 0.779,
+                    "maintenance_duration": 240,
+                    "maintenance_duration_norm": 0.667,
+                    "historical_failure_rate": 0.667,
+                    "baseline_risk_score": 0.363,
+                    "baseline_priority_score": 0.559
+                }
+            }
+        },
+        {
+            "block_id": "BLK-010",
+            "asset_id": "AST-UP-1-RAI-004",
+            "track_id": "UP-1",
+            "work_type": "TRACK_RENEWAL",
+            "duration_minutes": 210,
+            "earliest_start_minute": 660,
+            "latest_end_minute": 930,
+            "priority_score": 0.49,
+            "risk_score": 0.293,
+            "dependencies": [],
+            "mutual_exclusion_group": null,
+            "is_committed": false,
+            "status": "PLANNED",
+            "metadata": {
+                "asset_name": "Rail Section @ KM 15.82 (UP-1)",
+                "km_location": 15.82,
+                "defect_severity": "NONE",
+                "scoring_features": {
+                    "asset_criticality": 0.64,
+                    "defect_severity": 0.0,
+                    "defect_severity_name": "NONE",
+                    "days_overdue": 22,
+                    "days_overdue_norm": 0.244,
+                    "failure_probability": 0.369,
+                    "train_impact": 0.721,
+                    "maintenance_duration": 210,
+                    "maintenance_duration_norm": 0.583,
+                    "historical_failure_rate": 0.667,
+                    "baseline_risk_score": 0.293,
+                    "baseline_priority_score": 0.49
+                }
+            }
+        }
+    ],
+    "total_priority_scheduled": 5.736,
+    "total_risk_mitigated": 3.355,
+    "solve_time_seconds": 0.007707,
+    "infeasibility_reasons": [],
+    "rejection_reasons": {
+        "BLK-007": "excluded by optimizer: capacity/priority trade-off",
+        "BLK-010": "lower objective value than scheduled competing block: BLK-008"
     }
-  ],
-  "unscheduled_blocks": [
-    {
-      "block_id": "BLK-005",
-      "reason": "excluded by optimizer: capacity/priority trade-off on this track"
-    },
-    {
-      "block_id": "BLK-006",
-      "reason": "excluded by optimizer: capacity/priority trade-off on this track"
-    },
-    {
-      "block_id": "BLK-008",
-      "reason": "excluded by optimizer: capacity/priority trade-off on this track"
-    },
-    {
-      "block_id": "BLK-011",
-      "reason": "excluded by optimizer: capacity/priority trade-off on this track"
-    }
-  ],
-  "kpis": {
-    "asset_availability_pct": 68.75,
-    "trains_affected": 0,
-    "blocks_scheduled": 8,
-    "risk_reduction_score": 4.25
-  },
-  "explainability": [
-    {
-      "block_id": "BLK-001",
-      "reason": "Scheduled on track UP 2026-09-01T00:00:00 - 2026-09-01T03:00:00 (priority=0.9, risk=0.85).",
-      "binding_constraints": [
-        "track_no_overlap:UP"
-      ]
-    },
-    {
-      "block_id": "BLK-002",
-      "reason": "Scheduled on track DOWN 2026-09-01T00:00:00 - 2026-09-01T01:30:00 (priority=0.4, risk=0.3).",
-      "binding_constraints": [
-        "track_no_overlap:DOWN"
-      ]
-    },
-    {
-      "block_id": "BLK-003",
-      "reason": "Scheduled on track UP 2026-09-01T05:00:00 - 2026-09-01T07:00:00 (priority=0.95, risk=0.9).",
-      "binding_constraints": [
-        "track_no_overlap:UP",
-        "mutually_exclusive_with:BLK-009"
-      ]
-    },
-    {
-      "block_id": "BLK-004",
-      "reason": "Scheduled on track DOWN 2026-09-01T01:40:00 - 2026-09-01T02:40:00 (priority=0.3, risk=0.2).",
-      "binding_constraints": [
-        "track_no_overlap:DOWN"
-      ]
-    },
-    {
-      "block_id": "BLK-007",
-      "reason": "Scheduled on track DOWN 2026-09-01T02:50:00 - 2026-09-01T06:10:00 (priority=0.6, risk=0.5).",
-      "binding_constraints": [
-        "track_no_overlap:DOWN"
-      ]
-    },
-    {
-      "block_id": "BLK-009",
-      "reason": "Scheduled on track DOWN 2026-09-01T07:00:00 - 2026-09-01T08:30:00 (priority=0.5, risk=0.4).",
-      "binding_constraints": [
-        "track_no_overlap:DOWN",
-        "mutually_exclusive_with:BLK-003"
-      ]
-    },
-    {
-      "block_id": "BLK-010",
-      "reason": "Scheduled on track UP 2026-09-01T07:10:00 - 2026-09-01T08:10:00 (priority=0.35, risk=0.3).",
-      "binding_constraints": [
-        "track_no_overlap:UP"
-      ]
-    },
-    {
-      "block_id": "BLK-012",
-      "reason": "Scheduled on track UP 2026-09-01T03:10:00 - 2026-09-01T04:50:00 (priority=0.85, risk=0.8).",
-      "binding_constraints": [
-        "track_no_overlap:UP"
-      ]
-    }
-  ],
-  "solve_time_ms": 10,
-  "generated_at": "2026-08-29T10:49:14.240683"
 }
