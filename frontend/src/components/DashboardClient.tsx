@@ -6,6 +6,7 @@ import Timeline from "@/components/Timeline";
 import KpiSummaryBar from "@/components/KpiSummaryBar";
 import ExplainabilityPanel from "@/components/ExplainabilityPanel";
 import DisruptionControls from "@/components/DisruptionControls";
+import StageIndicator, { type OperationalStage } from "@/components/StageIndicator";
 import { API_BASE_URL, enrichData, fetchOptimizationData, triggerRecovery } from "@/lib/data";
 import { compareSchedules, type RecoveryComparison } from "@/lib/recoveryComparison";
 
@@ -25,6 +26,8 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     useState<RecoveryComparison | null>(null);
   const [activeDisruption, setActiveDisruption] =
     useState<DisruptionEvent | null>(null);
+  const [pendingDisruptionType, setPendingDisruptionType] =
+    useState<DisruptionEvent["disruption_type"] | null>(null);
 
   const handleBlockSelect = (blockId: string | null) => {
     setSelectedBlockId(blockId);
@@ -38,6 +41,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
       setBaselineData(refreshed);
       setRecoveryComparison(null);
       setActiveDisruption(null);
+      setPendingDisruptionType(null);
       setRecoveryError(null);
     } catch (err) {
       console.error("Failed to re-optimize:", err);
@@ -76,6 +80,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
   const handleResetDisruption = () => {
     setRecoveryComparison(null);
     setActiveDisruption(null);
+    setPendingDisruptionType(null);
     setRecoveryError(null);
   };
 
@@ -88,6 +93,12 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
   const horizonMinutes = data.request.horizon_minutes || 1440;
   const isLiveBackend = data.dataSource === "LIVE_API";
   const isViewingRecovered = recoveryComparison !== null;
+
+  const stage: OperationalStage = isViewingRecovered
+    ? "RECOVER"
+    : isRecovering || pendingDisruptionType
+    ? "DISRUPT"
+    : "PLAN";
 
   return (
     <div className="flex-1 flex flex-col px-6 py-4 gap-5">
@@ -124,12 +135,9 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
             Endpoint: {data.apiEndpoint || "/optimize"}
           </span>
 
-          {isViewingRecovered && (
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-red-500/10 text-red-400 border-red-500/30">
-              <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-              Viewing Recovered Plan (post-disruption)
-            </span>
-          )}
+          <span className="border-l border-[#1e293b] pl-3">
+            <StageIndicator stage={stage} />
+          </span>
         </div>
 
         <div className="flex items-center gap-3">
@@ -177,6 +185,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
           onTrigger={handleTriggerDisruption}
           onReset={handleResetDisruption}
           onReturnToOriginal={handleReturnToOriginal}
+          onTypeSelect={setPendingDisruptionType}
         />
       </section>
 

@@ -24,54 +24,80 @@ Data is synthetic-by-design for the prototype; public/government railway
 data is used only where genuinely useful and appropriate, and no real
 Indian Railways performance claims are fabricated.
 
-## Status: Milestone 1 — CP-SAT feasibility proof
+## Current status: full plan → disrupt → recover loop, live
 
-A standalone script solves a small synthetic single-corridor problem
-(12 maintenance blocks across two tracks, with dependencies, mutual
-exclusions, and time windows) using CP-SAT — no API or frontend yet.
+The complete pipeline described above is implemented and wired
+end-to-end, backend and frontend both live:
+
+- **Domain data & synthetic fixtures** — a canonical railway corridor
+  model (tracks, assets, possession windows, maintenance work) with
+  deterministic generated scenarios (`backend/app/data/`).
+- **ML priority/risk scoring** — a documented, deterministic 7-feature
+  weighted scorer, `score_block()` (`backend/app/ml/`).
+- **CP-SAT optimization** — Google OR-Tools solver enforcing hard
+  constraints (track no-overlap + safety headway, possession-window
+  containment, dependency ordering, mutual-exclusion for shared
+  machines/crews, committed-block pinning) (`backend/app/optimizer/`).
+- **Disruption & recovery simulation** — applies one of four supported
+  disruption types (Asset Breakdown, Track Unavailable, Emergency Work,
+  Possession Curtailment) to a plan and re-solves it
+  (`backend/app/simulation/`).
+- **FastAPI backend** — `GET /health`, `POST /optimize`, and
+  `POST /recover` (`backend/app/api/`).
+- **Command-center frontend** — live schedule timeline, KPI summary,
+  decision-explainability audit trail, and an operational
+  disruption/recovery control with a before/after comparison
+  (`frontend/`).
+
+84 backend tests cover the scorer, solver, simulation, and both API
+endpoints — including regression tests that every checked-in fixture
+score matches what the live scorer actually computes, so nothing on
+screen is hand-typed.
+
+## Quick start
+
+See `docs/demo-runbook.md` for the exact presentation-day sequence.
+Short version:
+
+**1. Backend** (repo root):
 
 ```bash
 pip install -r requirements.txt
-python scripts/run_milestone1.py
-```
-
-This prints the solved schedule, asserts no hard constraint (e.g. two
-blocks overlapping on the same track) is violated, and writes the full
-`OptimizationResult` to `scripts/milestone1_result.json`.
-
-Run the optimizer correctness tests:
-
-```bash
-python -m pytest backend/tests/ -v
-```
-
-## Phase 1: backend API
-
-A thin FastAPI layer wraps the optimizer as-is: `GET /health` and
-`POST /optimize` (accepts an `OptimizationRequest`, returns an
-`OptimizationResult` — no new schemas, no logic duplicated from
-`backend/app/optimizer/solver.py`).
-
-Start the dev server from the repo root:
-
-```bash
 python -m uvicorn backend.app.api.main:app --reload
 ```
 
-Then `GET http://127.0.0.1:8000/health`, or `POST` an
-`OptimizationRequest` JSON body (see
+Verify: `curl http://127.0.0.1:8000/health` → `{"status":"healthy"}`.
+`POST` an `OptimizationRequest` (see
 `backend/app/data/fixtures/corridor_a_blocks.json` for an example) to
-`http://127.0.0.1:8000/optimize`. Interactive docs are at
+`http://127.0.0.1:8000/optimize`, or a `RecoveryRequest`
+(`{"request": ..., "disruption": ...}`) to
+`http://127.0.0.1:8000/recover`. Interactive docs at
 `http://127.0.0.1:8000/docs`.
 
-Run the API tests:
+**2. Frontend** (`frontend/`):
 
 ```bash
-python -m pytest backend/tests/test_api.py -v
+npm install
+npm run dev
 ```
 
-Adding a new endpoint (ML scoring, disruption/re-optimize, etc.)? See
-`docs/integration.md` for the router pattern.
+Open `http://localhost:3000`. The dashboard talks to the backend
+above by default (`NEXT_PUBLIC_API_URL`, see `frontend/README.md`);
+if the backend isn't reachable it falls back to canonical fixture
+data and clearly labels itself as such — it never silently pretends
+to be live.
+
+**3. Tests:**
+
+```bash
+python -m pytest -q                 # full backend suite
+cd frontend && npm run lint && npm run build
+```
+
+**Presentation script:** `docs/demo-script.md`.
+
+Adding a new endpoint? See `docs/integration.md` for the router
+pattern.
 
 ## Repository layout
 
