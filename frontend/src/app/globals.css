@@ -1,31 +1,44 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Manrope:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap");
 
 @import "tailwindcss";
 
 :root {
-  --background: #0a0e17;
-  --foreground: #e2e8f0;
-  --surface: #0f1520;
-  --surface-hover: #151c2c;
-  --border: #1e293b;
-  --border-light: #2a3548;
-  --muted: #64748b;
-  --accent-amber: #d97706;
-  --accent-red: #dc2626;
-  --accent-green: #059669;
-  --accent-blue: #2563eb;
+  /* Void / glass surfaces */
+  --background: #0a0c12;
+  --foreground: #e7e9ef;
+  --surface: #10131b;
+  --surface-glass: rgba(19, 22, 30, 0.72);
+  --surface-hover: #171b25;
+  --border: #23283350;
+  --border-light: rgba(255, 255, 255, 0.09);
+  --muted: #7a8296;
+
+  /* Identity accents (toned down from the Stitch source palette) */
+  --accent-cyan: #2dd4dd;
+  --accent-amber: #e8a15c;
+  --accent-violet: #a389e8;
+
+  /* Semantic (status meaning only - never used as the decorative accent) */
+  --accent-green: #34b37a;
+  --accent-red: #e0665c;
+  --accent-blue: #4f8fe0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-glass: var(--surface-glass);
   --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
   --color-border-light: var(--border-light);
   --color-muted: var(--muted);
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --color-accent-cyan: var(--accent-cyan);
+  --color-accent-amber: var(--accent-amber);
+  --color-accent-violet: var(--accent-violet);
+  --font-display: "Bodoni Moda", "Georgia", serif;
+  --font-sans: "Manrope", system-ui, sans-serif;
+  --font-mono: "Space Mono", "JetBrains Mono", monospace;
 }
 
 * {
@@ -33,9 +46,11 @@
 }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 0%, #131826 0%, transparent 60%),
+    var(--background);
   color: var(--foreground);
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Manrope", system-ui, sans-serif;
 }
 
 /* Custom scrollbar for dark theme */
@@ -63,4 +78,20 @@ body {
   50% {
     opacity: 0.8;
   }
+}
+
+/* Shared glass-panel treatment (Aether Void identity, toned down) */
+.glass-panel {
+  background: var(--surface-glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--border-light);
+  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+.font-mono-data {
+  font-family: var(--font-mono);
 }

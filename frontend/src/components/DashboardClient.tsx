@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { DashboardData, DisruptionEvent } from "@/types/contracts";
 import Timeline from "@/components/Timeline";
 import KpiSummaryBar from "@/components/KpiSummaryBar";
@@ -22,16 +22,12 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
 
   const [isRecovering, setIsRecovering] = useState(false);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
-  const [recoveryComparison, setRecoveryComparison] =
-    useState<RecoveryComparison | null>(null);
-  const [activeDisruption, setActiveDisruption] =
-    useState<DisruptionEvent | null>(null);
+  const [recoveryComparison, setRecoveryComparison] = useState<RecoveryComparison | null>(null);
+  const [activeDisruption, setActiveDisruption] = useState<DisruptionEvent | null>(null);
   const [pendingDisruptionType, setPendingDisruptionType] =
     useState<DisruptionEvent["disruption_type"] | null>(null);
 
-  const handleBlockSelect = (blockId: string | null) => {
-    setSelectedBlockId(blockId);
-  };
+  const handleBlockSelect = (blockId: string | null) => setSelectedBlockId(blockId);
 
   const handleReoptimize = async () => {
     setIsResolving(true);
@@ -100,83 +96,107 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     ? "DISRUPT"
     : "PLAN";
 
+  // Real KM range, derived from actual asset metadata already in the request -
+  // never fabricated, simply not shown if the data doesn't carry km_location.
+  const kmRange = useMemo(() => {
+    const kms = (data.request.candidates || [])
+      .map((c) => c.metadata?.km_location)
+      .filter((v): v is number => typeof v === "number");
+    if (kms.length === 0) return null;
+    const min = Math.min(...kms);
+    const max = Math.max(...kms);
+    return `KM ${min.toFixed(1)}–${max.toFixed(1)}`;
+  }, [data.request.candidates]);
+
   return (
-    <div className="flex-1 flex flex-col px-6 py-4 gap-5">
-      {/* Top Status & Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0a0f1d] border border-[#1e293b] px-4 py-2.5 rounded-lg shadow-sm">
-        <div className="flex items-center gap-3">
-          {/* Data Source Badge */}
-          <div
-            className={`flex items-center gap-2 px-2.5 py-1 rounded-full border text-xs font-semibold ${
-              isLiveBackend
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                : "bg-amber-500/10 text-amber-400 border-amber-500/30"
-            }`}
-          >
+    <div className="flex-1 flex flex-col min-h-screen">
+      {/* ── Top navigation ── */}
+      <header className="relative z-40 w-full px-6 py-3.5 flex items-center justify-between flex-wrap gap-3 border-b border-white/[0.05] bg-black/40 backdrop-blur-md">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2.5">
             <span
-              className={`w-2 h-2 rounded-full ${
-                isLiveBackend ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
-              }`}
+              className={`w-2 h-2 rounded-full ${isLiveBackend ? "bg-accent-cyan animate-pulse" : "bg-accent-amber"}`}
             />
-            <span>
-              {isLiveBackend
-                ? "Live Backend API Connected"
-                : "Fixture Mode (Local Fallback)"}
+            <span className="font-display tracking-wide text-lg font-normal text-white">
+              PASHUPATASTRA
+            </span>
+            <span className="font-mono-data text-[0.65rem] tracking-widest text-muted uppercase hidden sm:inline">
+              Railway Operations Intelligence
             </span>
           </div>
-
-          {data.apiLatencyMs !== undefined && (
-            <span className="text-[11px] font-mono text-[#94a3b8] bg-[#101726] px-2 py-0.5 rounded border border-[#1e293b]">
-              Latency: {data.apiLatencyMs}ms
-            </span>
-          )}
-
-          <span className="text-[11px] font-mono text-[#64748b]">
-            Endpoint: {data.apiEndpoint || "/optimize"}
-          </span>
-
-          <span className="border-l border-[#1e293b] pl-3">
-            <StageIndicator stage={stage} />
-          </span>
+          <StageIndicator
+            stage={stage}
+            onSelectPlan={isViewingRecovered ? handleReturnToOriginal : undefined}
+          />
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-[11px] font-mono text-[#64748b]">
-            Corridor: <strong className="text-[#cbd5e1]">{data.result.corridor_id}</strong> (
-            {horizonMinutes}m horizon)
+        <div className="flex items-center gap-3 flex-wrap">
+          <span
+            className={`flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold ${
+              isLiveBackend
+                ? "bg-accent-cyan/10 text-accent-cyan border-accent-cyan/25"
+                : "bg-accent-amber/10 text-accent-amber border-accent-amber/25"
+            }`}
+            title={data.apiEndpoint || undefined}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${isLiveBackend ? "bg-accent-cyan animate-pulse" : "bg-accent-amber"}`} />
+            {isLiveBackend ? "Live Backend Connected" : "Fixture Mode (Local Fallback)"}
           </span>
-
+          {data.apiLatencyMs !== undefined && (
+            <span className="font-mono-data text-[0.68rem] text-muted hidden md:inline">{data.apiLatencyMs}ms</span>
+          )}
+          <div className="text-right hidden sm:block">
+            <div className="font-mono-data text-[0.75rem] text-white font-semibold tracking-wide">
+              {data.result.corridor_id}
+            </div>
+            <div className="font-mono-data text-[0.65rem] text-muted">
+              {horizonMinutes}m horizon{kmRange ? ` • ${kmRange}` : ""}
+            </div>
+          </div>
           <button
             onClick={handleReoptimize}
             disabled={isResolving}
-            className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800/40 text-white rounded text-xs font-semibold transition-all shadow hover:shadow-blue-500/20 active:scale-95"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-accent-cyan hover:brightness-110 disabled:opacity-40 text-[#06222a] rounded-full text-xs font-bold transition-all active:scale-95"
           >
-            <svg
-              className={`w-3.5 h-3.5 ${isResolving ? "animate-spin" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
+            <svg className={`w-3.5 h-3.5 ${isResolving ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            <span>{isResolving ? "Solving..." : "Re-Run Optimization"}</span>
+            {isResolving ? "Solving…" : "Re-Run Optimization"}
           </button>
+        </div>
+      </header>
+
+      {/* ── Main viewport: Current Plan + corridor timeline + Operational Intelligence, side by side ── */}
+      <div className="flex-1 px-6 py-5">
+        <div className="grid grid-cols-1 lg:grid-cols-[288px_1fr_320px] gap-4 items-start">
+          <div className="order-2 lg:order-1">
+            <KpiSummaryBar data={data} />
+          </div>
+
+          <div className="order-1 lg:order-2 lg:min-h-[520px]">
+            <Timeline
+              data={data}
+              onBlockSelect={(id) => handleBlockSelect(selectedBlockId === id ? null : id)}
+              selectedBlockId={selectedBlockId}
+            />
+          </div>
+
+          <div className="order-3 lg:sticky lg:top-4 lg:max-h-[calc(100vh-140px)]">
+            <ExplainabilityPanel
+              data={data}
+              selectedBlockId={selectedBlockId}
+              onSelectBlock={handleBlockSelect}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Operational Disruption & Recovery Control */}
-      <section aria-label="Operational Disruption and Recovery">
+      {/* ── Operational Disruption / Recovery ── */}
+      <div className="px-6 pb-5">
         <DisruptionControls
           requestContext={baselineData.request}
           disabledReason={
-            !isLiveBackend
-              ? "Live backend required to simulate recovery (currently in fixture mode)."
-              : null
+            !isLiveBackend ? "Live backend required to simulate recovery (currently in fixture mode)." : null
           }
           isLoading={isRecovering}
           error={recoveryError}
@@ -187,106 +207,36 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
           onReturnToOriginal={handleReturnToOriginal}
           onTypeSelect={setPendingDisruptionType}
         />
-      </section>
-
-      {/* Stage 2: KPI Summary Bar */}
-      <section aria-label="Operational KPI Summary">
-        <KpiSummaryBar data={data} />
-      </section>
-
-      {/* Main Operations Grid: Timeline (left) + Explainability Panel (right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Timeline Column */}
-        <div className="lg:col-span-8 xl:col-span-8 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-sm font-semibold text-[#cbd5e1] uppercase tracking-wider">
-                Schedule Timeline
-              </h2>
-              <span className="text-[11px] font-mono text-[#475569] bg-[#0f1520] border border-[#1e293b] rounded px-2 py-0.5">
-                00:00 → 24:00 (1440 mins)
-              </span>
-            </div>
-            {selectedBlockId && (
-              <span className="text-[11px] font-mono text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded">
-                Active Inspect: {selectedBlockId}
-              </span>
-            )}
-          </div>
-
-          <div className="bg-[#0a0e17] border border-[#1e293b] rounded-lg p-4">
-            <Timeline
-              data={data}
-              onBlockSelect={(id) =>
-                handleBlockSelect(selectedBlockId === id ? null : id)
-              }
-              selectedBlockId={selectedBlockId}
-            />
-          </div>
-        </div>
-
-        {/* Explainability & Decision Audit Column */}
-        <div className="lg:col-span-4 xl:col-span-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[#cbd5e1] uppercase tracking-wider">
-              Decision Audit
-            </h2>
-            <span className="text-[11px] font-mono text-[#64748b]">
-              Canonical ML & CP-SAT Audit Trail
-            </span>
-          </div>
-
-          <div className="h-[620px]">
-            <ExplainabilityPanel
-              data={data}
-              selectedBlockId={selectedBlockId}
-              onSelectBlock={handleBlockSelect}
-            />
-          </div>
-        </div>
       </div>
 
-      {/* Summary Footer */}
-      <div className="flex flex-wrap items-center justify-between gap-4 text-[11px] font-mono text-[#64748b] px-1 pt-2 border-t border-[#1e293b]/50">
+      {/* ── Summary footer ── */}
+      <div className="flex flex-wrap items-center justify-between gap-4 text-[0.68rem] font-mono-data text-muted px-6 pb-5 pt-3 border-t border-white/[0.05]">
         <div className="flex items-center gap-6">
           <span>
-            SCHEDULED:{" "}
-            <span className="text-emerald-400 font-semibold">
-              {data.result.scheduled_blocks?.length || 0}
-            </span>
+            SCHEDULED: <span className="text-accent-cyan font-semibold">{data.result.scheduled_blocks?.length || 0}</span>
           </span>
           <span>
-            REJECTED:{" "}
-            <span className="text-red-400 font-semibold">
-              {data.result.unscheduled_blocks?.length || 0}
-            </span>
+            REJECTED: <span className="text-red-300 font-semibold">{data.result.unscheduled_blocks?.length || 0}</span>
           </span>
           <span>
-            TOTAL CANDIDATES:{" "}
-            <span className="text-[#94a3b8]">
-              {data.request.candidates?.length || 0}
-            </span>
+            CANDIDATES: <span className="text-white/70">{data.request.candidates?.length || 0}</span>
           </span>
           <span>
             STATUS:{" "}
             <span
               className={
-                data.result.status === "OPTIMAL" ||
-                data.result.status === "FEASIBLE"
-                  ? "text-emerald-400 font-semibold"
-                  : "text-red-400 font-semibold"
+                data.result.status === "OPTIMAL" || data.result.status === "FEASIBLE"
+                  ? "text-accent-cyan font-semibold"
+                  : "text-red-300 font-semibold"
               }
             >
               {data.result.status}
             </span>
           </span>
         </div>
-        <div className="flex items-center gap-2 text-[10px] text-[#475569]">
-          <span>SOLVER:</span>
-          <span className="text-[#64748b] bg-[#0c1120] border border-[#1e293b] px-2 py-0.5 rounded">
-            Google OR-Tools CP-SAT | {Math.round((data.result.solve_time_seconds || 0) * 1000)}ms
-          </span>
-        </div>
+        <span className="text-white/40">
+          Google OR-Tools CP-SAT &middot; {Math.round((data.result.solve_time_seconds || 0) * 1000)}ms
+        </span>
       </div>
     </div>
   );

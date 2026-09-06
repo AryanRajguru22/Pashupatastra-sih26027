@@ -59,13 +59,13 @@ function formatMinuteToHHMM(minute: number): string {
 function badgeClass(category: string): string {
   switch (category) {
     case "MOVED":
-      return "bg-amber-500/10 text-amber-400 border-amber-500/30";
+      return "bg-accent-amber/10 text-accent-amber border-accent-amber/30";
     case "DROPPED":
-      return "bg-red-500/10 text-red-400 border-red-500/30";
+      return "bg-red-400/10 text-red-300 border-red-400/30";
     case "NEWLY_SCHEDULED":
-      return "bg-emerald-500/10 text-emerald-400 border-emerald-500/30";
+      return "bg-accent-cyan/10 text-accent-cyan border-accent-cyan/30";
     default:
-      return "bg-[#1e293b] text-[#94a3b8] border-[#2a3c5a]";
+      return "bg-white/5 text-muted border-white/10";
   }
 }
 
@@ -81,9 +81,7 @@ export default function DisruptionControls({
   onReturnToOriginal,
   onTypeSelect,
 }: DisruptionControlsProps) {
-  const [selectedType, setSelectedType] = useState<DisruptionType | null>(
-    null
-  );
+  const [selectedType, setSelectedType] = useState<DisruptionType | null>(null);
   const [trackId, setTrackId] = useState<string>("");
   const [assetId, setAssetId] = useState<string>("");
   const [startMinute, setStartMinute] = useState<number>(600);
@@ -95,10 +93,7 @@ export default function DisruptionControls({
     const seen = new Map<string, string>();
     for (const c of requestContext.candidates || []) {
       if (!seen.has(c.asset_id)) {
-        seen.set(
-          c.asset_id,
-          (c.metadata?.asset_name as string | undefined) || c.asset_id
-        );
+        seen.set(c.asset_id, (c.metadata?.asset_name as string | undefined) || c.asset_id);
       }
     }
     return Array.from(seen.entries());
@@ -189,107 +184,82 @@ export default function DisruptionControls({
     onReset();
   };
 
-  // ── Result view: show BEFORE -> AFTER once a recovery has completed ──
+  // ── Result view: BEFORE -> DISRUPTION -> AFTER ──────────────────────────
   if (comparison) {
-    const interestingChanges = comparison.changes.filter(
-      (c) => c.category !== "PRESERVED"
-    );
+    const interestingChanges = comparison.changes.filter((c) => c.category !== "PRESERVED");
 
     return (
-      <div className="bg-[#0a0f1d] border border-[#1e293b] rounded-lg p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-[#cbd5e1] uppercase tracking-wider">
+      <div className="glass-panel rounded-2xl p-5 flex flex-col gap-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <span className="font-mono-data text-[0.65rem] tracking-widest text-accent-amber uppercase font-bold">
             Recovery Result
-          </h2>
-          <span className="text-[11px] font-mono text-[#64748b]">
-            {activeDisruption?.description}
           </span>
+          <span className="text-[0.7rem] text-muted">{activeDisruption?.description}</span>
+        </div>
+
+        {/* Original -> Disruption -> Recovered strip */}
+        <div className="grid grid-cols-3 gap-3 items-center">
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-center">
+            <div className="text-[0.6rem] font-mono-data uppercase tracking-wider text-muted mb-1">Original Plan</div>
+            <div className="font-display text-3xl text-white">{comparison.before_scheduled_count}</div>
+            <div className="text-[0.65rem] text-muted">scheduled &middot; {comparison.before_status}</div>
+          </div>
+          <div className="rounded-xl border border-red-400/25 bg-red-400/[0.06] p-3 text-center">
+            <div className="text-[0.6rem] font-mono-data uppercase tracking-wider text-red-300 mb-1">Disruption</div>
+            <div className="text-[0.72rem] text-red-300/90 leading-snug px-1">{activeDisruption?.description}</div>
+          </div>
+          <div className="rounded-xl border border-accent-cyan/25 bg-accent-cyan/[0.06] p-3 text-center">
+            <div className="text-[0.6rem] font-mono-data uppercase tracking-wider text-accent-cyan mb-1">Recovered Plan</div>
+            <div className="font-display text-3xl text-white">{comparison.after_scheduled_count}</div>
+            <div className="text-[0.65rem] text-muted">scheduled &middot; {comparison.after_status}</div>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <div className="bg-[#0c1120] border border-[#1e293b] rounded px-3 py-2">
-            <div className="text-[10px] uppercase tracking-wide text-[#64748b] mb-1">
-              Status
-            </div>
-            <div className="font-mono text-xs text-[#cbd5e1]">
-              {comparison.before_status}
-              <span className="text-[#475569] mx-1">→</span>
-              <span
-                className={
-                  comparison.after_status === "OPTIMAL" ||
-                  comparison.after_status === "FEASIBLE"
-                    ? "text-emerald-400 font-semibold"
-                    : "text-red-400 font-semibold"
-                }
-              >
-                {comparison.after_status}
-              </span>
+          <div className="rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2">
+            <div className="text-[0.6rem] uppercase tracking-wide text-muted mb-0.5">Unscheduled</div>
+            <div className="font-mono-data text-xs text-white/90">
+              {comparison.before_unscheduled_count} &rarr;{" "}
+              <span className="text-red-300 font-semibold">{comparison.after_unscheduled_count}</span>
             </div>
           </div>
-          <div className="bg-[#0c1120] border border-[#1e293b] rounded px-3 py-2">
-            <div className="text-[10px] uppercase tracking-wide text-[#64748b] mb-1">
-              Scheduled
-            </div>
-            <div className="font-mono text-xs text-[#cbd5e1]">
-              {comparison.before_scheduled_count}
-              <span className="text-[#475569] mx-1">→</span>
-              <span className="text-emerald-400 font-semibold">
-                {comparison.after_scheduled_count}
-              </span>
-            </div>
+          <div className="rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2">
+            <div className="text-[0.6rem] uppercase tracking-wide text-muted mb-0.5">Preserved</div>
+            <div className="font-mono-data text-xs text-white/90">{comparison.preservedCount} unchanged</div>
           </div>
-          <div className="bg-[#0c1120] border border-[#1e293b] rounded px-3 py-2">
-            <div className="text-[10px] uppercase tracking-wide text-[#64748b] mb-1">
-              Unscheduled
-            </div>
-            <div className="font-mono text-xs text-[#cbd5e1]">
-              {comparison.before_unscheduled_count}
-              <span className="text-[#475569] mx-1">→</span>
-              <span className="text-red-400 font-semibold">
-                {comparison.after_unscheduled_count}
-              </span>
-            </div>
+          <div className="rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2">
+            <div className="text-[0.6rem] uppercase tracking-wide text-muted mb-0.5">Moved</div>
+            <div className="font-mono-data text-xs text-accent-amber">{comparison.movedCount}</div>
           </div>
-          <div className="bg-[#0c1120] border border-[#1e293b] rounded px-3 py-2">
-            <div className="text-[10px] uppercase tracking-wide text-[#64748b] mb-1">
-              Preserved
-            </div>
-            <div className="font-mono text-xs text-[#94a3b8]">
-              {comparison.preservedCount} unchanged
+          <div className="rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2">
+            <div className="text-[0.6rem] uppercase tracking-wide text-muted mb-0.5">Dropped / New</div>
+            <div className="font-mono-data text-xs">
+              <span className="text-red-300">{comparison.droppedCount}</span> /{" "}
+              <span className="text-accent-cyan">{comparison.newlyScheduledCount}</span>
             </div>
           </div>
         </div>
 
         {interestingChanges.length > 0 && (
-          <div className="max-h-40 overflow-y-auto flex flex-col gap-1 border-t border-[#1e293b]/70 pt-2">
+          <div className="max-h-40 overflow-y-auto flex flex-col gap-1 border-t border-white/[0.06] pt-3">
             {interestingChanges.map((c) => (
               <div
                 key={c.block_id}
-                className="flex items-center justify-between text-[11px] font-mono bg-[#0c1120] border border-[#1e293b]/70 rounded px-2 py-1"
+                className="flex items-center justify-between text-[0.7rem] font-mono-data rounded-lg border border-white/[0.05] bg-black/15 px-2.5 py-1.5"
               >
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`px-1.5 py-0.5 rounded border text-[9px] font-semibold uppercase ${badgeClass(
-                      c.category
-                    )}`}
-                  >
+                  <span className={`px-1.5 py-0.5 rounded-full border text-[0.58rem] font-semibold uppercase ${badgeClass(c.category)}`}>
                     {c.category.replace("_", " ")}
                   </span>
-                  <span className="text-[#cbd5e1]">{c.block_id}</span>
+                  <span className="text-white/90">{c.block_id}</span>
                 </div>
-                <div className="text-[#64748b]">
+                <div className="text-muted">
                   {c.category === "MOVED" &&
-                    `${formatMinuteToHHMM(
-                      c.old_start_minute!
-                    )}-${formatMinuteToHHMM(
+                    `${formatMinuteToHHMM(c.old_start_minute!)}-${formatMinuteToHHMM(
                       c.old_end_minute!
-                    )} → ${formatMinuteToHHMM(
-                      c.new_start_minute!
-                    )}-${formatMinuteToHHMM(c.new_end_minute!)}`}
+                    )} → ${formatMinuteToHHMM(c.new_start_minute!)}-${formatMinuteToHHMM(c.new_end_minute!)}`}
                   {c.category === "NEWLY_SCHEDULED" &&
-                    `${c.track_id} @ ${formatMinuteToHHMM(
-                      c.new_start_minute!
-                    )}-${formatMinuteToHHMM(c.new_end_minute!)}`}
+                    `${c.track_id} @ ${formatMinuteToHHMM(c.new_start_minute!)}-${formatMinuteToHHMM(c.new_end_minute!)}`}
                   {c.category === "DROPPED" && c.reason}
                 </div>
               </div>
@@ -300,13 +270,13 @@ export default function DisruptionControls({
         <div className="flex items-center gap-2 pt-1">
           <button
             onClick={handleReset}
-            className="px-3 py-1 bg-[#1e293b] hover:bg-[#2a3c5a] text-[#cbd5e1] rounded text-xs font-semibold transition-all"
+            className="px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/90 text-xs font-semibold transition-all"
           >
             Trigger Another Disruption
           </button>
           <button
             onClick={onReturnToOriginal}
-            className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-semibold transition-all"
+            className="px-3.5 py-1.5 rounded-full bg-accent-cyan text-[#06222a] hover:brightness-110 text-xs font-bold transition-all"
           >
             Return to Original Plan
           </button>
@@ -315,20 +285,18 @@ export default function DisruptionControls({
     );
   }
 
-  // ── Form view: pick a disruption type and its minimal inputs ──────────
+  // ── Form view: pick a disruption type and its minimal inputs ────────────
   return (
-    <div className="bg-[#0a0f1d] border border-[#1e293b] rounded-lg p-4 flex flex-col gap-3">
+    <div className="glass-panel rounded-2xl p-5 flex flex-col gap-3.5">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-sm font-semibold text-[#cbd5e1] uppercase tracking-wider">
+        <span className="font-mono-data text-[0.65rem] tracking-widest text-accent-amber uppercase font-bold">
           Operational Disruption
-        </h2>
-        <span className="text-[11px] font-mono text-[#64748b]">
-          Simulated against the current optimized plan
         </span>
+        <span className="text-[0.7rem] text-muted">Simulated against the current optimized plan</span>
       </div>
 
       {disabledReason && (
-        <div className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded px-2.5 py-1.5">
+        <div className="text-[0.72rem] text-accent-amber bg-accent-amber/10 border border-accent-amber/25 rounded-xl px-3 py-2">
           {disabledReason}
         </div>
       )}
@@ -342,10 +310,10 @@ export default function DisruptionControls({
               onTypeSelect?.(opt.type);
             }}
             disabled={!!disabledReason}
-            className={`px-3 py-1.5 rounded text-xs font-semibold border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
               selectedType === opt.type
-                ? "bg-blue-600 border-blue-500 text-white"
-                : "bg-[#0c1120] border-[#1e293b] text-[#94a3b8] hover:border-[#2a3c5a]"
+                ? "bg-red-400/15 border-red-400/40 text-red-200"
+                : "bg-white/[0.03] border-white/10 text-muted hover:text-white hover:border-white/20"
             }`}
           >
             {opt.label}
@@ -354,44 +322,40 @@ export default function DisruptionControls({
       </div>
 
       {selectedType && (
-        <div className="flex flex-wrap items-end gap-3 border-t border-[#1e293b]/70 pt-3">
-          <p className="w-full text-[11px] text-[#64748b]">
+        <div className="flex flex-wrap items-end gap-3 border-t border-white/[0.06] pt-3.5">
+          <p className="w-full text-[0.72rem] text-muted">
             {DISRUPTION_OPTIONS.find((o) => o.type === selectedType)?.effect}
           </p>
 
           {(selectedType === "TRACK_UNAVAILABLE" ||
             selectedType === "EMERGENCY_WORK" ||
             selectedType === "POSSESSION_CURTAILMENT") && (
-            <label className="flex flex-col gap-1 text-[11px] text-[#64748b]">
+            <label className="flex flex-col gap-1 text-[0.7rem] text-muted">
               Track
               <select
                 value={trackId}
                 onChange={(e) => setTrackId(e.target.value)}
-                className="bg-[#0c1120] border border-[#1e293b] rounded px-2 py-1 text-xs text-[#cbd5e1] font-mono"
+                className="bg-black/30 border border-white/10 rounded-full px-3 py-1.5 text-xs text-white/90 font-mono-data"
               >
-                <option value="">Select track…</option>
+                <option value="">Select track&hellip;</option>
                 {tracks.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
+                  <option key={t} value={t}>{t}</option>
                 ))}
               </select>
             </label>
           )}
 
           {selectedType === "ASSET_BREAKDOWN" && (
-            <label className="flex flex-col gap-1 text-[11px] text-[#64748b]">
+            <label className="flex flex-col gap-1 text-[0.7rem] text-muted">
               Asset
               <select
                 value={assetId}
                 onChange={(e) => setAssetId(e.target.value)}
-                className="bg-[#0c1120] border border-[#1e293b] rounded px-2 py-1 text-xs text-[#cbd5e1] font-mono min-w-[180px]"
+                className="bg-black/30 border border-white/10 rounded-full px-3 py-1.5 text-xs text-white/90 font-mono-data min-w-[180px]"
               >
-                <option value="">Select asset…</option>
+                <option value="">Select asset&hellip;</option>
                 {assets.map(([id, label]) => (
-                  <option key={id} value={id}>
-                    {label}
-                  </option>
+                  <option key={id} value={id}>{label}</option>
                 ))}
               </select>
             </label>
@@ -399,26 +363,20 @@ export default function DisruptionControls({
 
           {selectedType === "POSSESSION_CURTAILMENT" && (
             <>
-              <label className="flex flex-col gap-1 text-[11px] text-[#64748b]">
+              <label className="flex flex-col gap-1 text-[0.7rem] text-muted">
                 Start (min)
                 <input
-                  type="number"
-                  min={0}
-                  max={horizon}
-                  value={startMinute}
+                  type="number" min={0} max={horizon} value={startMinute}
                   onChange={(e) => setStartMinute(Number(e.target.value))}
-                  className="bg-[#0c1120] border border-[#1e293b] rounded px-2 py-1 text-xs text-[#cbd5e1] font-mono w-24"
+                  className="bg-black/30 border border-white/10 rounded-full px-3 py-1.5 text-xs text-white/90 font-mono-data w-24"
                 />
               </label>
-              <label className="flex flex-col gap-1 text-[11px] text-[#64748b]">
+              <label className="flex flex-col gap-1 text-[0.7rem] text-muted">
                 End (min)
                 <input
-                  type="number"
-                  min={0}
-                  max={horizon}
-                  value={endMinute}
+                  type="number" min={0} max={horizon} value={endMinute}
                   onChange={(e) => setEndMinute(Number(e.target.value))}
-                  className="bg-[#0c1120] border border-[#1e293b] rounded px-2 py-1 text-xs text-[#cbd5e1] font-mono w-24"
+                  className="bg-black/30 border border-white/10 rounded-full px-3 py-1.5 text-xs text-white/90 font-mono-data w-24"
                 />
               </label>
             </>
@@ -427,20 +385,10 @@ export default function DisruptionControls({
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:bg-red-900/30 disabled:text-red-400/40 disabled:cursor-not-allowed text-white rounded text-xs font-semibold transition-all"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-red-400/90 hover:bg-red-400 disabled:bg-red-400/20 disabled:text-red-300/40 disabled:cursor-not-allowed text-[#1a0906] font-bold text-xs transition-all"
           >
-            <svg
-              className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
+            <svg className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             {isLoading ? "Simulating…" : "Apply Disruption & Recover"}
           </button>
@@ -448,7 +396,7 @@ export default function DisruptionControls({
       )}
 
       {error && (
-        <div className="text-[11px] text-red-400 bg-red-500/10 border border-red-500/30 rounded px-2.5 py-1.5">
+        <div className="text-[0.72rem] text-red-300 bg-red-400/10 border border-red-400/25 rounded-xl px-3 py-2">
           Recovery failed: {error}
         </div>
       )}
