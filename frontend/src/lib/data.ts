@@ -16,12 +16,14 @@ import type {
   EnrichedScheduledBlock,
   EnrichedUnscheduledBlock,
   DataSourceType,
+  DisruptionEvent,
+  RecoveryResponse,
 } from "@/types/contracts";
 
 import fixtureResult from "@/data/milestone1_result.json";
 import fixtureRequest from "@/data/corridor_a_blocks.json";
 
-const API_BASE_URL =
+export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 /**
@@ -125,4 +127,64 @@ export function enrichData(
     apiLatencyMs,
     apiEndpoint,
   };
+}
+
+/**
+ * Outcome of a POST /recover call. Recovery has no fixture fallback: it is
+ * an explicitly live "what-if" action, so an unreachable/erroring backend
+ * must be reported to the caller rather than silently substituted.
+ */
+export type RecoveryOutcome =
+  | { ok: true; data: RecoveryResponse }
+  | { ok: false; reason: "unreachable"; message: string }
+  | { ok: false; reason: "api_error"; message: string };
+
+/**
+ * Apply a disruption to `request` and recover via the real backend
+ * POST /recover endpoint. Never mocked and never falls back to fixture
+ * data - a failure here is reported as-is.
+ */
+export async function triggerRecovery(
+  request: OptimizationRequest,
+  disruption: DisruptionEvent
+): Promise<RecoveryOutcome> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    const res = await fetch(`${API_BASE_URL}/recover`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ request, disruption }),
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data: RecoveryResponse = await res.json();
+      return { ok: true, data };
+    }
+
+    let message = `Recovery request failed with status ${res.status}.`;
+    try {
+      const body = await res.json();
+      if (typeof body?.detail === "string") {
+        message = body.detail;
+      }
+    } catch {
+      // Response body wasn't JSON; keep the generic status message.
+    }
+    return { ok: false, reason: "api_error", message };
+  } catch (err) {
+    return {
+      ok: false,
+      reason: "unreachable",
+      message:
+        err instanceof Error
+          ? err.message
+          : "Live backend unreachable or timed out.",
+    };
+  }
 }
