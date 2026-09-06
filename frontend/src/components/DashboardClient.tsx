@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import type { DashboardData } from "@/types/contracts";
+import type { DashboardData, DisruptionEvent } from "@/types/contracts";
 import Timeline from "@/components/Timeline";
 import KpiSummaryBar from "@/components/KpiSummaryBar";
 import ExplainabilityPanel from "@/components/ExplainabilityPanel";
-import { fetchOptimizationData } from "@/lib/data";
+import DisruptionControls from "@/components/DisruptionControls";
+import { API_BASE_URL, enrichData, fetchOptimizationData, triggerRecovery } from "@/lib/data";
+import { compareSchedules, type RecoveryComparison } from "@/lib/recoveryComparison";
 
 interface DashboardClientProps {
   initialData: DashboardData;
@@ -13,8 +15,16 @@ interface DashboardClientProps {
 
 export default function DashboardClient({ initialData }: DashboardClientProps) {
   const [data, setData] = useState<DashboardData>(initialData);
+  const [baselineData, setBaselineData] = useState<DashboardData>(initialData);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [isResolving, setIsResolving] = useState(false);
+
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [recoveryComparison, setRecoveryComparison] =
+    useState<RecoveryComparison | null>(null);
+  const [activeDisruption, setActiveDisruption] =
+    useState<DisruptionEvent | null>(null);
 
   const handleBlockSelect = (blockId: string | null) => {
     setSelectedBlockId(blockId);
@@ -25,6 +35,10 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     try {
       const refreshed = await fetchOptimizationData();
       setData(refreshed);
+      setBaselineData(refreshed);
+      setRecoveryComparison(null);
+      setActiveDisruption(null);
+      setRecoveryError(null);
     } catch (err) {
       console.error("Failed to re-optimize:", err);
     } finally {
@@ -32,8 +46,48 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     }
   };
 
+  const handleTriggerDisruption = async (disruption: DisruptionEvent) => {
+    setIsRecovering(true);
+    setRecoveryError(null);
+    try {
+      const outcome = await triggerRecovery(baselineData.request, disruption);
+      if (!outcome.ok) {
+        setRecoveryError(outcome.message);
+        return;
+      }
+
+      const recoveredData = enrichData(
+        outcome.data.recovery_result,
+        outcome.data.updated_request,
+        baselineData.dataSource,
+        undefined,
+        `${API_BASE_URL}/recover`
+      );
+
+      setRecoveryComparison(compareSchedules(baselineData, recoveredData));
+      setActiveDisruption(outcome.data.disruption);
+      setData(recoveredData);
+      setSelectedBlockId(null);
+    } finally {
+      setIsRecovering(false);
+    }
+  };
+
+  const handleResetDisruption = () => {
+    setRecoveryComparison(null);
+    setActiveDisruption(null);
+    setRecoveryError(null);
+  };
+
+  const handleReturnToOriginal = () => {
+    setData(baselineData);
+    setSelectedBlockId(null);
+    handleResetDisruption();
+  };
+
   const horizonMinutes = data.request.horizon_minutes || 1440;
   const isLiveBackend = data.dataSource === "LIVE_API";
+  const isViewingRecovered = recoveryComparison !== null;
 
   return (
     <div className="flex-1 flex flex-col px-6 py-4 gap-5">
@@ -69,6 +123,13 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
           <span className="text-[11px] font-mono text-[#64748b]">
             Endpoint: {data.apiEndpoint || "/optimize"}
           </span>
+
+          {isViewingRecovered && (
+            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold bg-red-500/10 text-red-400 border-red-500/30">
+              <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+              Viewing Recovered Plan (post-disruption)
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -99,6 +160,25 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
           </button>
         </div>
       </div>
+
+      {/* Operational Disruption & Recovery Control */}
+      <section aria-label="Operational Disruption and Recovery">
+        <DisruptionControls
+          requestContext={baselineData.request}
+          disabledReason={
+            !isLiveBackend
+              ? "Live backend required to simulate recovery (currently in fixture mode)."
+              : null
+          }
+          isLoading={isRecovering}
+          error={recoveryError}
+          comparison={recoveryComparison}
+          activeDisruption={activeDisruption}
+          onTrigger={handleTriggerDisruption}
+          onReset={handleResetDisruption}
+          onReturnToOriginal={handleReturnToOriginal}
+        />
+      </section>
 
       {/* Stage 2: KPI Summary Bar */}
       <section aria-label="Operational KPI Summary">

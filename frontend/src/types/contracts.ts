@@ -134,6 +134,20 @@ export interface DisruptionEvent {
   description?: string;
 }
 
+// ── POST /recover contracts, matching contracts.RecoveryRequest /
+//    contracts.RecoveryResponse in contracts/schemas.py ────────────────
+
+export interface RecoveryRequest {
+  request: OptimizationRequest;
+  disruption: DisruptionEvent;
+}
+
+export interface RecoveryResponse {
+  disruption: DisruptionEvent;
+  updated_request: OptimizationRequest;
+  recovery_result: OptimizationResult;
+}
+
 // ── Enriched Views for Frontend Command Center ───────────────────────
 
 export interface EnrichedScheduledBlock extends ScheduledBlock {
