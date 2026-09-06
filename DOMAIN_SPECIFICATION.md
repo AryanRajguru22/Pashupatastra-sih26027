@@ -282,12 +282,12 @@ The **Golden Scenario** is the master end-to-end benchmark dataset that demonstr
 | `BLK-004` | `AST-UP1-RAI-004` | `UP-1` | `BALLAST_TAMPING` | 90 min | 0.810 | 0.690 | `CSM_TAMPER_01` | None | No | **SCHEDULED** (Night: 30–120) |
 | `BLK-005` | `AST-UP1-RAI-005` | `UP-1` | `TRACK_RENEWAL` | 150 min | 0.910 | 0.840 | None | None | No | **SCHEDULED** (Night: 135–285) |
 | `BLK-006` | `AST-UP1-OHE-006` | `UP-1` | `OHE_MAINTENANCE` | 90 min | 0.990 | 0.890 | `TOWER_WAGON_01` | None | No | **SCHEDULED** (Evening: 1260–1350) |
-| `BLK-007` | `AST-DN1-OHE-007` | `DOWN-1` | `OHE_MAINTENANCE` | 120 min | 0.850 | 0.720 | `TOWER_WAGON_01` | None | No | **SCHEDULED** (Midday: 690–810) |
+| `BLK-007` | `AST-DN1-OHE-007` | `DOWN-1` | `OHE_MAINTENANCE` | 120 min | 0.850 | 0.720 | `TOWER_WAGON_01` | None | No | **DEFERRED** (Shared machine conflict w/ BLK-003) |
 | `BLK-008` | `AST-UP1-RAI-008` | `UP-1` | `ROUTINE_INSPECTION`| 45 min | 0.310 | 0.220 | None | None | No | **SCHEDULED** (Midday: 795–840) |
-| `BLK-009` | `AST-DN1-RAI-009` | `DOWN-1` | `BALLAST_TAMPING` | 120 min | 0.580 | 0.510 | `CSM_TAMPER_01` | None | No | **DEFERRED** (Machine / Time limit) |
-| `BLK-010` | `AST-UP1-RAI-010` | `UP-1` | `BALLAST_TAMPING` | 135 min | 0.520 | 0.480 | `CSM_TAMPER_01` | None | No | **DEFERRED** (Headway capacity) |
-| `BLK-011` | `AST-DN1-SIG-011` | `DOWN-1` | `SIGNALLING_INTERLOCKING`| 90 min | 0.440 | 0.380 | `S_T_GANG_01` | None | No | **DEFERRED** (Lower priority) |
-| `BLK-012` | `AST-DN1-TUR-012` | `DOWN-1` | `ROUTINE_INSPECTION`| 60 min | 0.390 | 0.310 | None | None | No | **DEFERRED** (Window full) |
+| `BLK-009` | `AST-DN1-RAI-009` | `DOWN-1` | `BALLAST_TAMPING` | 120 min | 0.580 | 0.510 | `CSM_TAMPER_01` | None | No | **SCHEDULED** (Evening: 1260–1380) |
+| `BLK-010` | `AST-UP1-RAI-010` | `UP-1` | `BALLAST_TAMPING` | 135 min | 0.520 | 0.480 | `CSM_TAMPER_01` | None | No | **DEFERRED** (Machine / Window limit) |
+| `BLK-011` | `AST-DN1-SIG-011` | `DOWN-1` | `SIGNALLING_INTERLOCKING`| 90 min | 0.440 | 0.380 | `S_T_GANG_01` | None | No | **SCHEDULED** (Midday: 690–780) |
+| `BLK-012` | `AST-DN1-TUR-012` | `DOWN-1` | `ROUTINE_INSPECTION`| 60 min | 0.390 | 0.310 | None | None | No | **SCHEDULED** (Midday: 780–840) |
 
 ---
 
@@ -301,7 +301,7 @@ STEP 2: Scoring Engine (Ayush)
    │ Extracts features via feature_adapter.py -> calculates risk_score & priority_score
    ▼
 STEP 3: CP-SAT Optimization (Tyagi)
-   │ Solves in < 0.2s -> 8 Scheduled (Total Priority: 6.31), 4 Deferred (Clear rejection reasons)
+   │ Solves in < 0.2s -> 10 Scheduled (Total Priority: 7.87), 2 Deferred (Clear rejection reasons)
    ▼
 STEP 4: Section Controller Locks Critical Works
    │ Controller marks BLK-001 (DOWN-1) and BLK-003 (UP-1) as is_committed: true
