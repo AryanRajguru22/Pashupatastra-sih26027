@@ -371,6 +371,12 @@ export default function ExplainabilityPanel({
                     </span>
                   </div>
                   <div className="flex justify-between py-0.5 border-b border-[#1e293b]">
+                    <span className="text-[#94a3b8]">Maintenance Duration</span>
+                    <span className="font-mono text-[#e2e8f0]">
+                      {scoringFeatures.maintenance_duration ?? "—"} min
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-0.5 border-b border-[#1e293b]">
                     <span className="text-[#94a3b8]">Historical Failure Rate</span>
                     <span className="font-mono text-[#e2e8f0]">
                       {scoringFeatures.historical_failure_rate?.toFixed(2) ?? "—"}

@@ -27,18 +27,19 @@ This frontend is a Next.js (App Router) + React + TypeScript + Tailwind CSS comm
 |                                                                 |                 |
 |       +---------------------------------------------------------+                 |
 |       |                                                                           |
-|       v (HTTP POST /optimize OR Stage-1 JSON Fixtures)                            |
+|       v (HTTP POST /optimize, POST /recover, OR Canonical JSON Fixtures)          |
 |  +-----------------------------------------------------------------------------+  |
-|  | Frontend Data Layer (`src/lib/data.ts`)                                     |  |
-|  | - Mirrors backend Pydantic contracts (`src/types/contracts.ts`)             |  |
+|  | Frontend Data Layer (`src/lib/data.ts`, `src/lib/recoveryComparison.ts`)    |  |
+|  | - Mirrors backend dataclass contracts (`src/types/contracts.ts`)            |  |
 |  | - Enriches result with candidate metadata & solver explainability           |  |
+|  | - Classifies recovery changes: PRESERVED / MOVED / NEW / DROPPED            |  |
 |  +-----------------------------------------------------------------------------+  |
 |       |                                                                           |
 |       +-------------------+--------------------+--------------------+             |
 |       |                   |                    |                    |             |
 |       v                   v                    v                    v             |
 |  [ KPI Bar ]      [ Multi-Track ]       [ Decision Audit ]   [ Disruption Panel ] |
-|  (`KpiSummaryBar`)   (`Timeline`)       (`Explainability`)   (Milestone 3)        |
+|  (`KpiSummaryBar`)   (`Timeline`)       (`Explainability`)  (`DisruptionControls`)|
 +-----------------------------------------------------------------------------------+
 ```
 
@@ -64,17 +65,34 @@ This frontend is a Next.js (App Router) + React + TypeScript + Tailwind CSS comm
    - Deep inspection for selected block candidates.
    - Displays CP-SAT solver verdicts, active binding constraints, pre-solve priority/risk attributes, possession windows, and precedence dependencies.
 
-4. **`src/types/contracts.ts`**
-   - Strict TypeScript mirror of the Python Pydantic models in `contracts/`:
+4. **`src/components/DisruptionControls.tsx`**
+   - Compact operational-disruption trigger: the four backend-supported
+     disruption types (Asset Breakdown, Track Unavailable, Emergency
+     Work, Possession Curtailment), each with only the inputs that
+     actually affect the disruption logic.
+   - Calls the live `POST /recover` endpoint and renders the resulting
+     BEFORE → AFTER comparison (status, scheduled/unscheduled counts,
+     preserved count, and a list of moved/dropped/newly-scheduled
+     blocks) with a "Return to Original Plan" action.
+
+5. **`src/types/contracts.ts`**
+   - TypeScript mirror of the Python dataclass contracts in `contracts/`:
      - `BlockCandidate`
      - `ScheduledBlock`
-     - `UnscheduledBlock`
      - `OptimizationRequest`
      - `OptimizationResult`
      - `DisruptionEvent`
+     - `RecoveryRequest` / `RecoveryResponse`
 
-5. **`src/lib/data.ts`**
-   - Seamless data access layer supporting both Stage 1–3 static fixtures (`corridor_a_blocks.json`, `milestone1_result.json`) and live FastAPI endpoint queries (`POST /optimize`).
+6. **`src/lib/data.ts`** / **`src/lib/recoveryComparison.ts`**
+   - Data access layer supporting both canonical static fixtures
+     (`corridor_a_blocks.json`, `milestone1_result.json`) and live
+     FastAPI endpoint queries (`POST /optimize`, `POST /recover`).
+   - `recoveryComparison.ts` computes the client-side before/after
+     block classification from the two real results returned by
+     `/recover` — never fabricated, and reusing real solver rejection
+     reasons where a block is dropped by the solver rather than by the
+     disruption itself.
 
 ---
 
@@ -129,5 +147,5 @@ npm run start
 
 - [x] **Stage 1**: TypeScript data contract layer & corridor fixtures.
 - [x] **Stage 2**: Command-center UI, SVG Multi-track timeline, KPI metrics, and solver explainability audit panel.
-- [ ] **Milestone 2 (Next)**: Live backend integration (`POST /optimize` wire-up with live FastAPI backend) & dynamic re-optimization dispatch.
-- [ ] **Milestone 3**: Disruption injection simulator UI & real-time schedule recovery view.
+- [x] **Milestone 2**: Live backend integration (`POST /optimize` wire-up with live FastAPI backend) & re-optimization dispatch.
+- [x] **Milestone 3**: Disruption injection UI (`DisruptionControls`) & live `POST /recover` schedule recovery view, with before/after comparison.

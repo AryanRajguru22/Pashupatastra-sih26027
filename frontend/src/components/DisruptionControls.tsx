@@ -19,6 +19,8 @@ interface DisruptionControlsProps {
   onTrigger: (disruption: DisruptionEvent) => void;
   onReset: () => void;
   onReturnToOriginal: () => void;
+  /** Reports the in-progress type selection, purely for the PLAN/DISRUPT/RECOVER stage indicator. */
+  onTypeSelect?: (type: DisruptionType | null) => void;
 }
 
 const DISRUPTION_OPTIONS: {
@@ -77,6 +79,7 @@ export default function DisruptionControls({
   onTrigger,
   onReset,
   onReturnToOriginal,
+  onTypeSelect,
 }: DisruptionControlsProps) {
   const [selectedType, setSelectedType] = useState<DisruptionType | null>(
     null
@@ -180,6 +183,7 @@ export default function DisruptionControls({
 
   const handleReset = () => {
     setSelectedType(null);
+    onTypeSelect?.(null);
     setTrackId("");
     setAssetId("");
     onReset();
@@ -333,7 +337,10 @@ export default function DisruptionControls({
         {DISRUPTION_OPTIONS.map((opt) => (
           <button
             key={opt.type}
-            onClick={() => setSelectedType(opt.type)}
+            onClick={() => {
+              setSelectedType(opt.type);
+              onTypeSelect?.(opt.type);
+            }}
             disabled={!!disabledReason}
             className={`px-3 py-1.5 rounded text-xs font-semibold border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
               selectedType === opt.type
