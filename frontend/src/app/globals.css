@@ -1,97 +1,183 @@
-@import url("https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Manrope:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap");
-
 @import "tailwindcss";
 
-:root {
-  /* Void / glass surfaces */
-  --background: #0a0c12;
-  --foreground: #e7e9ef;
-  --surface: #10131b;
-  --surface-glass: rgba(19, 22, 30, 0.72);
-  --surface-hover: #171b25;
-  --border: #23283350;
-  --border-light: rgba(255, 255, 255, 0.09);
-  --muted: #7a8296;
+/*
+ * Token system ported verbatim from the Stitch export's tailwind.config
+ * (stitch/screen-2/code.html and stitch/screen-3/code.html share this
+ * exact palette/type-scale/spacing config). Names match 1:1 so the same
+ * utility classes used in the exported HTML (bg-surface-container-lowest,
+ * font-label-mono text-label-mono, p-space-md, rounded-DEFAULT, ...)
+ * resolve identically here.
+ */
+@theme {
+  /* ── Colors (verbatim from Stitch's tailwind.config.theme.extend.colors) ── */
+  --color-on-tertiary-container: #6f48b6;
+  --color-error-container: #93000a;
+  --color-outline-variant: #3b494b;
+  --color-surface-bright: #373940;
+  --color-surface-container-lowest: #0c0e14;
+  --color-tertiary: #fbf3ff;
+  --color-secondary-container: #aa5200;
+  --color-on-primary-fixed-variant: #004f54;
+  --color-surface-tint: #00dbe9;
+  --color-primary-container: #00f0ff;
+  --color-outline: #849495;
+  --color-on-error: #690005;
+  --color-on-background: #e1e2eb;
+  --color-secondary-fixed-dim: #ffb688;
+  --color-tertiary-fixed: #ebdcff;
+  --color-surface-dim: #11131a;
+  --color-on-primary-container: #006970;
+  --color-on-error-container: #ffdad6;
+  --color-primary-fixed: #7df4ff;
+  --color-inverse-surface: #e1e2eb;
+  --color-inverse-on-surface: #2e3037;
+  --color-on-primary-fixed: #002022;
+  --color-secondary: #ffb688;
+  --color-on-surface-variant: #b9cacb;
+  --color-on-surface: #e1e2eb;
+  --color-primary: #dbfcff;
+  --color-on-secondary: #512400;
+  --color-tertiary-container: #e3d2ff;
+  --color-on-tertiary-fixed-variant: #562d9c;
+  --color-on-secondary-container: #ffe8db;
+  --color-on-secondary-fixed-variant: #733500;
+  --color-surface: #11131a;
+  --color-on-tertiary: #3f0c85;
+  --color-on-tertiary-fixed: #260059;
+  --color-surface-container-high: #282a31;
+  --color-inverse-primary: #006970;
+  --color-on-secondary-fixed: #311300;
+  --color-surface-container: #1d1f26;
+  --color-surface-container-highest: #32353c;
+  --color-surface-container-low: #191b22;
+  --color-background: #11131a;
+  --color-error: #ffb4ab;
+  --color-tertiary-fixed-dim: #d4bbff;
+  --color-on-primary: #00363a;
+  --color-surface-variant: #32353c;
+  --color-primary-fixed-dim: #00dbe9;
+  --color-secondary-fixed: #ffdbc7;
 
-  /* Identity accents (toned down from the Stitch source palette) */
-  --accent-cyan: #2dd4dd;
-  --accent-amber: #e8a15c;
-  --accent-violet: #a389e8;
+  /* ── Border radius ── */
+  --radius-DEFAULT: 1rem;
+  --radius-lg: 2rem;
+  --radius-xl: 3rem;
+  --radius-full: 9999px;
 
-  /* Semantic (status meaning only - never used as the decorative accent) */
-  --accent-green: #34b37a;
-  --accent-red: #e0665c;
-  --accent-blue: #4f8fe0;
+  /* ── Spacing scale ── */
+  --spacing-margin-mobile: 1.25rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-space-3xl: 6rem;
+  --spacing-space-xl: 2.5rem;
+  --spacing-gutter-mobile: 1rem;
+  --spacing-space-2xl: 4rem;
+  --spacing-space-4xl: 10rem;
+  --spacing-gutter-desktop: 2rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-xs: 0.5rem;
+  --spacing-space-sm: 0.75rem;
+  --spacing-space-2xs: 0.25rem;
+  --spacing-margin-desktop: 4rem;
+
+  /* ── Font families (role-named, same as Stitch) ── */
+  --font-display-xl-mobile: "Bodoni Moda", serif;
+  --font-headline-md: "Manrope", sans-serif;
+  --font-body-md: "Manrope", sans-serif;
+  --font-display-xl: "Bodoni Moda", serif;
+  --font-body-lg: "Manrope", sans-serif;
+  --font-headline-lg: "Bodoni Moda", serif;
+  --font-headline-sm: "Manrope", sans-serif;
+  --font-label-caps: "Space Mono", monospace;
+  --font-headline-lg-mobile: "Bodoni Moda", serif;
+  --font-body-sm: "Manrope", sans-serif;
+  --font-label-mono: "Space Mono", monospace;
+
+  /* ── Font sizes (size + line-height + letter-spacing + weight, verbatim) ── */
+  --text-display-xl-mobile: 2.75rem;
+  --text-display-xl-mobile--line-height: 3.25rem;
+  --text-display-xl-mobile--letter-spacing: -0.02em;
+  --text-display-xl-mobile--font-weight: 400;
+
+  --text-headline-md: 1.75rem;
+  --text-headline-md--line-height: 2.25rem;
+  --text-headline-md--letter-spacing: -0.01em;
+  --text-headline-md--font-weight: 500;
+
+  --text-body-md: 0.9375rem;
+  --text-body-md--line-height: 1.6rem;
+  --text-body-md--letter-spacing: 0.01em;
+  --text-body-md--font-weight: 400;
+
+  --text-display-xl: 5rem;
+  --text-display-xl--line-height: 5.5rem;
+  --text-display-xl--letter-spacing: -0.03em;
+  --text-display-xl--font-weight: 400;
+
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.85rem;
+  --text-body-lg--letter-spacing: 0.01em;
+  --text-body-lg--font-weight: 300;
+
+  --text-headline-lg: 3.25rem;
+  --text-headline-lg--line-height: 3.75rem;
+  --text-headline-lg--letter-spacing: -0.02em;
+  --text-headline-lg--font-weight: 400;
+
+  --text-headline-sm: 1.25rem;
+  --text-headline-sm--line-height: 1.75rem;
+  --text-headline-sm--letter-spacing: 0em;
+  --text-headline-sm--font-weight: 600;
+
+  --text-label-caps: 0.6875rem;
+  --text-label-caps--line-height: 1rem;
+  --text-label-caps--letter-spacing: 0.18em;
+  --text-label-caps--font-weight: 400;
+
+  --text-headline-lg-mobile: 2rem;
+  --text-headline-lg-mobile--line-height: 2.5rem;
+  --text-headline-lg-mobile--letter-spacing: -0.01em;
+  --text-headline-lg-mobile--font-weight: 400;
+
+  --text-body-sm: 0.8125rem;
+  --text-body-sm--line-height: 1.35rem;
+  --text-body-sm--letter-spacing: 0.01em;
+  --text-body-sm--font-weight: 400;
+
+  --text-label-mono: 0.75rem;
+  --text-label-mono--line-height: 1.125rem;
+  --text-label-mono--letter-spacing: 0.05em;
+  --text-label-mono--font-weight: 400;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface: var(--surface);
-  --color-surface-glass: var(--surface-glass);
-  --color-surface-hover: var(--surface-hover);
-  --color-border: var(--border);
-  --color-border-light: var(--border-light);
-  --color-muted: var(--muted);
-  --color-accent-cyan: var(--accent-cyan);
-  --color-accent-amber: var(--accent-amber);
-  --color-accent-violet: var(--accent-violet);
-  --font-display: "Bodoni Moda", "Georgia", serif;
-  --font-sans: "Manrope", system-ui, sans-serif;
-  --font-mono: "Space Mono", "JetBrains Mono", monospace;
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
-  background:
-    radial-gradient(ellipse 90% 60% at 50% 0%, #131826 0%, transparent 60%),
-    var(--background);
-  color: var(--foreground);
-  font-family: "Manrope", system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+body {
+  overscroll-behavior: none;
 }
 
-/* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--surface);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border-light);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--muted);
-}
-
-/* Pulse animation for selected blocks */
-@keyframes subtle-pulse {
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 0.8;
-  }
-}
-
-/* Shared glass-panel treatment (Aether Void identity, toned down) */
-.glass-panel {
-  background: var(--surface-glass);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid var(--border-light);
-  box-shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.6);
-}
-
-.font-display {
-  font-family: var(--font-display);
-}
-.font-mono-data {
-  font-family: var(--font-mono);
+  display: none;
 }
