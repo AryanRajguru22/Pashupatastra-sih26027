@@ -125,3 +125,105 @@ def test_delay_changes_possession_window():
 
     assert on_time[1].start_minute == 170
     assert delayed[1].start_minute == 200
+
+
+
+import json
+from pathlib import Path
+
+
+REAL_DATASET = Path("pashupatastra_realistic_dataset.json")
+
+
+def test_real_project_dataset_generates_possession_windows():
+    with REAL_DATASET.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    trains = data["trains"]
+
+    assert len(trains) == 24
+
+    windows = generate_possession_windows_from_trains(
+        trains,
+        horizon_minutes=1440,
+        safety_buffer_minutes=10,
+        minimum_window_minutes=30,
+    )
+
+    assert windows
+    assert {window.track_id for window in windows} == {"UP-1", "DOWN-1"}
+
+    for window in windows:
+        assert window.start_minute < window.end_minute
+        assert 0 <= window.start_minute < 1440
+        assert 0 < window.end_minute <= 1440
+        assert window.window_type == "TRAIN_GAP"
+
+
+def test_section_qualified_track_id():
+    from backend.app.data.train_adapter import section_track_id
+
+    assert section_track_id("UP-1", 7.0, 32.0) == "UP-1:7-32"
+
+
+def test_real_dataset_generates_section_qualified_windows():
+    import json
+
+    from backend.app.data.train_adapter import (
+        generate_section_possession_windows_from_trains,
+    )
+
+    with open(
+        "pashupatastra_realistic_dataset.json",
+        encoding="utf-8",
+    ) as f:
+        data = json.load(f)
+
+    windows = generate_section_possession_windows_from_trains(
+        data["trains"],
+        data["corridor"]["stations"],
+        horizon_minutes=1440,
+        safety_buffer_minutes=10,
+        minimum_window_minutes=20,
+    )
+
+    assert windows
+
+    track_ids = {window.track_id for window in windows}
+
+    assert any(track.startswith("UP-1:") for track in track_ids)
+    assert any(track.startswith("DOWN-1:") for track in track_ids)
+
+    for window in windows:
+        assert ":" in window.track_id
+        assert "-" in window.track_id.split(":", 1)[1]
+        assert window.start_minute < window.end_minute
+
+
+def test_maintenance_jobs_map_to_sections():
+    import json
+
+    from backend.app.data.train_adapter import (
+        qualified_track_for_job,
+    )
+
+    with open(
+        "pashupatastra_realistic_dataset.json",
+        encoding="utf-8",
+    ) as f:
+        data = json.load(f)
+
+    stations = data["corridor"]["stations"]
+
+    qualified_ids = [
+        qualified_track_for_job(job, stations)
+        for job in data["maintenance_jobs"]
+    ]
+
+    assert len(qualified_ids) == 15
+    assert all(":" in track_id for track_id in qualified_ids)
+
+    assert (
+        qualified_ids[2]
+        == "UP-1:7-32"
+    )  # BLK-103 at ~24 km
