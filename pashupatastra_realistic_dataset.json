@@ -1,0 +1,3318 @@
+{
+  "dataset_version": "1.0",
+  "synthetic": true,
+  "note": "Operationally realistic synthetic demo dataset aligned to the Pashupatastra NDLS-AGC domain schema; station/trains are illustrative, not an official timetable.",
+  "corridor": {
+    "corridor_id": "CORR-NDLS-AGC",
+    "name": "New Delhi - Agra Cantt High Speed Trunk Corridor",
+    "zone": "Northern Railway / NCR",
+    "division": "Delhi / Agra",
+    "length_km": 195.0,
+    "tracks": [
+      {
+        "track_id": "UP-1",
+        "direction": "UP",
+        "section_name": "NDLS-AGC Up Mainline",
+        "km_start": 0.0,
+        "km_end": 195.0,
+        "speed_limit_kmh": 160,
+        "electrified": true,
+        "daily_train_density": 110,
+        "route_classification": "GROUP_A"
+      },
+      {
+        "track_id": "DOWN-1",
+        "direction": "DOWN",
+        "section_name": "AGC-NDLS Down Mainline",
+        "km_start": 0.0,
+        "km_end": 195.0,
+        "speed_limit_kmh": 160,
+        "electrified": true,
+        "daily_train_density": 115,
+        "route_classification": "GROUP_A"
+      }
+    ],
+    "stations": [
+      {
+        "station_id": "NDLS",
+        "name": "New Delhi",
+        "km": 0.0,
+        "platforms": 16,
+        "platform_track_map": {
+          "1": [
+            "YARD-1"
+          ],
+          "2": [
+            "YARD-2"
+          ],
+          "3": [
+            "UP-1"
+          ],
+          "4": [
+            "DOWN-1"
+          ],
+          "5": [
+            "UP-1"
+          ],
+          "6": [
+            "DOWN-1"
+          ],
+          "7": [
+            "UP-1"
+          ],
+          "8": [
+            "DOWN-1"
+          ],
+          "9": [
+            "UP-1"
+          ],
+          "10": [
+            "DOWN-1"
+          ],
+          "11": [
+            "UP-1",
+            "DOWN-1"
+          ],
+          "12": [
+            "UP-1",
+            "DOWN-1"
+          ],
+          "13": [
+            "LOOP-1"
+          ],
+          "14": [
+            "LOOP-2"
+          ],
+          "15": [
+            "YARD-3"
+          ],
+          "16": [
+            "YARD-4"
+          ]
+        }
+      },
+      {
+        "station_id": "NZM",
+        "name": "Hazrat Nizamuddin",
+        "km": 7.0,
+        "platforms": 8,
+        "platform_track_map": {
+          "1": [
+            "UP-1"
+          ],
+          "2": [
+            "DOWN-1"
+          ],
+          "3": [
+            "UP-1"
+          ],
+          "4": [
+            "DOWN-1"
+          ],
+          "5": [
+            "UP-1",
+            "DOWN-1"
+          ],
+          "6": [
+            "UP-1",
+            "DOWN-1"
+          ],
+          "7": [
+            "LOOP-1"
+          ],
+          "8": [
+            "LOOP-2"
+          ]
+        }
+      },
+      {
+        "station_id": "FDB",
+        "name": "Faridabad",
+        "km": 32.0,
+        "platforms": 6,
+        "platform_track_map": {
+          "1": [
+            "UP-1"
+          ],
+          "2": [
+            "DOWN-1"
+          ],
+          "3": [
+            "UP-1"
+          ],
+          "4": [
+            "DOWN-1"
+          ],
+          "5": [
+            "LOOP-1"
+          ],
+          "6": [
+            "LOOP-2"
+          ]
+        }
+      },
+      {
+        "station_id": "PWL",
+        "name": "Palwal",
+        "km": 66.0,
+        "platforms": 6,
+        "platform_track_map": {
+          "1": [
+            "UP-1"
+          ],
+          "2": [
+            "DOWN-1"
+          ],
+          "3": [
+            "UP-1"
+          ],
+          "4": [
+            "DOWN-1"
+          ],
+          "5": [
+            "LOOP-1"
+          ],
+          "6": [
+            "LOOP-2"
+          ]
+        }
+      },
+      {
+        "station_id": "MTJ",
+        "name": "Mathura Junction",
+        "km": 133.0,
+        "platforms": 10,
+        "platform_track_map": {
+          "1": [
+            "UP-1"
+          ],
+          "2": [
+            "DOWN-1"
+          ],
+          "3": [
+            "UP-1"
+          ],
+          "4": [
+            "DOWN-1"
+          ],
+          "5": [
+            "UP-1"
+          ],
+          "6": [
+            "DOWN-1"
+          ],
+          "7": [
+            "UP-1",
+            "DOWN-1"
+          ],
+          "8": [
+            "UP-1",
+            "DOWN-1"
+          ],
+          "9": [
+            "LOOP-1"
+          ],
+          "10": [
+            "LOOP-2"
+          ]
+        }
+      },
+      {
+        "station_id": "RKM",
+        "name": "Raja Ki Mandi",
+        "km": 190.0,
+        "platforms": 6,
+        "platform_track_map": {
+          "1": [
+            "UP-1"
+          ],
+          "2": [
+            "DOWN-1"
+          ],
+          "3": [
+            "UP-1"
+          ],
+          "4": [
+            "DOWN-1"
+          ],
+          "5": [
+            "LOOP-1"
+          ],
+          "6": [
+            "LOOP-2"
+          ]
+        }
+      },
+      {
+        "station_id": "AGC",
+        "name": "Agra Cantt",
+        "km": 195.0,
+        "platforms": 7,
+        "platform_track_map": {
+          "1": [
+            "UP-1"
+          ],
+          "2": [
+            "DOWN-1"
+          ],
+          "3": [
+            "UP-1"
+          ],
+          "4": [
+            "DOWN-1"
+          ],
+          "5": [
+            "UP-1",
+            "DOWN-1"
+          ],
+          "6": [
+            "YARD-1"
+          ],
+          "7": [
+            "YARD-2"
+          ]
+        }
+      }
+    ],
+    "segment_distances": [
+      {
+        "from_station": "NDLS",
+        "to_station": "NZM",
+        "distance_km": 7.0
+      },
+      {
+        "from_station": "NZM",
+        "to_station": "FDB",
+        "distance_km": 25.0
+      },
+      {
+        "from_station": "FDB",
+        "to_station": "PWL",
+        "distance_km": 34.0
+      },
+      {
+        "from_station": "PWL",
+        "to_station": "MTJ",
+        "distance_km": 67.0
+      },
+      {
+        "from_station": "MTJ",
+        "to_station": "RKM",
+        "distance_km": 57.0
+      },
+      {
+        "from_station": "RKM",
+        "to_station": "AGC",
+        "distance_km": 5.0
+      }
+    ]
+  },
+  "scoring_definition": {
+    "asset_criticality": "float [0,1], explicit asset/route operational criticality",
+    "defect_severity": "NONE=0.0, MINOR=0.25, MODERATE=0.60, CRITICAL=1.00",
+    "days_overdue": "integer >=0; normalized min(1, days/90)",
+    "failure_probability": "[0,1], derived from condition, defect severity and GMT stress in repository adapter",
+    "train_impact": "[0,1], density/duration operational impact in repository adapter",
+    "maintenance_duration": "minutes; normalized min(1, duration/360)",
+    "historical_failure_rate": "[0,1], normalized min(1, 3-year incident count/6)",
+    "risk_score_formula": "0.30*defect_severity + 0.30*failure_probability + 0.20*days_overdue_norm + 0.20*historical_failure_rate",
+    "priority_score_formula": "0.35*risk_score + 0.25*asset_criticality + 0.20*train_impact + 0.20*(1-maintenance_duration_norm)"
+  },
+  "possession_windows": [
+    {
+      "window_id": "POS-UP-1-NIGHT",
+      "track_id": "UP-1",
+      "start_minute": 30,
+      "end_minute": 300,
+      "window_type": "NIGHT_TRAFFIC_BLOCK"
+    },
+    {
+      "window_id": "POS-UP-1-MIDDAY",
+      "track_id": "UP-1",
+      "start_minute": 690,
+      "end_minute": 870,
+      "window_type": "MIDDAY_MAINTENANCE_SLOT"
+    },
+    {
+      "window_id": "POS-UP-1-EVENING",
+      "track_id": "UP-1",
+      "start_minute": 1260,
+      "end_minute": 1410,
+      "window_type": "EVENING_OFF_PEAK"
+    },
+    {
+      "window_id": "POS-DOWN-1-NIGHT",
+      "track_id": "DOWN-1",
+      "start_minute": 30,
+      "end_minute": 300,
+      "window_type": "NIGHT_TRAFFIC_BLOCK"
+    },
+    {
+      "window_id": "POS-DOWN-1-MIDDAY",
+      "track_id": "DOWN-1",
+      "start_minute": 690,
+      "end_minute": 870,
+      "window_type": "MIDDAY_MAINTENANCE_SLOT"
+    },
+    {
+      "window_id": "POS-DOWN-1-EVENING",
+      "track_id": "DOWN-1",
+      "start_minute": 1260,
+      "end_minute": 1410,
+      "window_type": "EVENING_OFF_PEAK"
+    }
+  ],
+  "trains": [
+    {
+      "train_number": "12049",
+      "train_name": "Gatimaan Express",
+      "train_type": "GATIMAAN_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "00:20",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 4,
+          "scheduled_arrival": "00:20",
+          "scheduled_departure": "00:23",
+          "actual_arrival": "00:20",
+          "actual_departure": "00:23"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 2,
+          "scheduled_arrival": "00:30",
+          "scheduled_departure": "00:32",
+          "actual_arrival": "00:30",
+          "actual_departure": "00:32"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 2,
+          "scheduled_arrival": "00:49",
+          "scheduled_departure": "00:50",
+          "actual_arrival": "00:49",
+          "actual_departure": "00:50"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 2,
+          "scheduled_arrival": "01:12",
+          "scheduled_departure": "01:13",
+          "actual_arrival": "01:12",
+          "actual_departure": "01:13"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 2,
+          "scheduled_arrival": "01:54",
+          "scheduled_departure": "01:56",
+          "actual_arrival": "01:54",
+          "actual_departure": "01:56"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 2,
+          "scheduled_arrival": "02:32",
+          "scheduled_departure": "02:33",
+          "actual_arrival": "02:32",
+          "actual_departure": "02:33"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 2,
+          "scheduled_arrival": "02:39",
+          "scheduled_departure": "02:42",
+          "actual_arrival": "02:39",
+          "actual_departure": "02:42"
+        }
+      ]
+    },
+    {
+      "train_number": "12001",
+      "train_name": "Shatabdi Express",
+      "train_type": "SHATABDI_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "02:05",
+      "delay_minutes": 4,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 6,
+          "scheduled_arrival": "02:05",
+          "scheduled_departure": "02:08",
+          "actual_arrival": "02:09",
+          "actual_departure": "02:12"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 4,
+          "scheduled_arrival": "02:15",
+          "scheduled_departure": "02:17",
+          "actual_arrival": "02:19",
+          "actual_departure": "02:21"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 4,
+          "scheduled_arrival": "02:35",
+          "scheduled_departure": "02:36",
+          "actual_arrival": "02:39",
+          "actual_departure": "02:40"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 4,
+          "scheduled_arrival": "02:59",
+          "scheduled_departure": "03:00",
+          "actual_arrival": "03:03",
+          "actual_departure": "03:04"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 4,
+          "scheduled_arrival": "03:43",
+          "scheduled_departure": "03:45",
+          "actual_arrival": "03:47",
+          "actual_departure": "03:49"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 4,
+          "scheduled_arrival": "04:22",
+          "scheduled_departure": "04:23",
+          "actual_arrival": "04:26",
+          "actual_departure": "04:27"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 4,
+          "scheduled_arrival": "04:29",
+          "scheduled_departure": "04:32",
+          "actual_arrival": "04:33",
+          "actual_departure": "04:36"
+        }
+      ]
+    },
+    {
+      "train_number": "12279",
+      "train_name": "Taj Express",
+      "train_type": "TAJ_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "03:50",
+      "delay_minutes": 11,
+      "status": "DELAYED",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 8,
+          "scheduled_arrival": "03:50",
+          "scheduled_departure": "03:53",
+          "actual_arrival": "04:01",
+          "actual_departure": "04:04"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 5,
+          "scheduled_arrival": "04:01",
+          "scheduled_departure": "04:03",
+          "actual_arrival": "04:12",
+          "actual_departure": "04:14"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 2,
+          "scheduled_arrival": "04:24",
+          "scheduled_departure": "04:25",
+          "actual_arrival": "04:35",
+          "actual_departure": "04:36"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 2,
+          "scheduled_arrival": "04:52",
+          "scheduled_departure": "04:53",
+          "actual_arrival": "05:03",
+          "actual_departure": "05:04"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 6,
+          "scheduled_arrival": "05:43",
+          "scheduled_departure": "05:45",
+          "actual_arrival": "05:54",
+          "actual_departure": "05:56"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 2,
+          "scheduled_arrival": "06:28",
+          "scheduled_departure": "06:29",
+          "actual_arrival": "06:39",
+          "actual_departure": "06:40"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "06:36",
+          "scheduled_departure": "06:39",
+          "actual_arrival": "06:47",
+          "actual_departure": "06:50"
+        }
+      ]
+    },
+    {
+      "train_number": "14211",
+      "train_name": "Delhi–Agra Intercity",
+      "train_type": "INTERCITY_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "05:35",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 10,
+          "scheduled_arrival": "05:35",
+          "scheduled_departure": "05:38",
+          "actual_arrival": "05:35",
+          "actual_departure": "05:38"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 6,
+          "scheduled_arrival": "05:46",
+          "scheduled_departure": "05:48",
+          "actual_arrival": "05:46",
+          "actual_departure": "05:48"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 4,
+          "scheduled_arrival": "06:09",
+          "scheduled_departure": "06:10",
+          "actual_arrival": "06:09",
+          "actual_departure": "06:10"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 4,
+          "scheduled_arrival": "06:38",
+          "scheduled_departure": "06:39",
+          "actual_arrival": "06:38",
+          "actual_departure": "06:39"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 7,
+          "scheduled_arrival": "07:31",
+          "scheduled_departure": "07:33",
+          "actual_arrival": "07:31",
+          "actual_departure": "07:33"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 4,
+          "scheduled_arrival": "08:18",
+          "scheduled_departure": "08:19",
+          "actual_arrival": "08:18",
+          "actual_departure": "08:19"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 2,
+          "scheduled_arrival": "08:26",
+          "scheduled_departure": "08:29",
+          "actual_arrival": "08:26",
+          "actual_departure": "08:29"
+        }
+      ]
+    },
+    {
+      "train_number": "12057",
+      "train_name": "Yamuna Jan Shatabdi",
+      "train_type": "JAN_SHATABDI",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "07:20",
+      "delay_minutes": 7,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 11,
+          "scheduled_arrival": "07:20",
+          "scheduled_departure": "07:23",
+          "actual_arrival": "07:27",
+          "actual_departure": "07:30"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 2,
+          "scheduled_arrival": "07:31",
+          "scheduled_departure": "07:33",
+          "actual_arrival": "07:38",
+          "actual_departure": "07:40"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 2,
+          "scheduled_arrival": "07:53",
+          "scheduled_departure": "07:54",
+          "actual_arrival": "08:00",
+          "actual_departure": "08:01"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 2,
+          "scheduled_arrival": "08:20",
+          "scheduled_departure": "08:21",
+          "actual_arrival": "08:27",
+          "actual_departure": "08:28"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 8,
+          "scheduled_arrival": "09:09",
+          "scheduled_departure": "09:11",
+          "actual_arrival": "09:16",
+          "actual_departure": "09:18"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 2,
+          "scheduled_arrival": "09:52",
+          "scheduled_departure": "09:53",
+          "actual_arrival": "09:59",
+          "actual_departure": "10:00"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 4,
+          "scheduled_arrival": "09:59",
+          "scheduled_departure": "10:02",
+          "actual_arrival": "10:06",
+          "actual_departure": "10:09"
+        }
+      ]
+    },
+    {
+      "train_number": "12919",
+      "train_name": "Braj Superfast Express",
+      "train_type": "SUPERFAST_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "09:05",
+      "delay_minutes": 18,
+      "status": "DELAYED",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 12,
+          "scheduled_arrival": "09:05",
+          "scheduled_departure": "09:08",
+          "actual_arrival": "09:23",
+          "actual_departure": "09:26"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 4,
+          "scheduled_arrival": "09:16",
+          "scheduled_departure": "09:18",
+          "actual_arrival": "09:34",
+          "actual_departure": "09:36"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 4,
+          "scheduled_arrival": "09:37",
+          "scheduled_departure": "09:38",
+          "actual_arrival": "09:55",
+          "actual_departure": "09:56"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 4,
+          "scheduled_arrival": "10:03",
+          "scheduled_departure": "10:04",
+          "actual_arrival": "10:21",
+          "actual_departure": "10:22"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 2,
+          "scheduled_arrival": "10:51",
+          "scheduled_departure": "10:53",
+          "actual_arrival": "11:09",
+          "actual_departure": "11:11"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 4,
+          "scheduled_arrival": "11:33",
+          "scheduled_departure": "11:34",
+          "actual_arrival": "11:51",
+          "actual_departure": "11:52"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "11:40",
+          "scheduled_departure": "11:43",
+          "actual_arrival": "11:58",
+          "actual_departure": "12:01"
+        }
+      ]
+    },
+    {
+      "train_number": "12192",
+      "train_name": "Gatimaan Express",
+      "train_type": "GATIMAAN_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "10:50",
+      "delay_minutes": 3,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 4,
+          "scheduled_arrival": "10:50",
+          "scheduled_departure": "10:53",
+          "actual_arrival": "10:53",
+          "actual_departure": "10:56"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 5,
+          "scheduled_arrival": "11:00",
+          "scheduled_departure": "11:02",
+          "actual_arrival": "11:03",
+          "actual_departure": "11:05"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 2,
+          "scheduled_arrival": "11:19",
+          "scheduled_departure": "11:20",
+          "actual_arrival": "11:22",
+          "actual_departure": "11:23"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 2,
+          "scheduled_arrival": "11:42",
+          "scheduled_departure": "11:43",
+          "actual_arrival": "11:45",
+          "actual_departure": "11:46"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 4,
+          "scheduled_arrival": "12:24",
+          "scheduled_departure": "12:26",
+          "actual_arrival": "12:27",
+          "actual_departure": "12:29"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 2,
+          "scheduled_arrival": "13:02",
+          "scheduled_departure": "13:03",
+          "actual_arrival": "13:05",
+          "actual_departure": "13:06"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 2,
+          "scheduled_arrival": "13:09",
+          "scheduled_departure": "13:12",
+          "actual_arrival": "13:12",
+          "actual_departure": "13:15"
+        }
+      ]
+    },
+    {
+      "train_number": "12415",
+      "train_name": "Shatabdi Express",
+      "train_type": "SHATABDI_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "12:35",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 6,
+          "scheduled_arrival": "12:35",
+          "scheduled_departure": "12:38",
+          "actual_arrival": "12:35",
+          "actual_departure": "12:38"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 6,
+          "scheduled_arrival": "12:45",
+          "scheduled_departure": "12:47",
+          "actual_arrival": "12:45",
+          "actual_departure": "12:47"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 4,
+          "scheduled_arrival": "13:05",
+          "scheduled_departure": "13:06",
+          "actual_arrival": "13:05",
+          "actual_departure": "13:06"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 4,
+          "scheduled_arrival": "13:29",
+          "scheduled_departure": "13:30",
+          "actual_arrival": "13:29",
+          "actual_departure": "13:30"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 6,
+          "scheduled_arrival": "14:13",
+          "scheduled_departure": "14:15",
+          "actual_arrival": "14:13",
+          "actual_departure": "14:15"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 4,
+          "scheduled_arrival": "14:52",
+          "scheduled_departure": "14:53",
+          "actual_arrival": "14:52",
+          "actual_departure": "14:53"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 4,
+          "scheduled_arrival": "14:59",
+          "scheduled_departure": "15:02",
+          "actual_arrival": "14:59",
+          "actual_departure": "15:02"
+        }
+      ]
+    },
+    {
+      "train_number": "12625",
+      "train_name": "Taj Express",
+      "train_type": "TAJ_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "14:20",
+      "delay_minutes": 26,
+      "status": "DELAYED",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 8,
+          "scheduled_arrival": "14:20",
+          "scheduled_departure": "14:23",
+          "actual_arrival": "14:46",
+          "actual_departure": "14:49"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 2,
+          "scheduled_arrival": "14:31",
+          "scheduled_departure": "14:33",
+          "actual_arrival": "14:57",
+          "actual_departure": "14:59"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 2,
+          "scheduled_arrival": "14:54",
+          "scheduled_departure": "14:55",
+          "actual_arrival": "15:20",
+          "actual_departure": "15:21"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 2,
+          "scheduled_arrival": "15:22",
+          "scheduled_departure": "15:23",
+          "actual_arrival": "15:48",
+          "actual_departure": "15:49"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 7,
+          "scheduled_arrival": "16:13",
+          "scheduled_departure": "16:15",
+          "actual_arrival": "16:39",
+          "actual_departure": "16:41"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 2,
+          "scheduled_arrival": "16:58",
+          "scheduled_departure": "16:59",
+          "actual_arrival": "17:24",
+          "actual_departure": "17:25"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "17:06",
+          "scheduled_departure": "17:09",
+          "actual_arrival": "17:32",
+          "actual_departure": "17:35"
+        }
+      ]
+    },
+    {
+      "train_number": "12925",
+      "train_name": "Delhi–Agra Intercity",
+      "train_type": "INTERCITY_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "16:05",
+      "delay_minutes": 6,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 10,
+          "scheduled_arrival": "16:05",
+          "scheduled_departure": "16:08",
+          "actual_arrival": "16:11",
+          "actual_departure": "16:14"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 4,
+          "scheduled_arrival": "16:16",
+          "scheduled_departure": "16:18",
+          "actual_arrival": "16:22",
+          "actual_departure": "16:24"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 4,
+          "scheduled_arrival": "16:39",
+          "scheduled_departure": "16:40",
+          "actual_arrival": "16:45",
+          "actual_departure": "16:46"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 4,
+          "scheduled_arrival": "17:08",
+          "scheduled_departure": "17:09",
+          "actual_arrival": "17:14",
+          "actual_departure": "17:15"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 8,
+          "scheduled_arrival": "18:01",
+          "scheduled_departure": "18:03",
+          "actual_arrival": "18:07",
+          "actual_departure": "18:09"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 4,
+          "scheduled_arrival": "18:48",
+          "scheduled_departure": "18:49",
+          "actual_arrival": "18:54",
+          "actual_departure": "18:55"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 2,
+          "scheduled_arrival": "18:56",
+          "scheduled_departure": "18:59",
+          "actual_arrival": "19:02",
+          "actual_departure": "19:05"
+        }
+      ]
+    },
+    {
+      "train_number": "12431",
+      "train_name": "Yamuna Jan Shatabdi",
+      "train_type": "JAN_SHATABDI",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "17:50",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 11,
+          "scheduled_arrival": "17:50",
+          "scheduled_departure": "17:53",
+          "actual_arrival": "17:50",
+          "actual_departure": "17:53"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 5,
+          "scheduled_arrival": "18:01",
+          "scheduled_departure": "18:03",
+          "actual_arrival": "18:01",
+          "actual_departure": "18:03"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 2,
+          "scheduled_arrival": "18:23",
+          "scheduled_departure": "18:24",
+          "actual_arrival": "18:23",
+          "actual_departure": "18:24"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 2,
+          "scheduled_arrival": "18:50",
+          "scheduled_departure": "18:51",
+          "actual_arrival": "18:50",
+          "actual_departure": "18:51"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 2,
+          "scheduled_arrival": "19:39",
+          "scheduled_departure": "19:41",
+          "actual_arrival": "19:39",
+          "actual_departure": "19:41"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 2,
+          "scheduled_arrival": "20:22",
+          "scheduled_departure": "20:23",
+          "actual_arrival": "20:22",
+          "actual_departure": "20:23"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 4,
+          "scheduled_arrival": "20:29",
+          "scheduled_departure": "20:32",
+          "actual_arrival": "20:29",
+          "actual_departure": "20:32"
+        }
+      ]
+    },
+    {
+      "train_number": "12047",
+      "train_name": "Braj Superfast Express",
+      "train_type": "SUPERFAST_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "19:35",
+      "delay_minutes": 12,
+      "status": "DELAYED",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 12,
+          "scheduled_arrival": "19:35",
+          "scheduled_departure": "19:38",
+          "actual_arrival": "19:47",
+          "actual_departure": "19:50"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 6,
+          "scheduled_arrival": "19:46",
+          "scheduled_departure": "19:48",
+          "actual_arrival": "19:58",
+          "actual_departure": "20:00"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 4,
+          "scheduled_arrival": "20:07",
+          "scheduled_departure": "20:08",
+          "actual_arrival": "20:19",
+          "actual_departure": "20:20"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 4,
+          "scheduled_arrival": "20:33",
+          "scheduled_departure": "20:34",
+          "actual_arrival": "20:45",
+          "actual_departure": "20:46"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 4,
+          "scheduled_arrival": "21:21",
+          "scheduled_departure": "21:23",
+          "actual_arrival": "21:33",
+          "actual_departure": "21:35"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 4,
+          "scheduled_arrival": "22:03",
+          "scheduled_departure": "22:04",
+          "actual_arrival": "22:15",
+          "actual_departure": "22:16"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "22:10",
+          "scheduled_departure": "22:13",
+          "actual_arrival": "22:22",
+          "actual_departure": "22:25"
+        }
+      ]
+    },
+    {
+      "train_number": "12050",
+      "train_name": "Gatimaan Express",
+      "train_type": "GATIMAAN_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "01:05",
+      "delay_minutes": 5,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 1,
+          "scheduled_arrival": "01:05",
+          "scheduled_departure": "01:08",
+          "actual_arrival": "01:10",
+          "actual_departure": "01:13"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 1,
+          "scheduled_arrival": "01:14",
+          "scheduled_departure": "01:15",
+          "actual_arrival": "01:19",
+          "actual_departure": "01:20"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 5,
+          "scheduled_arrival": "01:51",
+          "scheduled_departure": "01:53",
+          "actual_arrival": "01:56",
+          "actual_departure": "01:58"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 1,
+          "scheduled_arrival": "02:34",
+          "scheduled_departure": "02:35",
+          "actual_arrival": "02:39",
+          "actual_departure": "02:40"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 1,
+          "scheduled_arrival": "02:57",
+          "scheduled_departure": "02:58",
+          "actual_arrival": "03:02",
+          "actual_departure": "03:03"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 1,
+          "scheduled_arrival": "03:15",
+          "scheduled_departure": "03:17",
+          "actual_arrival": "03:20",
+          "actual_departure": "03:22"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 3,
+          "scheduled_arrival": "03:24",
+          "scheduled_departure": "03:27",
+          "actual_arrival": "03:29",
+          "actual_departure": "03:32"
+        }
+      ]
+    },
+    {
+      "train_number": "12002",
+      "train_name": "Shatabdi Express",
+      "train_type": "SHATABDI_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "02:50",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 3,
+          "scheduled_arrival": "02:50",
+          "scheduled_departure": "02:53",
+          "actual_arrival": "02:50",
+          "actual_departure": "02:53"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 3,
+          "scheduled_arrival": "02:59",
+          "scheduled_departure": "03:00",
+          "actual_arrival": "02:59",
+          "actual_departure": "03:00"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 7,
+          "scheduled_arrival": "03:37",
+          "scheduled_departure": "03:39",
+          "actual_arrival": "03:37",
+          "actual_departure": "03:39"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 3,
+          "scheduled_arrival": "04:22",
+          "scheduled_departure": "04:23",
+          "actual_arrival": "04:22",
+          "actual_departure": "04:23"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 3,
+          "scheduled_arrival": "04:46",
+          "scheduled_departure": "04:47",
+          "actual_arrival": "04:46",
+          "actual_departure": "04:47"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 3,
+          "scheduled_arrival": "05:05",
+          "scheduled_departure": "05:07",
+          "actual_arrival": "05:05",
+          "actual_departure": "05:07"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 5,
+          "scheduled_arrival": "05:14",
+          "scheduled_departure": "05:17",
+          "actual_arrival": "05:14",
+          "actual_departure": "05:17"
+        }
+      ]
+    },
+    {
+      "train_number": "12280",
+      "train_name": "Taj Express",
+      "train_type": "TAJ_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "04:35",
+      "delay_minutes": 8,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "04:35",
+          "scheduled_departure": "04:38",
+          "actual_arrival": "04:43",
+          "actual_departure": "04:46"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 1,
+          "scheduled_arrival": "04:45",
+          "scheduled_departure": "04:46",
+          "actual_arrival": "04:53",
+          "actual_departure": "04:54"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 8,
+          "scheduled_arrival": "05:29",
+          "scheduled_departure": "05:31",
+          "actual_arrival": "05:37",
+          "actual_departure": "05:39"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 1,
+          "scheduled_arrival": "06:21",
+          "scheduled_departure": "06:22",
+          "actual_arrival": "06:29",
+          "actual_departure": "06:30"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 1,
+          "scheduled_arrival": "06:49",
+          "scheduled_departure": "06:50",
+          "actual_arrival": "06:57",
+          "actual_departure": "06:58"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 5,
+          "scheduled_arrival": "07:11",
+          "scheduled_departure": "07:13",
+          "actual_arrival": "07:19",
+          "actual_departure": "07:21"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 7,
+          "scheduled_arrival": "07:21",
+          "scheduled_departure": "07:24",
+          "actual_arrival": "07:29",
+          "actual_departure": "07:32"
+        }
+      ]
+    },
+    {
+      "train_number": "14212",
+      "train_name": "Delhi–Agra Intercity",
+      "train_type": "INTERCITY_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "06:20",
+      "delay_minutes": 14,
+      "status": "DELAYED",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 1,
+          "scheduled_arrival": "06:20",
+          "scheduled_departure": "06:23",
+          "actual_arrival": "06:34",
+          "actual_departure": "06:37"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 3,
+          "scheduled_arrival": "06:30",
+          "scheduled_departure": "06:31",
+          "actual_arrival": "06:44",
+          "actual_departure": "06:45"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 1,
+          "scheduled_arrival": "07:16",
+          "scheduled_departure": "07:18",
+          "actual_arrival": "07:30",
+          "actual_departure": "07:32"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 3,
+          "scheduled_arrival": "08:10",
+          "scheduled_departure": "08:11",
+          "actual_arrival": "08:24",
+          "actual_departure": "08:25"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 3,
+          "scheduled_arrival": "08:39",
+          "scheduled_departure": "08:40",
+          "actual_arrival": "08:53",
+          "actual_departure": "08:54"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 6,
+          "scheduled_arrival": "09:01",
+          "scheduled_departure": "09:03",
+          "actual_arrival": "09:15",
+          "actual_departure": "09:17"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 9,
+          "scheduled_arrival": "09:11",
+          "scheduled_departure": "09:14",
+          "actual_arrival": "09:25",
+          "actual_departure": "09:28"
+        }
+      ]
+    },
+    {
+      "train_number": "12058",
+      "train_name": "Yamuna Jan Shatabdi",
+      "train_type": "JAN_SHATABDI",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "08:05",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 3,
+          "scheduled_arrival": "08:05",
+          "scheduled_departure": "08:08",
+          "actual_arrival": "08:05",
+          "actual_departure": "08:08"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 1,
+          "scheduled_arrival": "08:14",
+          "scheduled_departure": "08:15",
+          "actual_arrival": "08:14",
+          "actual_departure": "08:15"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 3,
+          "scheduled_arrival": "08:56",
+          "scheduled_departure": "08:58",
+          "actual_arrival": "08:56",
+          "actual_departure": "08:58"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 1,
+          "scheduled_arrival": "09:46",
+          "scheduled_departure": "09:47",
+          "actual_arrival": "09:46",
+          "actual_departure": "09:47"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 1,
+          "scheduled_arrival": "10:13",
+          "scheduled_departure": "10:14",
+          "actual_arrival": "10:13",
+          "actual_departure": "10:14"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 1,
+          "scheduled_arrival": "10:34",
+          "scheduled_departure": "10:36",
+          "actual_arrival": "10:34",
+          "actual_departure": "10:36"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 11,
+          "scheduled_arrival": "10:44",
+          "scheduled_departure": "10:47",
+          "actual_arrival": "10:44",
+          "actual_departure": "10:47"
+        }
+      ]
+    },
+    {
+      "train_number": "12920",
+      "train_name": "Braj Superfast Express",
+      "train_type": "SUPERFAST_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "09:50",
+      "delay_minutes": 21,
+      "status": "DELAYED",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "09:50",
+          "scheduled_departure": "09:53",
+          "actual_arrival": "10:11",
+          "actual_departure": "10:14"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 3,
+          "scheduled_arrival": "09:59",
+          "scheduled_departure": "10:00",
+          "actual_arrival": "10:20",
+          "actual_departure": "10:21"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 5,
+          "scheduled_arrival": "10:40",
+          "scheduled_departure": "10:42",
+          "actual_arrival": "11:01",
+          "actual_departure": "11:03"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 3,
+          "scheduled_arrival": "11:29",
+          "scheduled_departure": "11:30",
+          "actual_arrival": "11:50",
+          "actual_departure": "11:51"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 3,
+          "scheduled_arrival": "11:55",
+          "scheduled_departure": "11:56",
+          "actual_arrival": "12:16",
+          "actual_departure": "12:17"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 3,
+          "scheduled_arrival": "12:15",
+          "scheduled_departure": "12:17",
+          "actual_arrival": "12:36",
+          "actual_departure": "12:38"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 12,
+          "scheduled_arrival": "12:25",
+          "scheduled_departure": "12:28",
+          "actual_arrival": "12:46",
+          "actual_departure": "12:49"
+        }
+      ]
+    },
+    {
+      "train_number": "12191",
+      "train_name": "Gatimaan Express",
+      "train_type": "GATIMAAN_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "11:35",
+      "delay_minutes": 4,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 1,
+          "scheduled_arrival": "11:35",
+          "scheduled_departure": "11:38",
+          "actual_arrival": "11:39",
+          "actual_departure": "11:42"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 1,
+          "scheduled_arrival": "11:44",
+          "scheduled_departure": "11:45",
+          "actual_arrival": "11:48",
+          "actual_departure": "11:49"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 7,
+          "scheduled_arrival": "12:21",
+          "scheduled_departure": "12:23",
+          "actual_arrival": "12:25",
+          "actual_departure": "12:27"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 1,
+          "scheduled_arrival": "13:04",
+          "scheduled_departure": "13:05",
+          "actual_arrival": "13:08",
+          "actual_departure": "13:09"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 1,
+          "scheduled_arrival": "13:27",
+          "scheduled_departure": "13:28",
+          "actual_arrival": "13:31",
+          "actual_departure": "13:32"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 5,
+          "scheduled_arrival": "13:45",
+          "scheduled_departure": "13:47",
+          "actual_arrival": "13:49",
+          "actual_departure": "13:51"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 3,
+          "scheduled_arrival": "13:54",
+          "scheduled_departure": "13:57",
+          "actual_arrival": "13:58",
+          "actual_departure": "14:01"
+        }
+      ]
+    },
+    {
+      "train_number": "12416",
+      "train_name": "Shatabdi Express",
+      "train_type": "SHATABDI_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "13:20",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 3,
+          "scheduled_arrival": "13:20",
+          "scheduled_departure": "13:23",
+          "actual_arrival": "13:20",
+          "actual_departure": "13:23"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 3,
+          "scheduled_arrival": "13:29",
+          "scheduled_departure": "13:30",
+          "actual_arrival": "13:29",
+          "actual_departure": "13:30"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 8,
+          "scheduled_arrival": "14:07",
+          "scheduled_departure": "14:09",
+          "actual_arrival": "14:07",
+          "actual_departure": "14:09"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 3,
+          "scheduled_arrival": "14:52",
+          "scheduled_departure": "14:53",
+          "actual_arrival": "14:52",
+          "actual_departure": "14:53"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 3,
+          "scheduled_arrival": "15:16",
+          "scheduled_departure": "15:17",
+          "actual_arrival": "15:16",
+          "actual_departure": "15:17"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 6,
+          "scheduled_arrival": "15:35",
+          "scheduled_departure": "15:37",
+          "actual_arrival": "15:35",
+          "actual_departure": "15:37"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 5,
+          "scheduled_arrival": "15:44",
+          "scheduled_departure": "15:47",
+          "actual_arrival": "15:44",
+          "actual_departure": "15:47"
+        }
+      ]
+    },
+    {
+      "train_number": "12626",
+      "train_name": "Taj Express",
+      "train_type": "TAJ_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "15:05",
+      "delay_minutes": 9,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "15:05",
+          "scheduled_departure": "15:08",
+          "actual_arrival": "15:14",
+          "actual_departure": "15:17"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 1,
+          "scheduled_arrival": "15:15",
+          "scheduled_departure": "15:16",
+          "actual_arrival": "15:24",
+          "actual_departure": "15:25"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 1,
+          "scheduled_arrival": "15:59",
+          "scheduled_departure": "16:01",
+          "actual_arrival": "16:08",
+          "actual_departure": "16:10"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 1,
+          "scheduled_arrival": "16:51",
+          "scheduled_departure": "16:52",
+          "actual_arrival": "17:00",
+          "actual_departure": "17:01"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 1,
+          "scheduled_arrival": "17:19",
+          "scheduled_departure": "17:20",
+          "actual_arrival": "17:28",
+          "actual_departure": "17:29"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 1,
+          "scheduled_arrival": "17:41",
+          "scheduled_departure": "17:43",
+          "actual_arrival": "17:50",
+          "actual_departure": "17:52"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 7,
+          "scheduled_arrival": "17:51",
+          "scheduled_departure": "17:54",
+          "actual_arrival": "18:00",
+          "actual_departure": "18:03"
+        }
+      ]
+    },
+    {
+      "train_number": "12926",
+      "train_name": "Delhi–Agra Intercity",
+      "train_type": "INTERCITY_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "16:50",
+      "delay_minutes": 3,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 1,
+          "scheduled_arrival": "16:50",
+          "scheduled_departure": "16:53",
+          "actual_arrival": "16:53",
+          "actual_departure": "16:56"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 3,
+          "scheduled_arrival": "17:00",
+          "scheduled_departure": "17:01",
+          "actual_arrival": "17:03",
+          "actual_departure": "17:04"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 3,
+          "scheduled_arrival": "17:46",
+          "scheduled_departure": "17:48",
+          "actual_arrival": "17:49",
+          "actual_departure": "17:51"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 3,
+          "scheduled_arrival": "18:40",
+          "scheduled_departure": "18:41",
+          "actual_arrival": "18:43",
+          "actual_departure": "18:44"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 3,
+          "scheduled_arrival": "19:09",
+          "scheduled_departure": "19:10",
+          "actual_arrival": "19:12",
+          "actual_departure": "19:13"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 3,
+          "scheduled_arrival": "19:31",
+          "scheduled_departure": "19:33",
+          "actual_arrival": "19:34",
+          "actual_departure": "19:36"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 9,
+          "scheduled_arrival": "19:41",
+          "scheduled_departure": "19:44",
+          "actual_arrival": "19:44",
+          "actual_departure": "19:47"
+        }
+      ]
+    },
+    {
+      "train_number": "12432",
+      "train_name": "Yamuna Jan Shatabdi",
+      "train_type": "JAN_SHATABDI",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "18:35",
+      "delay_minutes": 17,
+      "status": "DELAYED",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 3,
+          "scheduled_arrival": "18:35",
+          "scheduled_departure": "18:38",
+          "actual_arrival": "18:52",
+          "actual_departure": "18:55"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 1,
+          "scheduled_arrival": "18:44",
+          "scheduled_departure": "18:45",
+          "actual_arrival": "19:01",
+          "actual_departure": "19:02"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 5,
+          "scheduled_arrival": "19:26",
+          "scheduled_departure": "19:28",
+          "actual_arrival": "19:43",
+          "actual_departure": "19:45"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 1,
+          "scheduled_arrival": "20:16",
+          "scheduled_departure": "20:17",
+          "actual_arrival": "20:33",
+          "actual_departure": "20:34"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 1,
+          "scheduled_arrival": "20:43",
+          "scheduled_departure": "20:44",
+          "actual_arrival": "21:00",
+          "actual_departure": "21:01"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 5,
+          "scheduled_arrival": "21:04",
+          "scheduled_departure": "21:06",
+          "actual_arrival": "21:21",
+          "actual_departure": "21:23"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 11,
+          "scheduled_arrival": "21:14",
+          "scheduled_departure": "21:17",
+          "actual_arrival": "21:31",
+          "actual_departure": "21:34"
+        }
+      ]
+    },
+    {
+      "train_number": "12048",
+      "train_name": "Braj Superfast Express",
+      "train_type": "SUPERFAST_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "20:20",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "20:20",
+          "scheduled_departure": "20:23",
+          "actual_arrival": "20:20",
+          "actual_departure": "20:23"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 3,
+          "scheduled_arrival": "20:29",
+          "scheduled_departure": "20:30",
+          "actual_arrival": "20:29",
+          "actual_departure": "20:30"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 7,
+          "scheduled_arrival": "21:10",
+          "scheduled_departure": "21:12",
+          "actual_arrival": "21:10",
+          "actual_departure": "21:12"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 3,
+          "scheduled_arrival": "21:59",
+          "scheduled_departure": "22:00",
+          "actual_arrival": "21:59",
+          "actual_departure": "22:00"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 3,
+          "scheduled_arrival": "22:25",
+          "scheduled_departure": "22:26",
+          "actual_arrival": "22:25",
+          "actual_departure": "22:26"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 6,
+          "scheduled_arrival": "22:45",
+          "scheduled_departure": "22:47",
+          "actual_arrival": "22:45",
+          "actual_departure": "22:47"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 12,
+          "scheduled_arrival": "22:55",
+          "scheduled_departure": "22:58",
+          "actual_arrival": "22:55",
+          "actual_departure": "22:58"
+        }
+      ]
+    }
+  ],
+  "maintenance_jobs": [
+    {
+      "block_id": "BLK-101",
+      "asset_id": "AST-UP1-RAI-101",
+      "track_id": "UP-1",
+      "asset_type": "RAIL_SECTION",
+      "work_type": "TRACK_RENEWAL",
+      "description": "Through rail renewal",
+      "location_km_range": {
+        "start": 31.8,
+        "end": 32.2
+      },
+      "worker_requirement": {
+        "min": 12,
+        "max": 24
+      },
+      "duration_minutes": 240,
+      "earliest_start_minute": 1260,
+      "latest_end_minute": 1410,
+      "mutual_exclusion_group": "PQRS_GANG_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Through rail renewal @ KM 32.0 (UP-1)",
+        "defect_severity": "CRITICAL",
+        "condition_score": 0.78,
+        "gross_million_tonnes": 454.0,
+        "historical_failure_count_3yr": 5,
+        "scoring_features": {
+          "asset_criticality": 0.95,
+          "defect_severity": 1.0,
+          "days_overdue": 82,
+          "days_overdue_norm": 0.911,
+          "failure_probability": 0.82,
+          "train_impact": 0.86,
+          "maintenance_duration": 240,
+          "maintenance_duration_norm": 0.667,
+          "historical_failure_rate": 0.833,
+          "baseline_risk_score": 0.895,
+          "baseline_priority_score": 0.789
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-UP-1-EVENING",
+        "start_minute": 1260,
+        "end_minute": 1410
+      }
+    },
+    {
+      "block_id": "BLK-102",
+      "asset_id": "AST-DN1-OHE-102",
+      "track_id": "DOWN-1",
+      "asset_type": "OHE_MAST",
+      "work_type": "OHE_MAINTENANCE",
+      "description": "OHE isolator/cantilever maintenance",
+      "location_km_range": {
+        "start": 28.3,
+        "end": 28.7
+      },
+      "worker_requirement": {
+        "min": 6,
+        "max": 12
+      },
+      "duration_minutes": 90,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 300,
+      "mutual_exclusion_group": "TOWER_WAGON_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "OHE isolator/cantilever maintenance @ KM 28.5 (DOWN-1)",
+        "defect_severity": "MODERATE",
+        "condition_score": 0.58,
+        "gross_million_tonnes": 409.6,
+        "historical_failure_count_3yr": 3,
+        "scoring_features": {
+          "asset_criticality": 0.88,
+          "defect_severity": 0.6,
+          "days_overdue": 55,
+          "days_overdue_norm": 0.611,
+          "failure_probability": 0.58,
+          "train_impact": 0.7,
+          "maintenance_duration": 90,
+          "maintenance_duration_norm": 0.25,
+          "historical_failure_rate": 0.5,
+          "baseline_risk_score": 0.576,
+          "baseline_priority_score": 0.712
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-DOWN-1-NIGHT",
+        "start_minute": 30,
+        "end_minute": 300
+      }
+    },
+    {
+      "block_id": "BLK-103",
+      "asset_id": "AST-UP1-OHE-103",
+      "track_id": "UP-1",
+      "asset_type": "OHE_MAST",
+      "work_type": "OHE_MAINTENANCE",
+      "description": "OHE cantilever assembly repair",
+      "location_km_range": {
+        "start": 23.9,
+        "end": 24.3
+      },
+      "worker_requirement": {
+        "min": 6,
+        "max": 12
+      },
+      "duration_minutes": 90,
+      "earliest_start_minute": 690,
+      "latest_end_minute": 870,
+      "mutual_exclusion_group": "TOWER_WAGON_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "OHE cantilever assembly repair @ KM 24.1 (UP-1)",
+        "defect_severity": "CRITICAL",
+        "condition_score": 0.92,
+        "gross_million_tonnes": 439.6,
+        "historical_failure_count_3yr": 4,
+        "scoring_features": {
+          "asset_criticality": 0.98,
+          "defect_severity": 1.0,
+          "days_overdue": 61,
+          "days_overdue_norm": 0.678,
+          "failure_probability": 0.8,
+          "train_impact": 0.72,
+          "maintenance_duration": 90,
+          "maintenance_duration_norm": 0.25,
+          "historical_failure_rate": 0.667,
+          "baseline_risk_score": 0.809,
+          "baseline_priority_score": 0.822
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-UP-1-MIDDAY",
+        "start_minute": 690,
+        "end_minute": 870
+      },
+      "conflict_group": "CONFLICT-UP1-TOWERWAGON-01",
+      "conflict_note": "Both request the same UP-1 possession and TOWER_WAGON_01; BLK-103 has higher priority and should win if only one can be executed."
+    },
+    {
+      "block_id": "BLK-104",
+      "asset_id": "AST-DN1-RAI-104",
+      "track_id": "DOWN-1",
+      "asset_type": "RAIL_SECTION",
+      "work_type": "BALLAST_TAMPING",
+      "description": "Sleeper alignment and ballast tamping",
+      "location_km_range": {
+        "start": 18.0,
+        "end": 18.4
+      },
+      "worker_requirement": {
+        "min": 6,
+        "max": 12
+      },
+      "duration_minutes": 120,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 300,
+      "mutual_exclusion_group": "CSM_TAMPER_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Sleeper alignment and ballast tamping @ KM 18.2 (DOWN-1)",
+        "defect_severity": "MODERATE",
+        "condition_score": 0.48,
+        "gross_million_tonnes": 404.8,
+        "historical_failure_count_3yr": 3,
+        "scoring_features": {
+          "asset_criticality": 0.84,
+          "defect_severity": 0.6,
+          "days_overdue": 35,
+          "days_overdue_norm": 0.389,
+          "failure_probability": 0.48,
+          "train_impact": 0.62,
+          "maintenance_duration": 120,
+          "maintenance_duration_norm": 0.333,
+          "historical_failure_rate": 0.5,
+          "baseline_risk_score": 0.502,
+          "baseline_priority_score": 0.643
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-DOWN-1-NIGHT",
+        "start_minute": 30,
+        "end_minute": 300
+      }
+    },
+    {
+      "block_id": "BLK-105",
+      "asset_id": "AST-UP1-RAI-105",
+      "track_id": "UP-1",
+      "asset_type": "RAIL_SECTION",
+      "work_type": "BALLAST_TAMPING",
+      "description": "Ballast regulation and tamping",
+      "location_km_range": {
+        "start": 39.8,
+        "end": 40.2
+      },
+      "worker_requirement": {
+        "min": 6,
+        "max": 12
+      },
+      "duration_minutes": 135,
+      "earliest_start_minute": 690,
+      "latest_end_minute": 870,
+      "mutual_exclusion_group": "CSM_TAMPER_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Ballast regulation and tamping @ KM 40.0 (UP-1)",
+        "defect_severity": "MODERATE",
+        "condition_score": 0.32,
+        "gross_million_tonnes": 389.2,
+        "historical_failure_count_3yr": 2,
+        "scoring_features": {
+          "asset_criticality": 0.86,
+          "defect_severity": 0.6,
+          "days_overdue": 22,
+          "days_overdue_norm": 0.244,
+          "failure_probability": 0.32,
+          "train_impact": 0.5,
+          "maintenance_duration": 135,
+          "maintenance_duration_norm": 0.375,
+          "historical_failure_rate": 0.333,
+          "baseline_risk_score": 0.391,
+          "baseline_priority_score": 0.577
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-UP-1-MIDDAY",
+        "start_minute": 690,
+        "end_minute": 870
+      }
+    },
+    {
+      "block_id": "BLK-106",
+      "asset_id": "AST-DN1-SIG-106",
+      "track_id": "DOWN-1",
+      "asset_type": "SIGNAL_POST",
+      "work_type": "SIGNALLING_INTERLOCKING",
+      "description": "Signal aspect/relay calibration",
+      "location_km_range": {
+        "start": 21.8,
+        "end": 22.2
+      },
+      "worker_requirement": {
+        "min": 6,
+        "max": 12
+      },
+      "duration_minutes": 90,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 300,
+      "mutual_exclusion_group": "S_T_GANG_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Signal aspect/relay calibration @ KM 22.0 (DOWN-1)",
+        "defect_severity": "MINOR",
+        "condition_score": 0.25,
+        "gross_million_tonnes": 361.6,
+        "historical_failure_count_3yr": 1,
+        "scoring_features": {
+          "asset_criticality": 0.78,
+          "defect_severity": 0.25,
+          "days_overdue": 18,
+          "days_overdue_norm": 0.2,
+          "failure_probability": 0.25,
+          "train_impact": 0.45,
+          "maintenance_duration": 90,
+          "maintenance_duration_norm": 0.25,
+          "historical_failure_rate": 0.167,
+          "baseline_risk_score": 0.223,
+          "baseline_priority_score": 0.513
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-DOWN-1-NIGHT",
+        "start_minute": 30,
+        "end_minute": 300
+      }
+    },
+    {
+      "block_id": "BLK-107",
+      "asset_id": "AST-UP1-SIG-107",
+      "track_id": "UP-1",
+      "asset_type": "SIGNAL_POST",
+      "work_type": "SIGNALLING_INTERLOCKING",
+      "description": "Automatic block signal inspection",
+      "location_km_range": {
+        "start": 15.4,
+        "end": 15.8
+      },
+      "worker_requirement": {
+        "min": 6,
+        "max": 12
+      },
+      "duration_minutes": 75,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 300,
+      "mutual_exclusion_group": "S_T_GANG_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Automatic block signal inspection @ KM 15.6 (UP-1)",
+        "defect_severity": "MODERATE",
+        "condition_score": 0.4,
+        "gross_million_tonnes": 394.0,
+        "historical_failure_count_3yr": 2,
+        "scoring_features": {
+          "asset_criticality": 0.9,
+          "defect_severity": 0.6,
+          "days_overdue": 42,
+          "days_overdue_norm": 0.467,
+          "failure_probability": 0.4,
+          "train_impact": 0.55,
+          "maintenance_duration": 75,
+          "maintenance_duration_norm": 0.208,
+          "historical_failure_rate": 0.333,
+          "baseline_risk_score": 0.46,
+          "baseline_priority_score": 0.654
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-UP-1-NIGHT",
+        "start_minute": 30,
+        "end_minute": 300
+      }
+    },
+    {
+      "block_id": "BLK-108",
+      "asset_id": "AST-DN1-RAI-108",
+      "track_id": "DOWN-1",
+      "asset_type": "RAIL_SECTION",
+      "work_type": "ROUTINE_INSPECTION",
+      "description": "USFD patrol and geometry check",
+      "location_km_range": {
+        "start": 34.8,
+        "end": 35.2
+      },
+      "worker_requirement": {
+        "min": 6,
+        "max": 12
+      },
+      "duration_minutes": 60,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 300,
+      "mutual_exclusion_group": null,
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "USFD patrol and geometry check @ KM 35.0 (DOWN-1)",
+        "defect_severity": "NONE",
+        "condition_score": 0.08,
+        "gross_million_tonnes": 354.4,
+        "historical_failure_count_3yr": 1,
+        "scoring_features": {
+          "asset_criticality": 0.72,
+          "defect_severity": 0.0,
+          "days_overdue": 0,
+          "days_overdue_norm": 0.0,
+          "failure_probability": 0.08,
+          "train_impact": 0.35,
+          "maintenance_duration": 60,
+          "maintenance_duration_norm": 0.167,
+          "historical_failure_rate": 0.167,
+          "baseline_risk_score": 0.057,
+          "baseline_priority_score": 0.437
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-DOWN-1-NIGHT",
+        "start_minute": 30,
+        "end_minute": 300
+      }
+    },
+    {
+      "block_id": "BLK-109",
+      "asset_id": "AST-UP1-RAI-109",
+      "track_id": "UP-1",
+      "asset_type": "RAIL_SECTION",
+      "work_type": "ROUTINE_INSPECTION",
+      "description": "USFD patrol and geometry check",
+      "location_km_range": {
+        "start": 14.8,
+        "end": 15.2
+      },
+      "worker_requirement": {
+        "min": 6,
+        "max": 12
+      },
+      "duration_minutes": 45,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 300,
+      "mutual_exclusion_group": null,
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "USFD patrol and geometry check @ KM 15.0 (UP-1)",
+        "defect_severity": "NONE",
+        "condition_score": 0.12,
+        "gross_million_tonnes": 356.8,
+        "historical_failure_count_3yr": 1,
+        "scoring_features": {
+          "asset_criticality": 0.74,
+          "defect_severity": 0.0,
+          "days_overdue": 8,
+          "days_overdue_norm": 0.089,
+          "failure_probability": 0.12,
+          "train_impact": 0.3,
+          "maintenance_duration": 45,
+          "maintenance_duration_norm": 0.125,
+          "historical_failure_rate": 0.167,
+          "baseline_risk_score": 0.087,
+          "baseline_priority_score": 0.45
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-UP-1-NIGHT",
+        "start_minute": 30,
+        "end_minute": 300
+      }
+    },
+    {
+      "block_id": "BLK-110",
+      "asset_id": "AST-DN1-TUR-110",
+      "track_id": "DOWN-1",
+      "asset_type": "TURNOUT_POINT",
+      "work_type": "EMERGENCY_REPAIR",
+      "description": "Turnout point fracture repair",
+      "location_km_range": {
+        "start": 47.8,
+        "end": 48.2
+      },
+      "worker_requirement": {
+        "min": 8,
+        "max": 14
+      },
+      "duration_minutes": 90,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 300,
+      "mutual_exclusion_group": null,
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Turnout point fracture repair @ KM 48.0 (DOWN-1)",
+        "defect_severity": "CRITICAL",
+        "condition_score": 0.86,
+        "gross_million_tonnes": 401.2,
+        "historical_failure_count_3yr": 2,
+        "scoring_features": {
+          "asset_criticality": 0.96,
+          "defect_severity": 1.0,
+          "days_overdue": 5,
+          "days_overdue_norm": 0.056,
+          "failure_probability": 0.86,
+          "train_impact": 0.7,
+          "maintenance_duration": 90,
+          "maintenance_duration_norm": 0.25,
+          "historical_failure_rate": 0.333,
+          "baseline_risk_score": 0.636,
+          "baseline_priority_score": 0.753
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-DOWN-1-NIGHT",
+        "start_minute": 30,
+        "end_minute": 300
+      }
+    },
+    {
+      "block_id": "BLK-111",
+      "asset_id": "AST-UP1-RAI-111",
+      "track_id": "UP-1",
+      "asset_type": "RAIL_SECTION",
+      "work_type": "TRACK_RENEWAL",
+      "description": "Renewal of worn rail/sleeper section",
+      "location_km_range": {
+        "start": 55.8,
+        "end": 56.2
+      },
+      "worker_requirement": {
+        "min": 12,
+        "max": 24
+      },
+      "duration_minutes": 300,
+      "earliest_start_minute": 1260,
+      "latest_end_minute": 1410,
+      "mutual_exclusion_group": "PQRS_GANG_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Renewal of worn rail/sleeper section @ KM 56.0 (UP-1)",
+        "defect_severity": "CRITICAL",
+        "condition_score": 0.7,
+        "gross_million_tonnes": 432.4,
+        "historical_failure_count_3yr": 4,
+        "scoring_features": {
+          "asset_criticality": 0.92,
+          "defect_severity": 1.0,
+          "days_overdue": 68,
+          "days_overdue_norm": 0.756,
+          "failure_probability": 0.7,
+          "train_impact": 0.65,
+          "maintenance_duration": 300,
+          "maintenance_duration_norm": 0.833,
+          "historical_failure_rate": 0.667,
+          "baseline_risk_score": 0.795,
+          "baseline_priority_score": 0.672
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-UP-1-EVENING",
+        "start_minute": 1260,
+        "end_minute": 1410
+      }
+    },
+    {
+      "block_id": "BLK-112",
+      "asset_id": "AST-DN1-OHE-112",
+      "track_id": "DOWN-1",
+      "asset_type": "OHE_MAST",
+      "work_type": "OHE_MAINTENANCE",
+      "description": "OHE contact wire and dropper inspection",
+      "location_km_range": {
+        "start": 67.0,
+        "end": 67.4
+      },
+      "worker_requirement": {
+        "min": 6,
+        "max": 12
+      },
+      "duration_minutes": 120,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 300,
+      "mutual_exclusion_group": "TOWER_WAGON_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "OHE contact wire and dropper inspection @ KM 67.2 (DOWN-1)",
+        "defect_severity": "MODERATE",
+        "condition_score": 0.36,
+        "gross_million_tonnes": 390.4,
+        "historical_failure_count_3yr": 2,
+        "scoring_features": {
+          "asset_criticality": 0.87,
+          "defect_severity": 0.6,
+          "days_overdue": 28,
+          "days_overdue_norm": 0.311,
+          "failure_probability": 0.36,
+          "train_impact": 0.6,
+          "maintenance_duration": 120,
+          "maintenance_duration_norm": 0.333,
+          "historical_failure_rate": 0.333,
+          "baseline_risk_score": 0.417,
+          "baseline_priority_score": 0.617
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-DOWN-1-NIGHT",
+        "start_minute": 30,
+        "end_minute": 300
+      }
+    },
+    {
+      "block_id": "BLK-113",
+      "asset_id": "AST-UP1-TUR-113",
+      "track_id": "UP-1",
+      "asset_type": "TURNOUT_POINT",
+      "work_type": "SIGNALLING_INTERLOCKING",
+      "description": "Turnout point machine inspection",
+      "location_km_range": {
+        "start": 9.6,
+        "end": 10.0
+      },
+      "worker_requirement": {
+        "min": 6,
+        "max": 12
+      },
+      "duration_minutes": 60,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 300,
+      "mutual_exclusion_group": "S_T_GANG_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Turnout point machine inspection @ KM 9.8 (UP-1)",
+        "defect_severity": "MODERATE",
+        "condition_score": 0.29,
+        "gross_million_tonnes": 415.6,
+        "historical_failure_count_3yr": 3,
+        "scoring_features": {
+          "asset_criticality": 0.93,
+          "defect_severity": 0.6,
+          "days_overdue": 31,
+          "days_overdue_norm": 0.344,
+          "failure_probability": 0.29,
+          "train_impact": 0.58,
+          "maintenance_duration": 60,
+          "maintenance_duration_norm": 0.167,
+          "historical_failure_rate": 0.5,
+          "baseline_risk_score": 0.436,
+          "baseline_priority_score": 0.668
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-UP-1-NIGHT",
+        "start_minute": 30,
+        "end_minute": 300
+      }
+    },
+    {
+      "block_id": "BLK-114",
+      "asset_id": "AST-DN1-RAI-114",
+      "track_id": "DOWN-1",
+      "asset_type": "RAIL_SECTION",
+      "work_type": "BALLAST_TAMPING",
+      "description": "Dynamic track alignment/tamping",
+      "location_km_range": {
+        "start": 71.8,
+        "end": 72.2
+      },
+      "worker_requirement": {
+        "min": 6,
+        "max": 12
+      },
+      "duration_minutes": 105,
+      "earliest_start_minute": 30,
+      "latest_end_minute": 300,
+      "mutual_exclusion_group": "CSM_TAMPER_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "Dynamic track alignment/tamping @ KM 72.0 (DOWN-1)",
+        "defect_severity": "MODERATE",
+        "condition_score": 0.52,
+        "gross_million_tonnes": 420.4,
+        "historical_failure_count_3yr": 4,
+        "scoring_features": {
+          "asset_criticality": 0.82,
+          "defect_severity": 0.6,
+          "days_overdue": 47,
+          "days_overdue_norm": 0.522,
+          "failure_probability": 0.52,
+          "train_impact": 0.55,
+          "maintenance_duration": 105,
+          "maintenance_duration_norm": 0.292,
+          "historical_failure_rate": 0.667,
+          "baseline_risk_score": 0.574,
+          "baseline_priority_score": 0.657
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-DOWN-1-NIGHT",
+        "start_minute": 30,
+        "end_minute": 300
+      }
+    },
+    {
+      "block_id": "BLK-115",
+      "asset_id": "AST-UP1-OHE-115",
+      "track_id": "UP-1",
+      "asset_type": "OHE_MAST",
+      "work_type": "OHE_MAINTENANCE",
+      "description": "OHE contact wire splice replacement",
+      "location_km_range": {
+        "start": 24.0,
+        "end": 24.4
+      },
+      "worker_requirement": {
+        "min": 6,
+        "max": 12
+      },
+      "duration_minutes": 120,
+      "earliest_start_minute": 690,
+      "latest_end_minute": 870,
+      "mutual_exclusion_group": "TOWER_WAGON_01",
+      "is_committed": false,
+      "status": "PLANNED",
+      "metadata": {
+        "asset_name": "OHE contact wire splice replacement @ KM 24.2 (UP-1)",
+        "defect_severity": "MODERATE",
+        "condition_score": 0.8,
+        "gross_million_tonnes": 430.0,
+        "historical_failure_count_3yr": 4,
+        "scoring_features": {
+          "asset_criticality": 0.9,
+          "defect_severity": 0.6,
+          "days_overdue": 61,
+          "days_overdue_norm": 0.678,
+          "failure_probability": 0.8,
+          "train_impact": 0.7,
+          "maintenance_duration": 120,
+          "maintenance_duration_norm": 0.333,
+          "historical_failure_rate": 0.667,
+          "baseline_risk_score": 0.689,
+          "baseline_priority_score": 0.74
+        }
+      },
+      "requested_possession_window": {
+        "window_id": "POS-UP-1-MIDDAY",
+        "start_minute": 690,
+        "end_minute": 870
+      },
+      "conflict_group": "CONFLICT-UP1-TOWERWAGON-01",
+      "conflict_note": "Both request the same UP-1 possession and TOWER_WAGON_01; BLK-103 has higher priority and should win if only one can be executed."
+    }
+  ],
+  "conflict_pairs": [
+    {
+      "pair_id": "CONFLICT-001",
+      "job_a": "BLK-103",
+      "job_b": "BLK-115",
+      "track_id": "UP-1",
+      "machine": "TOWER_WAGON_01",
+      "time_window": {
+        "start_minute": 690,
+        "end_minute": 870
+      },
+      "expected_priority_order": [
+        "BLK-103",
+        "BLK-115"
+      ],
+      "reason": "Same track + same specialised machine + overlapping requested possession; BLK-103 has higher priority score."
+    }
+  ],
+  "disruption_scenarios": [
+    {
+      "scenario_id": "SCENARIO_1_TRACK_UNAVAILABLE",
+      "name": "Track Unavailable Disruption",
+      "disruption_event": {
+        "disruption_id": "DISR-SCN1-001",
+        "disruption_type": "TRACK_UNAVAILABLE",
+        "corridor_id": "CORR-NDLS-AGC",
+        "track_id": "UP-1",
+        "start_minute": 60,
+        "end_minute": 240,
+        "affected_asset_id": "AST-UP1-RAI-101",
+        "new_candidate": null,
+        "description": "Rail surface defect closes UP-1 between KM 31.8 and 32.2 from 01:00 to 04:00."
+      },
+      "expected_action": "Reschedule non-committed UP-1 blocks to the next valid possession; committed blocks remain locked."
+    },
+    {
+      "scenario_id": "SCENARIO_2_EMERGENCY_WORK",
+      "name": "Emergency Work Insertion",
+      "disruption_event": {
+        "disruption_id": "DISR-SCN2-002",
+        "disruption_type": "EMERGENCY_WORK",
+        "corridor_id": "CORR-NDLS-AGC",
+        "track_id": "DOWN-1",
+        "start_minute": 30,
+        "end_minute": 150,
+        "affected_asset_id": "AST-DN1-RAI-EMG",
+        "new_candidate": {
+          "block_id": "BLK-EMG-001",
+          "asset_id": "AST-DN1-RAI-EMG",
+          "track_id": "DOWN-1",
+          "work_type": "EMERGENCY_REPAIR",
+          "duration_minutes": 90,
+          "earliest_start_minute": 30,
+          "latest_end_minute": 300,
+          "priority_score": 0.995,
+          "risk_score": 0.98,
+          "dependencies": [],
+          "mutual_exclusion_group": null,
+          "is_committed": false,
+          "status": "PLANNED",
+          "metadata": {
+            "defect_severity": "CRITICAL",
+            "defect_type": "TRANSVERSE_FATIGUE_FRACTURE",
+            "km_location": 14.2
+          }
+        },
+        "description": "USFD detects a critical transverse rail crack at KM 14.2 requiring immediate repair."
+      },
+      "expected_action": "Insert BLK-EMG-001 and pre-empt lower-priority non-committed work."
+    },
+    {
+      "scenario_id": "SCENARIO_3_POSSESSION_CURTAILMENT",
+      "name": "Possession Window Curtailment",
+      "disruption_event": {
+        "disruption_id": "DISR-SCN3-003",
+        "disruption_type": "POSSESSION_CURTAILMENT",
+        "corridor_id": "CORR-NDLS-AGC",
+        "track_id": "UP-1",
+        "start_minute": 690,
+        "end_minute": 750,
+        "affected_asset_id": null,
+        "new_candidate": null,
+        "description": "Late-running premium service delays the start of the UP-1 midday possession; effective window becomes 750-870."
+      },
+      "expected_action": "Re-evaluate blocks against the remaining 120-minute window; move any block that no longer fits."
+    },
+    {
+      "scenario_id": "SCENARIO_4_ASSET_CONDITION_DETERIORATION",
+      "name": "Asset Condition Deterioration",
+      "disruption_event": {
+        "disruption_id": "DISR-SCN4-004",
+        "disruption_type": "ASSET_CONDITION_DETERIORATION",
+        "corridor_id": "CORR-NDLS-AGC",
+        "track_id": "DOWN-1",
+        "start_minute": 0,
+        "end_minute": 1440,
+        "affected_asset_id": "AST-DN1-TUR-110",
+        "new_candidate": null,
+        "description": "Point motor temperature alarm escalates the asset from moderate risk to critical."
+      },
+      "expected_action": "Re-score affected job and promote it into the active schedule."
+    },
+    {
+      "scenario_id": "SCENARIO_5_INFEASIBLE_SCENARIO",
+      "name": "Infeasible Schedule",
+      "disruption_event": {
+        "disruption_id": "DISR-SCN5-005",
+        "disruption_type": "INFEASIBLE_SCENARIO",
+        "corridor_id": "CORR-NDLS-AGC",
+        "track_id": "DOWN-1",
+        "start_minute": 0,
+        "end_minute": 1440,
+        "affected_asset_id": null,
+        "new_candidate": null,
+        "description": "All DOWN-1 possession windows are cancelled while two committed blocks are locked."
+      },
+      "expected_action": "Return structured INFEASIBLE status with the hard-lock/possession conflict reason."
+    },
+    {
+      "scenario_id": "SCENARIO_6_ASSET_BREAKDOWN",
+      "name": "Asset Breakdown / OHE Failure",
+      "disruption_event": {
+        "disruption_id": "DISR-SCN6-006",
+        "disruption_type": "ASSET_BREAKDOWN",
+        "corridor_id": "CORR-NDLS-AGC",
+        "track_id": "UP-1",
+        "start_minute": 1010,
+        "end_minute": 1100,
+        "affected_asset_id": "AST-UP1-OHE-103",
+        "new_candidate": {
+          "block_id": "BLK-EMG-002",
+          "asset_id": "AST-UP1-OHE-103",
+          "track_id": "UP-1",
+          "work_type": "EMERGENCY_REPAIR",
+          "duration_minutes": 90,
+          "earliest_start_minute": 1010,
+          "latest_end_minute": 1200,
+          "priority_score": 0.998,
+          "risk_score": 0.99,
+          "dependencies": [],
+          "mutual_exclusion_group": "TOWER_WAGON_01",
+          "is_committed": false,
+          "status": "PLANNED",
+          "metadata": {
+            "defect_severity": "CRITICAL",
+            "defect_type": "OHE_CONTACT_WIRE_FAILURE",
+            "km_location": 24.1
+          }
+        },
+        "description": "OHE contact wire failure causes a protection block and creates an emergency repair requirement."
+      },
+      "expected_action": "Protect the affected track, insert emergency repair, and re-optimize remaining non-committed jobs."
+    }
+  ],
+  "validation": {
+    "minimum_train_passage_gap_minutes_by_job": {
+      "BLK-101": 75.0,
+      "BLK-103": 74.4,
+      "BLK-105": 75.7,
+      "BLK-107": 73.7,
+      "BLK-109": 73.6,
+      "BLK-111": 77.1,
+      "BLK-113": 73.2,
+      "BLK-115": 74.4,
+      "BLK-102": 85.0,
+      "BLK-104": 85.0,
+      "BLK-106": 85.0,
+      "BLK-108": 85.1,
+      "BLK-110": 85.5,
+      "BLK-112": 83.9,
+      "BLK-114": 83.5
+    },
+    "required_minimum_gap_minutes": 20,
+    "all_jobs_have_20min_gap": true,
+    "conflict_pair_verified": true
+  }
+}
