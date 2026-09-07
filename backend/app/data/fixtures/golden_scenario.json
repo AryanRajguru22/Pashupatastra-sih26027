@@ -1,6 +1,6 @@
 {
   "scenario_id": "GOLDEN_SCENARIO_NDLS_AGC",
-  "title": "Pashupatastra Golden Benchmark — NDLS to AGC Mainline Corridor",
+  "title": "Pashupatastra Golden Benchmark \u2014 NDLS to AGC Mainline Corridor",
   "description": "Master end-to-end benchmark scenario demonstrating baseline optimization (12 blocks -> 8 scheduled / 4 deferred), committed block locking, track unavailability disruption on UP-1, and deterministic recovery.",
   "corridor": {
     "corridor_id": "CORR-NDLS-AGC",
@@ -30,7 +30,10 @@
   "initial_request": {
     "corridor_id": "CORR-NDLS-AGC",
     "horizon_minutes": 1440,
-    "tracks": ["UP-1", "DOWN-1"],
+    "tracks": [
+      "UP-1",
+      "DOWN-1"
+    ],
     "min_headway_minutes": 15,
     "possession_windows": [
       {
@@ -76,7 +79,70 @@
         "window_type": "EVENING_OFF_PEAK"
       }
     ],
-    "existing_committed_blocks": [],
+    "existing_committed_blocks": [
+      {
+        "block_id": "BLK-001",
+        "asset_id": "AST-DN1-OHE-001",
+        "track_id": "DOWN-1",
+        "work_type": "OHE_MAINTENANCE",
+        "duration_minutes": 120,
+        "earliest_start_minute": 30,
+        "latest_end_minute": 360,
+        "priority_score": 0.82,
+        "risk_score": 0.71,
+        "dependencies": [],
+        "mutual_exclusion_group": "TOWER_WAGON_01",
+        "is_committed": true,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "OHE Mast & Catenary @ KM 12.4 (DOWN-1)",
+          "defect_severity": "MODERATE",
+          "km_location": 12.4,
+          "scoring_features": {
+            "asset_criticality": 0.85,
+            "defect_severity": 0.6,
+            "days_overdue": 45,
+            "failure_probability": 0.62,
+            "train_impact": 0.65,
+            "maintenance_duration": 120,
+            "historical_failure_rate": 0.5
+          },
+          "committed_start_minute": 30,
+          "committed_end_minute": 150
+        }
+      },
+      {
+        "block_id": "BLK-003",
+        "asset_id": "AST-UP1-OHE-003",
+        "track_id": "UP-1",
+        "work_type": "OHE_MAINTENANCE",
+        "duration_minutes": 90,
+        "earliest_start_minute": 600,
+        "latest_end_minute": 900,
+        "priority_score": 0.88,
+        "risk_score": 0.78,
+        "dependencies": [],
+        "mutual_exclusion_group": "TOWER_WAGON_01",
+        "is_committed": true,
+        "status": "PLANNED",
+        "metadata": {
+          "asset_name": "OHE Cantilever Assembly @ KM 24.1 (UP-1)",
+          "defect_severity": "CRITICAL",
+          "km_location": 24.1,
+          "scoring_features": {
+            "asset_criticality": 0.9,
+            "defect_severity": 1.0,
+            "days_overdue": 60,
+            "failure_probability": 0.75,
+            "train_impact": 0.7,
+            "maintenance_duration": 90,
+            "historical_failure_rate": 0.66
+          },
+          "committed_start_minute": 690,
+          "committed_end_minute": 780
+        }
+      }
+    ],
     "candidates": [
       {
         "block_id": "BLK-001",
@@ -86,11 +152,11 @@
         "duration_minutes": 120,
         "earliest_start_minute": 30,
         "latest_end_minute": 360,
-        "priority_score": 0.820,
-        "risk_score": 0.710,
+        "priority_score": 0.82,
+        "risk_score": 0.71,
         "dependencies": [],
         "mutual_exclusion_group": "TOWER_WAGON_01",
-        "is_committed": false,
+        "is_committed": true,
         "status": "PLANNED",
         "metadata": {
           "asset_name": "OHE Mast & Catenary @ KM 12.4 (DOWN-1)",
@@ -98,12 +164,12 @@
           "km_location": 12.4,
           "scoring_features": {
             "asset_criticality": 0.85,
-            "defect_severity": 0.60,
+            "defect_severity": 0.6,
             "days_overdue": 45,
             "failure_probability": 0.62,
             "train_impact": 0.65,
             "maintenance_duration": 120,
-            "historical_failure_rate": 0.50
+            "historical_failure_rate": 0.5
           }
         }
       },
@@ -115,8 +181,8 @@
         "duration_minutes": 105,
         "earliest_start_minute": 30,
         "latest_end_minute": 360,
-        "priority_score": 0.740,
-        "risk_score": 0.650,
+        "priority_score": 0.74,
+        "risk_score": 0.65,
         "dependencies": [],
         "mutual_exclusion_group": "CSM_TAMPER_01",
         "is_committed": false,
@@ -127,10 +193,10 @@
           "km_location": 18.2,
           "scoring_features": {
             "asset_criticality": 0.82,
-            "defect_severity": 0.60,
+            "defect_severity": 0.6,
             "days_overdue": 30,
             "failure_probability": 0.55,
-            "train_impact": 0.60,
+            "train_impact": 0.6,
             "maintenance_duration": 105,
             "historical_failure_rate": 0.33
           }
@@ -144,22 +210,22 @@
         "duration_minutes": 90,
         "earliest_start_minute": 600,
         "latest_end_minute": 900,
-        "priority_score": 0.880,
-        "risk_score": 0.780,
+        "priority_score": 0.88,
+        "risk_score": 0.78,
         "dependencies": [],
         "mutual_exclusion_group": "TOWER_WAGON_01",
-        "is_committed": false,
+        "is_committed": true,
         "status": "PLANNED",
         "metadata": {
           "asset_name": "OHE Cantilever Assembly @ KM 24.1 (UP-1)",
           "defect_severity": "CRITICAL",
           "km_location": 24.1,
           "scoring_features": {
-            "asset_criticality": 0.90,
-            "defect_severity": 1.00,
+            "asset_criticality": 0.9,
+            "defect_severity": 1.0,
             "days_overdue": 60,
             "failure_probability": 0.75,
-            "train_impact": 0.70,
+            "train_impact": 0.7,
             "maintenance_duration": 90,
             "historical_failure_rate": 0.66
           }
@@ -173,8 +239,8 @@
         "duration_minutes": 90,
         "earliest_start_minute": 30,
         "latest_end_minute": 360,
-        "priority_score": 0.810,
-        "risk_score": 0.690,
+        "priority_score": 0.81,
+        "risk_score": 0.69,
         "dependencies": [],
         "mutual_exclusion_group": "CSM_TAMPER_01",
         "is_committed": false,
@@ -185,12 +251,12 @@
           "km_location": 8.5,
           "scoring_features": {
             "asset_criticality": 0.88,
-            "defect_severity": 0.60,
+            "defect_severity": 0.6,
             "days_overdue": 40,
             "failure_probability": 0.58,
             "train_impact": 0.65,
             "maintenance_duration": 90,
-            "historical_failure_rate": 0.50
+            "historical_failure_rate": 0.5
           }
         }
       },
@@ -202,8 +268,8 @@
         "duration_minutes": 150,
         "earliest_start_minute": 30,
         "latest_end_minute": 360,
-        "priority_score": 0.910,
-        "risk_score": 0.840,
+        "priority_score": 0.91,
+        "risk_score": 0.84,
         "dependencies": [],
         "mutual_exclusion_group": null,
         "is_committed": false,
@@ -214,10 +280,10 @@
           "km_location": 32.0,
           "scoring_features": {
             "asset_criticality": 0.95,
-            "defect_severity": 1.00,
+            "defect_severity": 1.0,
             "days_overdue": 75,
             "failure_probability": 0.85,
-            "train_impact": 0.80,
+            "train_impact": 0.8,
             "maintenance_duration": 150,
             "historical_failure_rate": 0.66
           }
@@ -231,8 +297,8 @@
         "duration_minutes": 90,
         "earliest_start_minute": 1200,
         "latest_end_minute": 1440,
-        "priority_score": 0.990,
-        "risk_score": 0.890,
+        "priority_score": 0.99,
+        "risk_score": 0.89,
         "dependencies": [],
         "mutual_exclusion_group": "TOWER_WAGON_01",
         "is_committed": false,
@@ -243,7 +309,7 @@
           "km_location": 44.0,
           "scoring_features": {
             "asset_criticality": 0.98,
-            "defect_severity": 1.00,
+            "defect_severity": 1.0,
             "days_overdue": 90,
             "failure_probability": 0.92,
             "train_impact": 0.75,
@@ -260,8 +326,8 @@
         "duration_minutes": 120,
         "earliest_start_minute": 600,
         "latest_end_minute": 900,
-        "priority_score": 0.850,
-        "risk_score": 0.720,
+        "priority_score": 0.85,
+        "risk_score": 0.72,
         "dependencies": [],
         "mutual_exclusion_group": "TOWER_WAGON_01",
         "is_committed": false,
@@ -272,12 +338,12 @@
           "km_location": 28.5,
           "scoring_features": {
             "asset_criticality": 0.85,
-            "defect_severity": 0.60,
+            "defect_severity": 0.6,
             "days_overdue": 50,
             "failure_probability": 0.64,
             "train_impact": 0.65,
             "maintenance_duration": 120,
-            "historical_failure_rate": 0.50
+            "historical_failure_rate": 0.5
           }
         }
       },
@@ -289,8 +355,8 @@
         "duration_minutes": 45,
         "earliest_start_minute": 690,
         "latest_end_minute": 870,
-        "priority_score": 0.310,
-        "risk_score": 0.220,
+        "priority_score": 0.31,
+        "risk_score": 0.22,
         "dependencies": [],
         "mutual_exclusion_group": null,
         "is_committed": false,
@@ -300,11 +366,11 @@
           "defect_severity": "NONE",
           "km_location": 15.0,
           "scoring_features": {
-            "asset_criticality": 0.70,
-            "defect_severity": 0.00,
+            "asset_criticality": 0.7,
+            "defect_severity": 0.0,
             "days_overdue": 0,
             "failure_probability": 0.08,
-            "train_impact": 0.30,
+            "train_impact": 0.3,
             "maintenance_duration": 45,
             "historical_failure_rate": 0.16
           }
@@ -318,8 +384,8 @@
         "duration_minutes": 120,
         "earliest_start_minute": 30,
         "latest_end_minute": 1410,
-        "priority_score": 0.580,
-        "risk_score": 0.510,
+        "priority_score": 0.58,
+        "risk_score": 0.51,
         "dependencies": [],
         "mutual_exclusion_group": "CSM_TAMPER_01",
         "is_committed": false,
@@ -347,8 +413,8 @@
         "duration_minutes": 135,
         "earliest_start_minute": 30,
         "latest_end_minute": 1410,
-        "priority_score": 0.520,
-        "risk_score": 0.480,
+        "priority_score": 0.52,
+        "risk_score": 0.48,
         "dependencies": [],
         "mutual_exclusion_group": "CSM_TAMPER_01",
         "is_committed": false,
@@ -361,8 +427,8 @@
             "asset_criticality": 0.72,
             "defect_severity": 0.25,
             "days_overdue": 15,
-            "failure_probability": 0.30,
-            "train_impact": 0.50,
+            "failure_probability": 0.3,
+            "train_impact": 0.5,
             "maintenance_duration": 135,
             "historical_failure_rate": 0.33
           }
@@ -376,8 +442,8 @@
         "duration_minutes": 90,
         "earliest_start_minute": 30,
         "latest_end_minute": 1410,
-        "priority_score": 0.440,
-        "risk_score": 0.380,
+        "priority_score": 0.44,
+        "risk_score": 0.38,
         "dependencies": [],
         "mutual_exclusion_group": "S_T_GANG_01",
         "is_committed": false,
@@ -391,7 +457,7 @@
             "defect_severity": 0.25,
             "days_overdue": 10,
             "failure_probability": 0.22,
-            "train_impact": 0.40,
+            "train_impact": 0.4,
             "maintenance_duration": 90,
             "historical_failure_rate": 0.16
           }
@@ -405,8 +471,8 @@
         "duration_minutes": 60,
         "earliest_start_minute": 30,
         "latest_end_minute": 1410,
-        "priority_score": 0.390,
-        "risk_score": 0.310,
+        "priority_score": 0.39,
+        "risk_score": 0.31,
         "dependencies": [],
         "mutual_exclusion_group": null,
         "is_committed": false,
@@ -416,8 +482,8 @@
           "defect_severity": "NONE",
           "km_location": 48.0,
           "scoring_features": {
-            "asset_criticality": 0.60,
-            "defect_severity": 0.00,
+            "asset_criticality": 0.6,
+            "defect_severity": 0.0,
             "days_overdue": 0,
             "failure_probability": 0.12,
             "train_impact": 0.35,
@@ -430,10 +496,10 @@
   },
   "initial_expected_solution": {
     "status": "OPTIMAL",
-    "scheduled_count": 8,
-    "unscheduled_count": 4,
-    "total_priority_scheduled": 6.310,
-    "total_risk_mitigated": 5.600,
+    "scheduled_count": 10,
+    "unscheduled_count": 2,
+    "total_priority_scheduled": 6.87,
+    "total_risk_mitigated": 5.98,
     "scheduled_blocks": [
       {
         "block_id": "BLK-001",
@@ -441,9 +507,9 @@
         "start_minute": 30,
         "end_minute": 150,
         "work_type": "OHE_MAINTENANCE",
-        "priority_score": 0.820,
-        "risk_score": 0.710,
-        "is_committed": false
+        "priority_score": 0.82,
+        "risk_score": 0.71,
+        "is_committed": true
       },
       {
         "block_id": "BLK-002",
@@ -451,38 +517,8 @@
         "start_minute": 165,
         "end_minute": 270,
         "work_type": "BALLAST_TAMPING",
-        "priority_score": 0.740,
-        "risk_score": 0.650,
-        "is_committed": false
-      },
-      {
-        "block_id": "BLK-004",
-        "track_id": "UP-1",
-        "start_minute": 30,
-        "end_minute": 120,
-        "work_type": "BALLAST_TAMPING",
-        "priority_score": 0.810,
-        "risk_score": 0.690,
-        "is_committed": false
-      },
-      {
-        "block_id": "BLK-005",
-        "track_id": "UP-1",
-        "start_minute": 135,
-        "end_minute": 285,
-        "work_type": "TRACK_RENEWAL",
-        "priority_score": 0.910,
-        "risk_score": 0.840,
-        "is_committed": false
-      },
-      {
-        "block_id": "BLK-007",
-        "track_id": "DOWN-1",
-        "start_minute": 690,
-        "end_minute": 810,
-        "work_type": "OHE_MAINTENANCE",
-        "priority_score": 0.850,
-        "risk_score": 0.720,
+        "priority_score": 0.74,
+        "risk_score": 0.65,
         "is_committed": false
       },
       {
@@ -491,18 +527,28 @@
         "start_minute": 690,
         "end_minute": 780,
         "work_type": "OHE_MAINTENANCE",
-        "priority_score": 0.880,
-        "risk_score": 0.780,
+        "priority_score": 0.88,
+        "risk_score": 0.78,
+        "is_committed": true
+      },
+      {
+        "block_id": "BLK-004",
+        "track_id": "UP-1",
+        "start_minute": 30,
+        "end_minute": 120,
+        "work_type": "BALLAST_TAMPING",
+        "priority_score": 0.81,
+        "risk_score": 0.69,
         "is_committed": false
       },
       {
-        "block_id": "BLK-008",
+        "block_id": "BLK-005",
         "track_id": "UP-1",
-        "start_minute": 795,
-        "end_minute": 840,
-        "work_type": "ROUTINE_INSPECTION",
-        "priority_score": 0.310,
-        "risk_score": 0.220,
+        "start_minute": 135,
+        "end_minute": 285,
+        "work_type": "TRACK_RENEWAL",
+        "priority_score": 0.91,
+        "risk_score": 0.84,
         "is_committed": false
       },
       {
@@ -511,27 +557,59 @@
         "start_minute": 1260,
         "end_minute": 1350,
         "work_type": "OHE_MAINTENANCE",
-        "priority_score": 0.990,
-        "risk_score": 0.890,
+        "priority_score": 0.99,
+        "risk_score": 0.89,
+        "is_committed": false
+      },
+      {
+        "block_id": "BLK-008",
+        "track_id": "UP-1",
+        "start_minute": 795,
+        "end_minute": 840,
+        "work_type": "ROUTINE_INSPECTION",
+        "priority_score": 0.31,
+        "risk_score": 0.22,
+        "is_committed": false
+      },
+      {
+        "block_id": "BLK-009",
+        "track_id": "DOWN-1",
+        "start_minute": 1260,
+        "end_minute": 1380,
+        "work_type": "BALLAST_TAMPING",
+        "priority_score": 0.58,
+        "risk_score": 0.51,
+        "is_committed": false
+      },
+      {
+        "block_id": "BLK-011",
+        "track_id": "DOWN-1",
+        "start_minute": 690,
+        "end_minute": 780,
+        "work_type": "SIGNALLING_INTERLOCKING",
+        "priority_score": 0.44,
+        "risk_score": 0.38,
+        "is_committed": false
+      },
+      {
+        "block_id": "BLK-012",
+        "track_id": "DOWN-1",
+        "start_minute": 795,
+        "end_minute": 855,
+        "work_type": "ROUTINE_INSPECTION",
+        "priority_score": 0.39,
+        "risk_score": 0.31,
         "is_committed": false
       }
     ],
     "unscheduled_blocks": [
       {
-        "block_id": "BLK-009",
-        "reason": "WINDOW_CAPACITY_EXCEEDED_FOR_EQUIPMENT_CSM_TAMPER_01"
+        "block_id": "BLK-007",
+        "reason": "mutual exclusion group conflict with scheduled block: BLK-006"
       },
       {
         "block_id": "BLK-010",
-        "reason": "HEADWAY_AND_TIME_WINDOW_CAPACITY_LIMIT"
-      },
-      {
-        "block_id": "BLK-011",
-        "reason": "LOWER_PRIORITY_IN_COMPETITIVE_WINDOW"
-      },
-      {
-        "block_id": "BLK-012",
-        "reason": "WINDOW_CAPACITY_LIMIT"
+        "reason": "mutual exclusion group conflict with scheduled block: BLK-009"
       }
     ]
   },

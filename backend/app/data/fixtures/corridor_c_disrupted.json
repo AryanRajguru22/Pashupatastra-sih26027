@@ -14,8 +14,8 @@
       "duration_minutes": 45,
       "earliest_start_minute": 60,
       "latest_end_minute": 105,
-      "priority_score": 0.548,
-      "risk_score": 0.187,
+      "priority_score": 0.3716,
+      "risk_score": 0.3534,
       "dependencies": [],
       "mutual_exclusion_group": null,
       "is_committed": true,
@@ -27,17 +27,15 @@
         "scoring_features": {
           "asset_criticality": 0.82,
           "defect_severity": 0.0,
-          "defect_severity_name": "NONE",
           "days_overdue": 8,
-          "days_overdue_norm": 0.089,
           "failure_probability": 0.343,
           "train_impact": 0.515,
           "maintenance_duration": 45,
-          "maintenance_duration_norm": 0.125,
-          "historical_failure_rate": 0.333,
-          "baseline_risk_score": 0.187,
-          "baseline_priority_score": 0.548
-        }
+          "historical_failure_rate": 0.333
+        },
+        "scoring_explanation": [
+          "High asset criticality"
+        ]
       }
     },
     {
@@ -48,8 +46,8 @@
       "duration_minutes": 60,
       "earliest_start_minute": 90,
       "latest_end_minute": 150,
-      "priority_score": 0.503,
-      "risk_score": 0.123,
+      "priority_score": 0.318,
+      "risk_score": 0.3067,
       "dependencies": [],
       "mutual_exclusion_group": null,
       "is_committed": true,
@@ -61,17 +59,15 @@
         "scoring_features": {
           "asset_criticality": 0.73,
           "defect_severity": 0.0,
-          "defect_severity_name": "NONE",
           "days_overdue": 6,
-          "days_overdue_norm": 0.067,
           "failure_probability": 0.364,
           "train_impact": 0.554,
           "maintenance_duration": 60,
-          "maintenance_duration_norm": 0.167,
-          "historical_failure_rate": 0.0,
-          "baseline_risk_score": 0.123,
-          "baseline_priority_score": 0.503
-        }
+          "historical_failure_rate": 0.0
+        },
+        "scoring_explanation": [
+          "High asset criticality"
+        ]
       }
     },
     {
@@ -82,8 +78,8 @@
       "duration_minutes": 45,
       "earliest_start_minute": 30,
       "latest_end_minute": 360,
-      "priority_score": 0.598,
-      "risk_score": 0.447,
+      "priority_score": 0.5845,
+      "risk_score": 0.5347,
       "dependencies": [],
       "mutual_exclusion_group": null,
       "is_committed": false,
@@ -95,17 +91,15 @@
         "scoring_features": {
           "asset_criticality": 0.64,
           "defect_severity": 0.6,
-          "defect_severity_name": "MODERATE",
           "days_overdue": 57,
-          "days_overdue_norm": 0.633,
           "failure_probability": 0.469,
           "train_impact": 0.535,
           "maintenance_duration": 45,
-          "maintenance_duration_norm": 0.125,
-          "historical_failure_rate": 0.0,
-          "baseline_risk_score": 0.447,
-          "baseline_priority_score": 0.598
-        }
+          "historical_failure_rate": 0.0
+        },
+        "scoring_explanation": [
+          "Maintenance overdue"
+        ]
       }
     },
     {
@@ -116,8 +110,8 @@
       "duration_minutes": 120,
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
-      "priority_score": 0.514,
-      "risk_score": 0.297,
+      "priority_score": 0.5357,
+      "risk_score": 0.4466,
       "dependencies": [],
       "mutual_exclusion_group": "TOWER_WAGON_01",
       "is_committed": false,
@@ -129,17 +123,15 @@
         "scoring_features": {
           "asset_criticality": 0.62,
           "defect_severity": 0.25,
-          "defect_severity_name": "MINOR",
           "days_overdue": 46,
-          "days_overdue_norm": 0.511,
           "failure_probability": 0.288,
           "train_impact": 0.608,
           "maintenance_duration": 120,
-          "maintenance_duration_norm": 0.333,
-          "historical_failure_rate": 0.167,
-          "baseline_risk_score": 0.297,
-          "baseline_priority_score": 0.514
-        }
+          "historical_failure_rate": 0.167
+        },
+        "scoring_explanation": [
+          "Maintenance overdue"
+        ]
       }
     },
     {
@@ -150,8 +142,8 @@
       "duration_minutes": 120,
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
-      "priority_score": 0.531,
-      "risk_score": 0.227,
+      "priority_score": 0.5201,
+      "risk_score": 0.402,
       "dependencies": [],
       "mutual_exclusion_group": "TOWER_WAGON_01",
       "is_committed": false,
@@ -163,17 +155,16 @@
         "scoring_features": {
           "asset_criticality": 0.77,
           "defect_severity": 0.0,
-          "defect_severity_name": "NONE",
           "days_overdue": 54,
-          "days_overdue_norm": 0.6,
           "failure_probability": 0.134,
           "train_impact": 0.629,
           "maintenance_duration": 120,
-          "maintenance_duration_norm": 0.333,
-          "historical_failure_rate": 0.333,
-          "baseline_risk_score": 0.227,
-          "baseline_priority_score": 0.531
-        }
+          "historical_failure_rate": 0.333
+        },
+        "scoring_explanation": [
+          "Maintenance overdue",
+          "High asset criticality"
+        ]
       }
     },
     {
@@ -184,8 +175,8 @@
       "duration_minutes": 60,
       "earliest_start_minute": 660,
       "latest_end_minute": 930,
-      "priority_score": 0.567,
-      "risk_score": 0.354,
+      "priority_score": 0.4116,
+      "risk_score": 0.4338,
       "dependencies": [],
       "mutual_exclusion_group": null,
       "is_committed": false,
@@ -197,17 +188,15 @@
         "scoring_features": {
           "asset_criticality": 0.68,
           "defect_severity": 0.25,
-          "defect_severity_name": "MINOR",
           "days_overdue": 3,
-          "days_overdue_norm": 0.033,
           "failure_probability": 0.464,
           "train_impact": 0.533,
           "maintenance_duration": 60,
-          "maintenance_duration_norm": 0.167,
-          "historical_failure_rate": 0.667,
-          "baseline_risk_score": 0.354,
-          "baseline_priority_score": 0.567
-        }
+          "historical_failure_rate": 0.667
+        },
+        "scoring_explanation": [
+          "High asset criticality"
+        ]
       }
     },
     {
@@ -218,8 +207,8 @@
       "duration_minutes": 60,
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
-      "priority_score": 0.511,
-      "risk_score": 0.146,
+      "priority_score": 0.4619,
+      "risk_score": 0.3577,
       "dependencies": [],
       "mutual_exclusion_group": null,
       "is_committed": false,
@@ -231,17 +220,15 @@
         "scoring_features": {
           "asset_criticality": 0.73,
           "defect_severity": 0.0,
-          "defect_severity_name": "NONE",
           "days_overdue": 28,
-          "days_overdue_norm": 0.311,
           "failure_probability": 0.169,
           "train_impact": 0.554,
           "maintenance_duration": 60,
-          "maintenance_duration_norm": 0.167,
-          "historical_failure_rate": 0.167,
-          "baseline_risk_score": 0.146,
-          "baseline_priority_score": 0.511
-        }
+          "historical_failure_rate": 0.167
+        },
+        "scoring_explanation": [
+          "Maintenance overdue"
+        ]
       }
     },
     {
@@ -252,8 +239,8 @@
       "duration_minutes": 45,
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
-      "priority_score": 0.593,
-      "risk_score": 0.238,
+      "priority_score": 0.537,
+      "risk_score": 0.4424,
       "dependencies": [],
       "mutual_exclusion_group": null,
       "is_committed": false,
@@ -265,17 +252,16 @@
         "scoring_features": {
           "asset_criticality": 0.91,
           "defect_severity": 0.0,
-          "defect_severity_name": "NONE",
           "days_overdue": 34,
-          "days_overdue_norm": 0.378,
           "failure_probability": 0.321,
           "train_impact": 0.535,
           "maintenance_duration": 45,
-          "maintenance_duration_norm": 0.125,
-          "historical_failure_rate": 0.333,
-          "baseline_risk_score": 0.238,
-          "baseline_priority_score": 0.593
-        }
+          "historical_failure_rate": 0.333
+        },
+        "scoring_explanation": [
+          "Maintenance overdue",
+          "High asset criticality"
+        ]
       }
     },
     {
@@ -286,8 +272,8 @@
       "duration_minutes": 45,
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
-      "priority_score": 0.564,
-      "risk_score": 0.224,
+      "priority_score": 0.4892,
+      "risk_score": 0.3834,
       "dependencies": [],
       "mutual_exclusion_group": null,
       "is_committed": false,
@@ -299,17 +285,16 @@
         "scoring_features": {
           "asset_criticality": 0.83,
           "defect_severity": 0.0,
-          "defect_severity_name": "NONE",
           "days_overdue": 59,
-          "days_overdue_norm": 0.656,
           "failure_probability": 0.199,
           "train_impact": 0.515,
           "maintenance_duration": 45,
-          "maintenance_duration_norm": 0.125,
-          "historical_failure_rate": 0.167,
-          "baseline_risk_score": 0.224,
-          "baseline_priority_score": 0.564
-        }
+          "historical_failure_rate": 0.167
+        },
+        "scoring_explanation": [
+          "Maintenance overdue",
+          "High asset criticality"
+        ]
       }
     },
     {
@@ -320,8 +305,8 @@
       "duration_minutes": 120,
       "earliest_start_minute": 30,
       "latest_end_minute": 360,
-      "priority_score": 0.627,
-      "risk_score": 0.42,
+      "priority_score": 0.657,
+      "risk_score": 0.5974,
       "dependencies": [],
       "mutual_exclusion_group": "CSM_TAMPER_01",
       "is_committed": false,
@@ -333,17 +318,16 @@
         "scoring_features": {
           "asset_criticality": 0.9,
           "defect_severity": 0.6,
-          "defect_severity_name": "MODERATE",
           "days_overdue": 53,
-          "days_overdue_norm": 0.589,
           "failure_probability": 0.408,
           "train_impact": 0.608,
           "maintenance_duration": 120,
-          "maintenance_duration_norm": 0.333,
-          "historical_failure_rate": 0.0,
-          "baseline_risk_score": 0.42,
-          "baseline_priority_score": 0.627
-        }
+          "historical_failure_rate": 0.0
+        },
+        "scoring_explanation": [
+          "Maintenance overdue",
+          "High asset criticality"
+        ]
       }
     },
     {
@@ -354,8 +338,8 @@
       "duration_minutes": 180,
       "earliest_start_minute": 660,
       "latest_end_minute": 930,
-      "priority_score": 0.712,
-      "risk_score": 0.694,
+      "priority_score": 0.8222,
+      "risk_score": 0.8175,
       "dependencies": [],
       "mutual_exclusion_group": null,
       "is_committed": false,
@@ -367,17 +351,18 @@
         "scoring_features": {
           "asset_criticality": 0.93,
           "defect_severity": 1.0,
-          "defect_severity_name": "CRITICAL",
           "days_overdue": 55,
-          "days_overdue_norm": 0.611,
           "failure_probability": 0.795,
           "train_impact": 0.683,
           "maintenance_duration": 180,
-          "maintenance_duration_norm": 0.5,
-          "historical_failure_rate": 0.167,
-          "baseline_risk_score": 0.694,
-          "baseline_priority_score": 0.712
-        }
+          "historical_failure_rate": 0.167
+        },
+        "scoring_explanation": [
+          "Severe defect",
+          "Maintenance overdue",
+          "High asset criticality",
+          "High failure probability"
+        ]
       }
     },
     {
@@ -388,8 +373,8 @@
       "duration_minutes": 90,
       "earliest_start_minute": 660,
       "latest_end_minute": 930,
-      "priority_score": 0.662,
-      "risk_score": 0.459,
+      "priority_score": 0.695,
+      "risk_score": 0.6368,
       "dependencies": [],
       "mutual_exclusion_group": "TOWER_WAGON_01",
       "is_committed": false,
@@ -401,17 +386,16 @@
         "scoring_features": {
           "asset_criticality": 0.93,
           "defect_severity": 0.6,
-          "defect_severity_name": "MODERATE",
           "days_overdue": 29,
-          "days_overdue_norm": 0.322,
           "failure_probability": 0.381,
           "train_impact": 0.592,
           "maintenance_duration": 90,
-          "maintenance_duration_norm": 0.25,
-          "historical_failure_rate": 0.5,
-          "baseline_risk_score": 0.459,
-          "baseline_priority_score": 0.662
-        }
+          "historical_failure_rate": 0.5
+        },
+        "scoring_explanation": [
+          "Maintenance overdue",
+          "High asset criticality"
+        ]
       }
     },
     {
@@ -422,8 +406,8 @@
       "duration_minutes": 90,
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
-      "priority_score": 0.508,
-      "risk_score": 0.227,
+      "priority_score": 0.4953,
+      "risk_score": 0.3755,
       "dependencies": [],
       "mutual_exclusion_group": null,
       "is_committed": false,
@@ -435,17 +419,15 @@
         "scoring_features": {
           "asset_criticality": 0.64,
           "defect_severity": 0.0,
-          "defect_severity_name": "NONE",
           "days_overdue": 44,
-          "days_overdue_norm": 0.489,
           "failure_probability": 0.098,
           "train_impact": 0.592,
           "maintenance_duration": 90,
-          "maintenance_duration_norm": 0.25,
-          "historical_failure_rate": 0.5,
-          "baseline_risk_score": 0.227,
-          "baseline_priority_score": 0.508
-        }
+          "historical_failure_rate": 0.5
+        },
+        "scoring_explanation": [
+          "Maintenance overdue"
+        ]
       }
     },
     {
@@ -456,8 +438,8 @@
       "duration_minutes": 105,
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
-      "priority_score": 0.579,
-      "risk_score": 0.304,
+      "priority_score": 0.4823,
+      "risk_score": 0.4605,
       "dependencies": [],
       "mutual_exclusion_group": "TOWER_WAGON_01",
       "is_committed": false,
@@ -469,17 +451,15 @@
         "scoring_features": {
           "asset_criticality": 0.85,
           "defect_severity": 0.25,
-          "defect_severity_name": "MINOR",
           "days_overdue": 9,
-          "days_overdue_norm": 0.1,
           "failure_probability": 0.252,
           "train_impact": 0.59,
           "maintenance_duration": 105,
-          "maintenance_duration_norm": 0.292,
-          "historical_failure_rate": 0.667,
-          "baseline_risk_score": 0.304,
-          "baseline_priority_score": 0.579
-        }
+          "historical_failure_rate": 0.667
+        },
+        "scoring_explanation": [
+          "High asset criticality"
+        ]
       }
     }
   ],
@@ -536,8 +516,8 @@
       "duration_minutes": 45,
       "earliest_start_minute": 60,
       "latest_end_minute": 105,
-      "priority_score": 0.548,
-      "risk_score": 0.187,
+      "priority_score": 0.3716,
+      "risk_score": 0.3534,
       "dependencies": [],
       "mutual_exclusion_group": null,
       "is_committed": true,
@@ -549,17 +529,15 @@
         "scoring_features": {
           "asset_criticality": 0.82,
           "defect_severity": 0.0,
-          "defect_severity_name": "NONE",
           "days_overdue": 8,
-          "days_overdue_norm": 0.089,
           "failure_probability": 0.343,
           "train_impact": 0.515,
           "maintenance_duration": 45,
-          "maintenance_duration_norm": 0.125,
-          "historical_failure_rate": 0.333,
-          "baseline_risk_score": 0.187,
-          "baseline_priority_score": 0.548
-        }
+          "historical_failure_rate": 0.333
+        },
+        "scoring_explanation": [
+          "High asset criticality"
+        ]
       }
     },
     {
@@ -570,8 +548,8 @@
       "duration_minutes": 60,
       "earliest_start_minute": 90,
       "latest_end_minute": 150,
-      "priority_score": 0.503,
-      "risk_score": 0.123,
+      "priority_score": 0.318,
+      "risk_score": 0.3067,
       "dependencies": [],
       "mutual_exclusion_group": null,
       "is_committed": true,
@@ -583,17 +561,15 @@
         "scoring_features": {
           "asset_criticality": 0.73,
           "defect_severity": 0.0,
-          "defect_severity_name": "NONE",
           "days_overdue": 6,
-          "days_overdue_norm": 0.067,
           "failure_probability": 0.364,
           "train_impact": 0.554,
           "maintenance_duration": 60,
-          "maintenance_duration_norm": 0.167,
-          "historical_failure_rate": 0.0,
-          "baseline_risk_score": 0.123,
-          "baseline_priority_score": 0.503
-        }
+          "historical_failure_rate": 0.0
+        },
+        "scoring_explanation": [
+          "High asset criticality"
+        ]
       }
     }
   ],

@@ -12,6 +12,8 @@ from contracts.schemas import (
     OptimizationRequest,
     OptimizationResult,
     DisruptionEvent,
+    RecoveryRequest,
+    RecoveryResponse,
 )
 
 __all__ = [
@@ -25,4 +27,6 @@ __all__ = [
     "OptimizationRequest",
     "OptimizationResult",
     "DisruptionEvent",
+    "RecoveryRequest",
+    "RecoveryResponse",
 ]

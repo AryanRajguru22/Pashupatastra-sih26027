@@ -1,141 +1,155 @@
 "use client";
 
 import { useState } from "react";
-import type { DashboardData } from "@/types/contracts";
-import Timeline from "@/components/Timeline";
-import KpiSummaryBar from "@/components/KpiSummaryBar";
-import ExplainabilityPanel from "@/components/ExplainabilityPanel";
+import type { DashboardData, DisruptionEvent } from "@/types/contracts";
+import AppHeader from "@/components/AppHeader";
+import PlanView from "@/components/PlanView";
+import DisruptRecoverView from "@/components/DisruptRecoverView";
+import { API_BASE_URL, enrichData, fetchOptimizationData, triggerRecovery } from "@/lib/data";
+import { compareSchedules, type RecoveryComparison } from "@/lib/recoveryComparison";
+import type { OperationalStage } from "@/lib/stage";
 
 interface DashboardClientProps {
-  data: DashboardData;
+  initialData: DashboardData;
 }
 
-export default function DashboardClient({ data }: DashboardClientProps) {
+export default function DashboardClient({ initialData }: DashboardClientProps) {
+  const [data, setData] = useState<DashboardData>(initialData);
+  const [baselineData, setBaselineData] = useState<DashboardData>(initialData);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [isResolving, setIsResolving] = useState(false);
 
-  const handleBlockSelect = (blockId: string | null) => {
-    setSelectedBlockId(blockId);
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [recoveryComparison, setRecoveryComparison] = useState<RecoveryComparison | null>(null);
+  const [activeDisruption, setActiveDisruption] = useState<DisruptionEvent | null>(null);
+  const [pendingDisruptionType, setPendingDisruptionType] =
+    useState<DisruptionEvent["disruption_type"] | null>(null);
+  const [viewingDisruptScreen, setViewingDisruptScreen] = useState(false);
+
+  const handleReoptimize = async () => {
+    setIsResolving(true);
+    try {
+      const refreshed = await fetchOptimizationData();
+      setData(refreshed);
+      setBaselineData(refreshed);
+      setRecoveryComparison(null);
+      setActiveDisruption(null);
+      setPendingDisruptionType(null);
+      setRecoveryError(null);
+    } catch (err) {
+      console.error("Failed to re-optimize:", err);
+    } finally {
+      setIsResolving(false);
+    }
   };
 
+  const handleTriggerDisruption = async (disruption: DisruptionEvent) => {
+    setIsRecovering(true);
+    setRecoveryError(null);
+    try {
+      const outcome = await triggerRecovery(baselineData.request, disruption);
+      if (!outcome.ok) {
+        setRecoveryError(outcome.message);
+        return;
+      }
+      const recoveredData = enrichData(
+        outcome.data.recovery_result,
+        outcome.data.updated_request,
+        baselineData.dataSource,
+        undefined,
+        `${API_BASE_URL}/recover`
+      );
+      setRecoveryComparison(compareSchedules(baselineData, recoveredData));
+      setActiveDisruption(outcome.data.disruption);
+      setData(recoveredData);
+      setSelectedBlockId(null);
+    } finally {
+      setIsRecovering(false);
+    }
+  };
+
+  const handleResetDisruption = () => {
+    setRecoveryComparison(null);
+    setActiveDisruption(null);
+    setPendingDisruptionType(null);
+    setRecoveryError(null);
+  };
+
+  const handleReturnToOriginal = () => {
+    setData(baselineData);
+    setSelectedBlockId(null);
+    setViewingDisruptScreen(false);
+    handleResetDisruption();
+  };
+
+  const isLiveBackend = data.dataSource === "LIVE_API";
+  const isViewingRecovered = recoveryComparison !== null;
+
+  const stage: OperationalStage = isViewingRecovered
+    ? "RECOVER"
+    : isRecovering || pendingDisruptionType || viewingDisruptScreen
+    ? "DISRUPT"
+    : "PLAN";
+
+  const solveTimeMs = Math.round((data.result.solve_time_seconds || 0) * 1000);
+
   return (
-    <div className="flex-1 flex flex-col px-6 py-4 gap-5">
-      {/* Stage 2: KPI Summary Bar */}
-      <section aria-label="Operational KPI Summary">
-        <KpiSummaryBar data={data} />
-      </section>
+    <div className="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen relative">
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(0,240,255,0.06),transparent_70%)]" />
 
-      {/* Main Operations Grid: Timeline (left) + Explainability Panel (right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Timeline Column */}
-        <div className="lg:col-span-8 xl:col-span-8 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-sm font-semibold text-[#cbd5e1] uppercase tracking-wider">
-                Schedule Timeline
-              </h2>
-              <span className="text-[11px] font-mono text-[#475569] bg-[#0f1520] border border-[#1e293b] rounded px-2 py-0.5">
-                {new Date(data.request.planning_horizon.start).toLocaleDateString(
-                  "en-IN",
-                  {
-                    weekday: "short",
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  }
-                )}
-                {"  "}
-                {new Date(data.request.planning_horizon.start).toLocaleTimeString(
-                  "en-IN",
-                  { hour: "2-digit", minute: "2-digit", hour12: false }
-                )}
-                {" → "}
-                {new Date(data.request.planning_horizon.end).toLocaleTimeString(
-                  "en-IN",
-                  { hour: "2-digit", minute: "2-digit", hour12: false }
-                )}
-              </span>
-            </div>
-            {selectedBlockId && (
-              <span className="text-[11px] font-mono text-blue-400 bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded">
-                Active Inspect: {selectedBlockId}
-              </span>
-            )}
-          </div>
+      <AppHeader
+        stage={stage}
+        isLiveBackend={isLiveBackend}
+        solveTimeMs={solveTimeMs}
+        onNavPlan={handleReturnToOriginal}
+        onNavDisrupt={() => setViewingDisruptScreen(true)}
+      />
 
-          <div className="bg-[#0a0e17] border border-[#1e293b] rounded-lg p-4">
-            <Timeline
-              data={data}
-              onBlockSelect={(id) =>
-                handleBlockSelect(selectedBlockId === id ? null : id)
-              }
-              selectedBlockId={selectedBlockId}
-            />
-          </div>
-        </div>
-
-        {/* Explainability & Decision Audit Column */}
-        <div className="lg:col-span-4 xl:col-span-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-[#cbd5e1] uppercase tracking-wider">
-              Decision Audit
-            </h2>
-            <span className="text-[11px] font-mono text-[#64748b]">
-              Optimization & Priority Audit Trail
-            </span>
-          </div>
-
-          <div className="h-[560px]">
-            <ExplainabilityPanel
+      <main className="relative z-10 w-full pt-20 bg-transparent min-h-screen">
+        <div className="flex flex-col w-full">
+          {stage === "PLAN" ? (
+            <PlanView
               data={data}
               selectedBlockId={selectedBlockId}
-              onSelectBlock={handleBlockSelect}
+              onSelectBlock={setSelectedBlockId}
+              onReoptimize={handleReoptimize}
+              onGoToDisrupt={() => setViewingDisruptScreen(true)}
+              isResolving={isResolving}
             />
-          </div>
-        </div>
-      </div>
-
-      {/* Summary footer */}
-      <div className="flex flex-wrap items-center justify-between gap-4 text-[11px] font-mono text-[#64748b] px-1 pt-2 border-t border-[#1e293b]/50">
-        <div className="flex items-center gap-6">
-          <span>
-            SCHEDULED:{" "}
-            <span className="text-emerald-400 font-semibold">
-              {data.result.scheduled_blocks.length}
-            </span>
-          </span>
-          <span>
-            REJECTED:{" "}
-            <span className="text-red-400 font-semibold">
-              {data.result.unscheduled_blocks.length}
-            </span>
-          </span>
-          <span>
-            TOTAL CANDIDATES:{" "}
-            <span className="text-[#94a3b8]">
-              {data.request.block_candidates.length}
-            </span>
-          </span>
-          <span>
-            STATUS:{" "}
-            <span
-              className={
-                data.result.status === "OPTIMAL" ||
-                data.result.status === "FEASIBLE"
-                  ? "text-emerald-400 font-semibold"
-                  : "text-red-400 font-semibold"
+          ) : (
+            <DisruptRecoverView
+              requestContext={baselineData.request}
+              data={data}
+              disabledReason={
+                !isLiveBackend ? "Live backend required to simulate recovery (currently in fixture mode)." : null
               }
-            >
-              {data.result.status}
+              isLoading={isRecovering}
+              error={recoveryError}
+              comparison={recoveryComparison}
+              activeDisruption={activeDisruption}
+              solveTimeMs={solveTimeMs}
+              onTrigger={handleTriggerDisruption}
+              onReset={handleResetDisruption}
+              onReturnToOriginal={handleReturnToOriginal}
+              onTypeSelect={setPendingDisruptionType}
+            />
+          )}
+        </div>
+      </main>
+
+      <footer className="relative z-10 w-full bg-surface-container-lowest/90 backdrop-blur-xl mt-space-3xl py-space-xl">
+        <div className="w-full px-gutter-desktop flex flex-col md:flex-row items-center justify-between gap-space-md font-label-mono text-label-mono text-on-surface-variant">
+          <div className="flex items-center gap-space-md">
+            <span className="text-primary">PASHUPATASTRA</span>
+            <span>
+              SCHEDULED: {data.result.scheduled_blocks?.length || 0} / {data.request.candidates?.length || 0}
             </span>
-          </span>
+            <span>STATUS: {data.result.status}</span>
+          </div>
+          <div>GOOGLE OR-TOOLS CP-SAT &middot; {solveTimeMs}ms</div>
         </div>
-        <div className="flex items-center gap-2 text-[10px] text-[#475569]">
-          <span>MODE:</span>
-          <span className="text-[#64748b] bg-[#0c1120] border border-[#1e293b] px-2 py-0.5 rounded">
-            Stage-1 Fixture (Pending Live Backend API)
-          </span>
-        </div>
-      </div>
+      </footer>
     </div>
   );
 }
