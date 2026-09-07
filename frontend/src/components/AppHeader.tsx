@@ -1,6 +1,6 @@
 "use client";
 
-import type { OperationalStage } from "@/lib/stage";
+import type { AppView, OperationalStage } from "@/lib/stage";
 
 // Matches package.json's real "version" field - static build metadata, not
 // a fabricated live-telemetry status.
@@ -8,38 +8,54 @@ const APP_VERSION = "0.1.0";
 
 interface AppHeaderProps {
   stage: OperationalStage;
+  activeView: AppView;
   isLiveBackend: boolean;
   solveTimeMs: number;
+  onNavCommand: () => void;
   onNavPlan: () => void;
   onNavDisrupt: () => void;
 }
 
 /**
- * Ported verbatim from the shared header markup in stitch/screen-2/code.html
- * and stitch/screen-3/code.html (the two exports share byte-identical header
- * structure/classes). The brand image and the 5-item nav's inert destinations
- * are the only things not literally portable (no real multi-page routing, no
- * real logo asset) - kept as the same visual shape, with only PLAN/DISRUPT
- * wired to a real state transition since those are the only two the app
- * actually has.
+ * Adapted from the shared header markup in stitch/screen-2/code.html and
+ * stitch/screen-3/code.html (the two exports share byte-identical header
+ * structure/classes), which originally had 5 nav items ("Decision
+ * Intelligence" and "System Status" among them) with no real destination.
+ * Those two are intentionally NOT ported here: nothing in the backend
+ * distinctly backs them (System Status's content already lives in the
+ * Command Center panel), and a permanently-disabled nav item that never
+ * does anything is dead UI, not an honest empty state - so it's removed
+ * rather than kept as an inert placeholder. Only the three real
+ * destinations remain, each wired to a real state transition.
  */
 export default function AppHeader({
   stage,
+  activeView,
   isLiveBackend,
   solveTimeMs,
+  onNavCommand,
   onNavPlan,
   onNavDisrupt,
 }: AppHeaderProps) {
   return (
     <header className="fixed top-0 w-full z-50 bg-surface-container-lowest/80 backdrop-blur-2xl shadow-[0_1px_12px_rgba(0,0,0,0.4)]">
       <div className="h-20 w-full px-gutter-desktop flex items-center justify-between gap-space-md">
-        <div className="flex items-center gap-space-md shrink-0">
-          <div className="h-8 w-8 rounded-sm bg-primary-container flex items-center justify-center text-on-primary-container font-headline-sm text-headline-sm font-bold">
+        {/* Always-visible home affordance: below the `xl` breakpoint the nav
+         * pills below are hidden (there's no room for them), so the logo is
+         * the only way back to Command Center at narrower widths - it must
+         * stay clickable regardless of viewport so no screen is ever a
+         * navigational dead end. */}
+        <button
+          onClick={onNavCommand}
+          aria-label="Go to Command Center"
+          className="flex items-center gap-space-md shrink-0 text-left group"
+        >
+          <div className="h-8 w-8 rounded-sm bg-primary-container flex items-center justify-center text-on-primary-container font-headline-sm text-headline-sm font-bold transition-transform group-hover:scale-105">
             P
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-space-xs">
-              <span className="font-headline-sm text-headline-sm tracking-tight text-primary">
+              <span className="font-headline-sm text-headline-sm tracking-tight text-primary group-hover:opacity-80 transition-opacity">
                 PASHUPATASTRA
               </span>
               <span className="font-label-mono text-[10px] text-on-surface-variant px-1.5 py-0.5 rounded bg-surface-container-high/80">
@@ -50,16 +66,23 @@ export default function AppHeader({
               RAILWAY MAINTENANCE INTELLIGENCE
             </span>
           </div>
-        </div>
+        </button>
 
         <nav className="hidden xl:flex items-center p-space-2xs rounded-full bg-surface-container-low/70 backdrop-blur-xl">
-          <span className="font-label-mono text-label-mono px-space-md py-space-xs rounded-full text-on-surface-variant/40 cursor-not-allowed">
+          <button
+            onClick={onNavCommand}
+            className={`font-label-mono text-label-mono px-space-md py-space-xs rounded-full transition-all active:scale-95 ${
+              activeView === "COMMAND"
+                ? "bg-primary-container text-on-primary-container font-medium shadow-[0_0_16px_rgba(0,240,255,0.25)]"
+                : "text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
             Command Center
-          </span>
+          </button>
           <button
             onClick={onNavPlan}
-            className={`font-label-mono text-label-mono px-space-md py-space-xs rounded-full transition-all ${
-              stage === "PLAN"
+            className={`font-label-mono text-label-mono px-space-md py-space-xs rounded-full transition-all active:scale-95 ${
+              activeView === "WORKSPACE" && stage === "PLAN"
                 ? "bg-primary-container text-on-primary-container font-medium shadow-[0_0_16px_rgba(0,240,255,0.25)]"
                 : "text-on-surface-variant hover:text-on-surface"
             }`}
@@ -68,20 +91,14 @@ export default function AppHeader({
           </button>
           <button
             onClick={onNavDisrupt}
-            className={`font-label-mono text-label-mono px-space-md py-space-xs rounded-full transition-all ${
-              stage === "DISRUPT" || stage === "RECOVER"
+            className={`font-label-mono text-label-mono px-space-md py-space-xs rounded-full transition-all active:scale-95 ${
+              activeView === "WORKSPACE" && (stage === "DISRUPT" || stage === "RECOVER")
                 ? "bg-primary-container text-on-primary-container font-medium shadow-[0_0_16px_rgba(0,240,255,0.25)]"
                 : "text-on-surface-variant hover:text-on-surface"
             }`}
           >
             Disruption Simulation
           </button>
-          <span className="font-label-mono text-label-mono px-space-md py-space-xs rounded-full text-on-surface-variant/40 cursor-not-allowed">
-            Decision Intelligence
-          </span>
-          <span className="font-label-mono text-label-mono px-space-md py-space-xs rounded-full text-on-surface-variant/40 cursor-not-allowed">
-            System Status
-          </span>
         </nav>
 
         <div className="flex items-center gap-space-lg shrink-0">

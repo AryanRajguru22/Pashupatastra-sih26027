@@ -216,7 +216,7 @@ export default function DisruptRecoverView({
     : null;
 
   return (
-    <div className="relative w-full overflow-hidden px-gutter-mobile md:px-gutter-desktop pb-space-3xl">
+    <div className="relative w-full overflow-hidden px-gutter-mobile md:px-gutter-desktop pb-space-3xl animate-fade-in-up">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[550px] bg-gradient-to-b from-primary-container/10 via-secondary-container/10 to-transparent blur-[140px] pointer-events-none rounded-full" />
       <div className="absolute top-1/2 right-10 w-[500px] h-[400px] bg-error/10 blur-[160px] pointer-events-none rounded-full" />
 
@@ -312,7 +312,7 @@ export default function DisruptRecoverView({
           <div className="w-1 h-3 bg-outline-variant/60 rounded-full" />
           <div className="flex items-center gap-space-xs font-label-mono text-label-mono text-on-surface">
             <span className="material-symbols-outlined text-sm text-primary-container">verified_user</span>
-            <span>0 HEADWAY CONFLICTS</span>
+            <span>{requestContext.min_headway_minutes}MIN HEADWAY ENFORCED</span>
           </div>
         </div>
       </div>
@@ -366,8 +366,11 @@ export default function DisruptRecoverView({
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="px-space-lg py-space-xs rounded-full bg-error text-on-error font-label-mono text-label-mono font-semibold disabled:opacity-30 transition-all"
+            className="px-space-lg py-space-xs rounded-full bg-error text-on-error font-label-mono text-label-mono font-semibold disabled:opacity-30 transition-all flex items-center gap-space-xs"
           >
+            {isLoading && (
+              <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+            )}
             {isLoading ? "SIMULATING…" : "APPLY DISRUPTION & RECOVER"}
           </button>
         </div>
@@ -392,6 +395,16 @@ export default function DisruptRecoverView({
         </div>
 
         <div className="relative w-full h-[480px] md:h-[580px] flex items-center justify-center overflow-hidden">
+          {isLoading && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-surface-container-lowest/50 backdrop-blur-sm animate-fade-in">
+              <div className="flex items-center gap-space-xs px-space-lg py-space-sm rounded-full bg-surface-container-lowest/90 shadow-xl">
+                <span className="material-symbols-outlined text-error animate-spin">progress_activity</span>
+                <span className="font-label-mono text-label-mono text-error">
+                  APPLYING DISRUPTION &amp; RE-SOLVING&hellip;
+                </span>
+              </div>
+            </div>
+          )}
           <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1280 500">
             <defs>
               <linearGradient id="rail-a-dr" x1="0" x2="1280" y1="0" y2="0" gradientUnits="userSpaceOnUse">
@@ -611,7 +624,7 @@ export default function DisruptRecoverView({
 
       {/* Before/after grid - only meaningful once a real recovery exists */}
       {isRecovered && comparison && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg mt-space-xl">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-lg mt-space-xl animate-fade-in-up">
           <div className="lg:col-span-7 flex flex-col justify-between p-space-xl rounded-xl bg-surface-container-low/50 backdrop-blur-2xl">
             <div>
               <div className="flex items-center justify-between gap-space-md mb-space-md flex-wrap">
@@ -666,8 +679,12 @@ export default function DisruptRecoverView({
                     No changes beyond the disruption itself.
                   </div>
                 )}
-                {interestingChanges.map((c) => (
-                  <div key={c.block_id} className="flex items-center justify-between p-space-sm rounded bg-surface-container-lowest/60">
+                {interestingChanges.map((c, i) => (
+                  <div
+                    key={c.block_id}
+                    className="flex items-center justify-between p-space-sm rounded bg-surface-container-lowest/60 animate-fade-in-up"
+                    style={{ animationDelay: `${i * 45}ms` }}
+                  >
                     <div className="flex items-center gap-space-sm">
                       <span
                         className={`w-1.5 h-1.5 rounded-full ${
@@ -704,7 +721,7 @@ export default function DisruptRecoverView({
 
       {/* Action dock */}
       {isRecovered && (
-        <div className="sticky bottom-6 z-40 mt-space-2xl w-full">
+        <div className="sticky bottom-6 z-40 mt-space-2xl w-full animate-fade-in-up">
           <div className="w-full max-w-5xl mx-auto p-space-sm rounded-full bg-surface-container-lowest/90 backdrop-blur-3xl shadow-[0_12px_48px_rgba(0,0,0,0.8)] flex flex-col sm:flex-row items-center justify-between gap-space-md">
             <div className="flex items-center gap-space-sm pl-space-md">
               <div className="relative flex items-center justify-center">
@@ -719,14 +736,14 @@ export default function DisruptRecoverView({
             <div className="flex items-center gap-space-sm w-full sm:w-auto justify-end">
               <button
                 onClick={handleReset}
-                className="px-space-md py-space-xs rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-mono text-label-mono transition-all flex items-center gap-space-xs"
+                className="px-space-md py-space-xs rounded-full bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-mono text-label-mono transition-all active:scale-95 flex items-center gap-space-xs"
               >
                 <span className="material-symbols-outlined text-sm">restart_alt</span>
                 <span>Trigger Another Disruption</span>
               </button>
               <button
                 onClick={onReturnToOriginal}
-                className="px-space-lg py-space-sm rounded-full bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container font-label-mono text-label-mono font-semibold shadow-[0_0_24px_rgba(0,240,255,0.4)] transition-all flex items-center gap-space-xs"
+                className="px-space-lg py-space-sm rounded-full bg-primary-container hover:bg-primary-fixed-dim text-on-primary-container font-label-mono text-label-mono font-semibold shadow-[0_0_24px_rgba(0,240,255,0.4)] transition-all active:scale-95 flex items-center gap-space-xs"
               >
                 <span className="material-symbols-outlined text-base">undo</span>
                 <span>Return to Original Plan</span>

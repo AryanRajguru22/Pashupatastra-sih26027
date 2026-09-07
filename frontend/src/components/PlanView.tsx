@@ -113,7 +113,7 @@ export default function PlanView({
   }, [horizon, result.scheduled_blocks]);
 
   return (
-    <div className="relative w-full overflow-hidden px-gutter-mobile md:px-gutter-desktop pb-space-3xl">
+    <div className="relative w-full overflow-hidden px-gutter-mobile md:px-gutter-desktop pb-space-3xl animate-fade-in-up">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[450px] bg-gradient-to-b from-primary-container/10 via-surface-tint/5 to-transparent blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-12 left-1/3 w-[650px] h-[320px] bg-gradient-to-tr from-secondary-container/20 via-secondary/5 to-transparent blur-[140px] rounded-full pointer-events-none" />
 
@@ -217,6 +217,14 @@ export default function PlanView({
       {/* Hero corridor stage */}
       <div className="relative z-10 w-full flex-1 flex items-center justify-center my-space-xs">
         <div className="relative w-full max-w-[1400px] h-[720px] rounded-lg overflow-hidden bg-gradient-to-b from-surface-container-low/40 to-surface-container-lowest/80 backdrop-blur-sm shadow-xl flex items-center justify-center">
+          {isResolving && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-surface-container-lowest/50 backdrop-blur-sm animate-fade-in">
+              <div className="flex items-center gap-space-xs px-space-lg py-space-sm rounded-full bg-surface-container-lowest/90 shadow-xl">
+                <span className="material-symbols-outlined text-primary animate-spin">progress_activity</span>
+                <span className="font-label-mono text-label-mono text-primary">RE-SOLVING WITH CP-SAT&hellip;</span>
+              </div>
+            </div>
+          )}
           <div className="relative w-full h-full flex items-center justify-center">
             <svg className="w-full h-full" fill="none" preserveAspectRatio="none" viewBox="0 0 1280 500">
               <defs>
@@ -577,13 +585,16 @@ export default function PlanView({
             <button
               onClick={onReoptimize}
               disabled={isResolving}
-              className="px-space-lg py-space-xs rounded-full font-label-mono text-label-mono text-on-surface bg-surface-container-high/80 hover:bg-surface-bright disabled:opacity-40 transition-all"
+              className="px-space-lg py-space-xs rounded-full font-label-mono text-label-mono text-on-surface bg-surface-container-high/80 hover:bg-surface-bright disabled:opacity-40 transition-all flex items-center gap-space-xs"
             >
+              {isResolving && (
+                <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+              )}
               {isResolving ? "SOLVING…" : "RE-OPTIMIZE HORIZON"}
             </button>
             <button
               onClick={onGoToDisrupt}
-              className="px-space-xl py-space-xs rounded-full font-label-mono text-label-mono bg-primary-container text-on-primary-container font-medium hover:scale-[1.02] shadow-[0_0_24px_rgba(0,240,255,0.4)] transition-all flex items-center gap-space-xs"
+              className="px-space-xl py-space-xs rounded-full font-label-mono text-label-mono bg-primary-container text-on-primary-container font-medium hover:scale-[1.02] active:scale-95 shadow-[0_0_24px_rgba(0,240,255,0.4)] transition-all flex items-center gap-space-xs"
             >
               <span className="material-symbols-outlined text-sm">bolt</span>
               <span>SIMULATE DISRUPTION</span>

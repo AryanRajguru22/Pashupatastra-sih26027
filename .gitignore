@@ -10,3 +10,5 @@ venv/
 # Design-reference export and generated script output - not application source
 stitch/
 scripts/milestone1_result.json
+
+.env

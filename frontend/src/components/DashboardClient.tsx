@@ -3,17 +3,22 @@
 import { useState } from "react";
 import type { DashboardData, DisruptionEvent } from "@/types/contracts";
 import AppHeader from "@/components/AppHeader";
+import CommandCenterView from "@/components/CommandCenterView";
 import PlanView from "@/components/PlanView";
 import DisruptRecoverView from "@/components/DisruptRecoverView";
 import { API_BASE_URL, enrichData, fetchOptimizationData, triggerRecovery } from "@/lib/data";
 import { compareSchedules, type RecoveryComparison } from "@/lib/recoveryComparison";
-import type { OperationalStage } from "@/lib/stage";
+import type { AppView, OperationalStage } from "@/lib/stage";
 
 interface DashboardClientProps {
   initialData: DashboardData;
 }
 
 export default function DashboardClient({ initialData }: DashboardClientProps) {
+  // Command Center is the presentation landing screen; "Maintenance
+  // Planning" / "Disruption Simulation" switch into the existing
+  // PLAN/DISRUPT/RECOVER workspace (still governed by `stage` below).
+  const [view, setView] = useState<AppView>("COMMAND");
   const [data, setData] = useState<DashboardData>(initialData);
   const [baselineData, setBaselineData] = useState<DashboardData>(initialData);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -51,6 +56,14 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
       const outcome = await triggerRecovery(baselineData.request, disruption);
       if (!outcome.ok) {
         setRecoveryError(outcome.message);
+        if (outcome.reason === "unreachable") {
+          // The backend just proved unreachable - stop claiming "LIVE
+          // BACKEND: CONNECTED" from stale page-load state until a fresh
+          // fetch (re-optimize) proves otherwise. Never silently keep
+          // showing a live badge next to a real connection failure.
+          setData((prev) => ({ ...prev, dataSource: "FIXTURE" }));
+          setBaselineData((prev) => ({ ...prev, dataSource: "FIXTURE" }));
+        }
         return;
       }
       const recoveredData = enrichData(
@@ -83,6 +96,18 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     handleResetDisruption();
   };
 
+  const handleNavCommand = () => setView("COMMAND");
+
+  const handleNavPlan = () => {
+    handleReturnToOriginal();
+    setView("WORKSPACE");
+  };
+
+  const handleNavDisrupt = () => {
+    setViewingDisruptScreen(true);
+    setView("WORKSPACE");
+  };
+
   const isLiveBackend = data.dataSource === "LIVE_API";
   const isViewingRecovered = recoveryComparison !== null;
 
@@ -100,25 +125,40 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
 
       <AppHeader
         stage={stage}
+        activeView={view}
         isLiveBackend={isLiveBackend}
         solveTimeMs={solveTimeMs}
-        onNavPlan={handleReturnToOriginal}
-        onNavDisrupt={() => setViewingDisruptScreen(true)}
+        onNavCommand={handleNavCommand}
+        onNavPlan={handleNavPlan}
+        onNavDisrupt={handleNavDisrupt}
       />
 
       <main className="relative z-10 w-full pt-20 bg-transparent min-h-screen">
         <div className="flex flex-col w-full">
-          {stage === "PLAN" ? (
+          {view === "COMMAND" ? (
+            <CommandCenterView
+              key="command"
+              data={data}
+              isLiveBackend={isLiveBackend}
+              solveTimeMs={solveTimeMs}
+              activeDisruption={activeDisruption}
+              recoveryComparison={recoveryComparison}
+              onEnterPlan={handleNavPlan}
+              onEnterDisrupt={handleNavDisrupt}
+            />
+          ) : stage === "PLAN" ? (
             <PlanView
+              key="plan"
               data={data}
               selectedBlockId={selectedBlockId}
               onSelectBlock={setSelectedBlockId}
               onReoptimize={handleReoptimize}
-              onGoToDisrupt={() => setViewingDisruptScreen(true)}
+              onGoToDisrupt={handleNavDisrupt}
               isResolving={isResolving}
             />
           ) : (
             <DisruptRecoverView
+              key="disrupt-recover"
               requestContext={baselineData.request}
               data={data}
               disabledReason={
