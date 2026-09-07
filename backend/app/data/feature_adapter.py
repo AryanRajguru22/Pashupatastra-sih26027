@@ -6,12 +6,17 @@ into the 7 standardized numeric features consumed by Ayush's scoring engine.
 from __future__ import annotations
 from typing import Any, Dict, Optional
 
+from contracts.schemas import BlockCandidate
+
+from backend.app.ml.scorer import score_block
+
 from backend.app.data.models import (
     Asset,
     AssetType,
     DefectSeverity,
     RouteClassification,
     TrackSegment,
+    Corridor,
 )
 
 
@@ -38,6 +43,17 @@ WORK_TYPE_DEFAULT_DURATIONS: Dict[str, int] = {
     "TRACK_RENEWAL": 240,
     "EMERGENCY_REPAIR": 90,
 }
+
+
+SCORING_FEATURE_NAMES = (
+    "asset_criticality",
+    "defect_severity",
+    "days_overdue",
+    "failure_probability",
+    "train_impact",
+    "maintenance_duration",
+    "historical_failure_rate",
+)
 
 
 class ScoringFeatureAdapter:
@@ -116,6 +132,115 @@ class ScoringFeatureAdapter:
     def calculate_historical_failure_rate(failure_count_3yr: int, max_cap: int = 6) -> float:
         """Calculates normalized historical incident rate [0.0, 1.0]."""
         return round(max(0.0, min(1.0, max(0, failure_count_3yr) / float(max_cap))), 3)
+
+    @classmethod
+    def build_scorer_input(
+        cls,
+        asset: Optional[Asset] = None,
+        track: Optional[TrackSegment] = None,
+        work_type: str = "ROUTINE_INSPECTION",
+        duration_minutes: Optional[int] = None,
+        days_overdue: int = 0,
+        explicit_defect_severity: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Build the exact seven-feature input expected by ``score_block``.
+
+        Important: ``days_overdue`` and ``maintenance_duration`` stay in
+        their raw units here. The scorer owns their normalization, so the
+        same normalization is used for every scoring path.
+        """
+        features = cls.extract_features(
+            asset=asset,
+            track=track,
+            work_type=work_type,
+            duration_minutes=duration_minutes,
+            days_overdue=days_overdue,
+            explicit_defect_severity=explicit_defect_severity,
+        )
+
+        return {
+            name: features[name]
+            for name in SCORING_FEATURE_NAMES
+        }
+
+    @classmethod
+    def score_domain_block(
+        cls,
+        asset: Optional[Asset] = None,
+        track: Optional[TrackSegment] = None,
+        work_type: str = "ROUTINE_INSPECTION",
+        duration_minutes: Optional[int] = None,
+        days_overdue: int = 0,
+        explicit_defect_severity: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Run the canonical scorer on real domain objects.
+
+        Pipeline:
+            Asset/Track -> feature adapter -> seven scorer features
+            -> score_block() -> risk/priority/explanation.
+        """
+        scorer_input = cls.build_scorer_input(
+            asset=asset,
+            track=track,
+            work_type=work_type,
+            duration_minutes=duration_minutes,
+            days_overdue=days_overdue,
+            explicit_defect_severity=explicit_defect_severity,
+        )
+
+        result = score_block(scorer_input)
+        return {
+            **result,
+            "scoring_input": scorer_input,
+        }
+
+    @classmethod
+    def score_block_candidate(
+        cls,
+        block: BlockCandidate,
+        corridor: Corridor,
+    ) -> BlockCandidate:
+        """Score a BlockCandidate using its canonical domain Asset/Track.
+
+        The shared BlockCandidate contract is preserved. Only its existing
+        ``priority_score``, ``risk_score`` and ``metadata`` fields are filled
+        from the scoring pipeline.
+        """
+        assets_by_id = {asset.asset_id: asset for asset in corridor.assets}
+        tracks_by_id = {track.track_id: track for track in corridor.tracks}
+
+        asset = assets_by_id.get(block.asset_id)
+        if asset is None:
+            raise ValueError(
+                f"Unknown asset_id '{block.asset_id}' for block '{block.block_id}'"
+            )
+
+        track = tracks_by_id.get(block.track_id)
+        if track is None:
+            raise ValueError(
+                f"Unknown track_id '{block.track_id}' for block '{block.block_id}'"
+            )
+
+        days_overdue = max(
+            0,
+            asset.last_maintained_days_ago - 30,
+        )
+
+        result = cls.score_domain_block(
+            asset=asset,
+            track=track,
+            work_type=block.work_type,
+            duration_minutes=block.duration_minutes,
+            days_overdue=days_overdue,
+            explicit_defect_severity=asset.defect_severity,
+        )
+
+        block.priority_score = result["priority_score"]
+        block.risk_score = result["risk_score"]
+        block.metadata["scoring_features"] = result["scoring_input"]
+        block.metadata["scoring_explanation"] = result["explanation"]
+
+        return block
 
     @classmethod
     def extract_features(

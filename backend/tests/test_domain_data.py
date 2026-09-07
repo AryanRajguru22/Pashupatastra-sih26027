@@ -164,6 +164,111 @@ class TestDomainModelsAndFeatureAdapter(unittest.TestCase):
         self.assertLessEqual(features["historical_failure_rate"], 1.0)
 
 
+    def test_domain_block_is_scored_by_canonical_scorer(self):
+        """Verify Asset/Track data reaches score_block() through the adapter."""
+        track = TrackSegment(
+            track_id="UP-1",
+            corridor_id="CORR-TEST",
+            section_id="SEC-01",
+            section_name="Main Line",
+            direction="UP",
+            km_start=0.0,
+            km_end=50.0,
+            speed_limit_kmh=160,
+            daily_train_density=110,
+            route_classification=RouteClassification.GROUP_A.value,
+        )
+        asset = Asset(
+            asset_id="AST-TEST-001",
+            name="Test OHE Mast",
+            asset_type=AssetType.OHE_MAST.value,
+            track_id="UP-1",
+            km_location=12.4,
+            criticality=0.80,
+            condition_score=0.20,
+            last_maintained_days_ago=60,
+            defect_severity=DefectSeverity.MODERATE.value,
+            gross_million_tonnes=250.0,
+            historical_failure_count_3yr=3,
+        )
+
+        result = ScoringFeatureAdapter.score_domain_block(
+            asset=asset,
+            track=track,
+            work_type=WorkType.OHE_MAINTENANCE.value,
+            duration_minutes=120,
+            days_overdue=30,
+        )
+
+        self.assertEqual(
+            set(result["scoring_input"]),
+            {
+                "asset_criticality",
+                "defect_severity",
+                "days_overdue",
+                "failure_probability",
+                "train_impact",
+                "maintenance_duration",
+                "historical_failure_rate",
+            },
+        )
+        self.assertEqual(result["priority_score"], 0.7202)
+        self.assertEqual(result["risk_score"], 0.6938)
+
+
+
+    def test_block_candidate_is_scored_from_corridor_domain_data(self):
+        """Verify the full Asset/Track -> BlockCandidate scoring pipeline."""
+        from contracts.schemas import BlockCandidate
+
+        track = TrackSegment(
+            track_id="UP-1",
+            corridor_id="CORR-TEST",
+            section_id="SEC-01",
+            section_name="Main Line",
+            direction="UP",
+            km_start=0.0,
+            km_end=50.0,
+            speed_limit_kmh=160,
+            daily_train_density=110,
+            route_classification=RouteClassification.GROUP_A.value,
+        )
+        asset = Asset(
+            asset_id="AST-TEST-002",
+            name="Test Rail Section",
+            asset_type=AssetType.RAIL_SECTION.value,
+            track_id="UP-1",
+            km_location=20.0,
+            criticality=0.80,
+            condition_score=0.20,
+            last_maintained_days_ago=60,
+            defect_severity=DefectSeverity.MODERATE.value,
+            gross_million_tonnes=250.0,
+            historical_failure_count_3yr=3,
+        )
+        corridor = Corridor(
+            corridor_id="CORR-TEST",
+            name="Test Corridor",
+            tracks=[track],
+            assets=[asset],
+        )
+        block = BlockCandidate(
+            block_id="BLK-TEST-002",
+            asset_id=asset.asset_id,
+            track_id=track.track_id,
+            work_type=WorkType.BALLAST_TAMPING.value,
+            duration_minutes=120,
+        )
+
+        scored = ScoringFeatureAdapter.score_block_candidate(block, corridor)
+
+        self.assertEqual(scored.risk_score, 0.6938)
+        self.assertEqual(scored.priority_score, 0.7202)
+        self.assertIn("scoring_features", scored.metadata)
+        self.assertIn("scoring_explanation", scored.metadata)
+
+
+
 class TestGeneratorAndFixturesValidation(unittest.TestCase):
     """Validates generator reproducibility, variation, and JSON contract conformance."""
 

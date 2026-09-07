@@ -244,3 +244,40 @@ class DisruptionEvent:
             new_candidate=new_cand,
             description=data.get("description", ""),
         )
+
+
+@dataclass
+class RecoveryRequest:
+    """POST /recover request body: a plan plus the disruption to apply to it."""
+
+    request: OptimizationRequest
+    disruption: DisruptionEvent
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "request": self.request.to_dict(),
+            "disruption": self.disruption.to_dict(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> RecoveryRequest:
+        return cls(
+            request=OptimizationRequest.from_dict(data["request"]),
+            disruption=DisruptionEvent.from_dict(data["disruption"]),
+        )
+
+
+@dataclass
+class RecoveryResponse:
+    """POST /recover response body: the disrupted plan and its recovery result."""
+
+    disruption: DisruptionEvent
+    updated_request: OptimizationRequest
+    recovery_result: OptimizationResult
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "disruption": self.disruption.to_dict(),
+            "updated_request": self.updated_request.to_dict(),
+            "recovery_result": self.recovery_result.to_dict(),
+        }

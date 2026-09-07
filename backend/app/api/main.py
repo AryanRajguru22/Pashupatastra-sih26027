@@ -15,7 +15,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.api.routers import health, optimize
+from backend.app.api.routers import health, optimize, recover
 
 app = FastAPI(title="Pashupatastra API")
 
@@ -28,3 +28,4 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(optimize.router)
+app.include_router(recover.router)

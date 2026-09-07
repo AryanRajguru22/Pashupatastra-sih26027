@@ -169,3 +169,30 @@ def test_negative_probability_is_rejected():
         score_block(
             make_block(failure_probability=-0.1)
         )
+
+def test_exact_score_regression():
+    """Lock the current deterministic weighted-scoring calculation."""
+    result = score_block(
+        make_block(
+            asset_criticality=0.80,
+            defect_severity=0.60,
+            days_overdue=30,
+            failure_probability=0.80,
+            train_impact=0.70,
+            maintenance_duration=120,
+            historical_failure_rate=0.50,
+        )
+    )
+
+    # days_overdue -> 1.0 and duration -> 0.5 in the current scorer.
+    assert result["risk_score"] == 0.715
+    assert result["priority_score"] == 0.74
+
+
+def test_probability_percentage_input_is_normalized():
+    decimal = score_block(make_block(failure_probability=0.80))
+    percentage = score_block(make_block(failure_probability=80))
+
+    assert percentage["features"]["failure_probability"] == 0.80
+    assert percentage["risk_score"] == decimal["risk_score"]
+    assert percentage["priority_score"] == decimal["priority_score"]

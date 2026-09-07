@@ -1,194 +1,173 @@
 /**
- * TypeScript interfaces matching the Pydantic contracts in contracts/.
+ * TypeScript interfaces matching the canonical contracts in contracts/schemas.py.
  *
- * These are the EXACT shapes from the Python models — no fields added,
- * renamed, or removed. If the contracts change, update here to match.
- *
- * Source files:
- *   contracts/common.py
- *   contracts/block_candidate.py
- *   contracts/optimization_request.py
- *   contracts/optimization_result.py
- *   contracts/disruption_event.py
+ * Source: contracts/schemas.py (Pashupatastra Stage 1-3 canonical contracts)
  */
 
-// ── contracts/common.py ──────────────────────────────────────────────
+// ── Enums from contracts/schemas.py ──────────────────────────────────
 
-export type WorkType = "RENEWAL" | "INSPECTION" | "REPAIR" | "PREVENTIVE";
+export type WorkType =
+  | "TRACK_RENEWAL"
+  | "BALLAST_TAMPING"
+  | "OHE_MAINTENANCE"
+  | "SIGNALLING_INTERLOCKING"
+  | "ROUTINE_INSPECTION"
+  | "EMERGENCY_REPAIR";
 
-export type OptimizationStatus =
+export type DisruptionType =
+  | "TRACK_UNAVAILABLE"
+  | "EMERGENCY_WORK"
+  | "POSSESSION_CURTAILMENT"
+  | "ASSET_BREAKDOWN";
+
+export type SolverStatus =
   | "OPTIMAL"
   | "FEASIBLE"
   | "INFEASIBLE"
-  | "TIMEOUT";
+  | "NO_SOLUTION";
 
-export type DisruptionType =
-  | "ASSET_FAILURE"
-  | "WEATHER"
-  | "EMERGENCY_BLOCK_REQUEST"
-  | "TRAIN_DELAY"
-  | "BLOCK_OVERRUN";
+export type BlockStatus =
+  | "PLANNED"
+  | "SCHEDULED"
+  | "COMMITTED"
+  | "AFFECTED"
+  | "UNSCHEDULED"
+  | "CANCELLED";
 
-export type ReoptimizationScope =
-  | "FULL_HORIZON"
-  | "ROLLING_WINDOW"
-  | "AFFECTED_SEGMENT_ONLY";
+// ── ML Scoring Features Model ────────────────────────────────────────
 
-export interface TimeWindow {
-  start: string; // ISO 8601 datetime
-  end: string;
+export interface ScoringFeatures {
+  asset_criticality?: number;
+  defect_severity?: number;
+  defect_severity_name?: string;
+  days_overdue?: number;
+  days_overdue_norm?: number;
+  failure_probability?: number;
+  train_impact?: number;
+  maintenance_duration?: number;
+  maintenance_duration_norm?: number;
+  historical_failure_rate?: number;
+  baseline_risk_score?: number;
+  baseline_priority_score?: number;
+  [key: string]: unknown;
 }
 
-export interface TrainService {
-  train_id: string;
-  corridor_id: string;
-  section_id: string;
+export interface CandidateMetadata {
+  asset_name?: string;
+  km_location?: number;
+  defect_severity?: string;
+  scoring_features?: ScoringFeatures;
+  [key: string]: unknown;
+}
+
+// ── Core Contracts from contracts/schemas.py ─────────────────────────
+
+export interface PossessionWindow {
+  window_id: string;
   track_id: string;
-  departure: string;
-  arrival: string;
+  start_minute: number;
+  end_minute: number;
+  window_type?: string;
+}
+
+export interface BlockCandidate {
+  block_id: string;
+  asset_id: string;
+  track_id: string;
+  work_type: WorkType | string;
+  duration_minutes: number;
+  earliest_start_minute: number;
+  latest_end_minute: number;
+  priority_score: number;
+  risk_score: number;
+  dependencies: string[];
+  mutual_exclusion_group: string | null;
+  is_committed: boolean;
+  status: BlockStatus | string;
+  metadata?: CandidateMetadata;
 }
 
 export interface ScheduledBlock {
   block_id: string;
   track_id: string;
-  start: string;
-  end: string;
+  start_minute: number;
+  end_minute: number;
+  work_type: WorkType | string;
+  priority_score: number;
+  risk_score: number;
+  is_committed: boolean;
+  status: BlockStatus | string;
 }
-
-export interface ObjectiveWeights {
-  risk_reduction_weight: number;
-  asset_availability_weight: number;
-  blocks_completed_weight: number;
-}
-
-export interface ConstraintsConfig {
-  max_concurrent_blocks_per_corridor: number;
-  min_headway_minutes: number;
-}
-
-export interface ExplanationEntry {
-  block_id: string;
-  reason: string;
-  binding_constraints: string[];
-}
-
-// ── contracts/block_candidate.py ─────────────────────────────────────
-
-export interface BlockCandidate {
-  block_id: string;
-  asset_id: string;
-  corridor_id: string;
-  section_id: string;
-  track_id: string;
-
-  work_type: WorkType;
-  duration_minutes: number;
-  earliest_start: string;
-  latest_finish: string;
-  preferred_windows: TimeWindow[];
-
-  priority_score: number; // 0–1, from ML subsystem
-  risk_score: number; // 0–1, from ML subsystem
-
-  requires_full_block: boolean;
-  min_gap_before_next_train_minutes: number;
-
-  dependencies: string[];
-  mutually_exclusive_with: string[];
-}
-
-// ── contracts/optimization_request.py ────────────────────────────────
 
 export interface OptimizationRequest {
-  request_id: string;
   corridor_id: string;
-  planning_horizon: TimeWindow;
-
-  block_candidates: BlockCandidate[];
-  train_timetable: TrainService[];
-  existing_committed_blocks: ScheduledBlock[];
-
-  objective_weights: ObjectiveWeights;
-  constraints_config: ConstraintsConfig;
-}
-
-// ── contracts/optimization_result.py ─────────────────────────────────
-
-export interface UnscheduledBlock {
-  block_id: string;
-  reason: string;
-}
-
-export interface OptimizationKPIs {
-  asset_availability_pct: number; // 0–100
-  trains_affected: number;
-  blocks_scheduled: number;
-  risk_reduction_score: number;
+  horizon_minutes: number;
+  tracks: string[];
+  candidates: BlockCandidate[];
+  possession_windows: PossessionWindow[];
+  existing_committed_blocks: BlockCandidate[];
+  min_headway_minutes: number;
+  train_timetable?: Record<string, unknown>[];
 }
 
 export interface OptimizationResult {
-  request_id: string;
-  status: OptimizationStatus;
-
+  corridor_id: string;
+  status: SolverStatus | string;
   scheduled_blocks: ScheduledBlock[];
-  unscheduled_blocks: UnscheduledBlock[];
-
-  kpis: OptimizationKPIs;
-  explainability: ExplanationEntry[];
-
-  solve_time_ms: number;
-  generated_at: string;
-}
-
-// ── contracts/disruption_event.py ────────────────────────────────────
-
-export interface DisruptionImpact {
-  unavailable_asset_ids: string[];
-  invalidated_block_ids: string[];
-  newly_required_block_ids: string[];
+  unscheduled_blocks: BlockCandidate[];
+  total_priority_scheduled: number;
+  total_risk_mitigated: number;
+  solve_time_seconds: number;
+  infeasibility_reasons: string[];
+  rejection_reasons: Record<string, string>;
 }
 
 export interface DisruptionEvent {
-  event_id: string;
-  event_type: DisruptionType;
-
-  affected_asset_id: string | null;
-  affected_block_id: string | null;
-  affected_corridor_id: string | null;
-
-  timestamp: string;
-  description: string;
-
-  impact: DisruptionImpact;
-
-  triggers_reoptimization: boolean;
-  reoptimization_scope: ReoptimizationScope;
+  disruption_id: string;
+  disruption_type: DisruptionType | string;
+  corridor_id: string;
+  track_id?: string | null;
+  start_minute: number;
+  end_minute: number;
+  affected_asset_id?: string | null;
+  new_candidate?: BlockCandidate | null;
+  description?: string;
 }
 
-// ── Enriched view for the frontend ───────────────────────────────────
+// ── POST /recover contracts, matching contracts.RecoveryRequest /
+//    contracts.RecoveryResponse in contracts/schemas.py ────────────────
 
-/**
- * A ScheduledBlock joined with its BlockCandidate source data.
- * This is a frontend-only convenience type — NOT a new contract.
- */
+export interface RecoveryRequest {
+  request: OptimizationRequest;
+  disruption: DisruptionEvent;
+}
+
+export interface RecoveryResponse {
+  disruption: DisruptionEvent;
+  updated_request: OptimizationRequest;
+  recovery_result: OptimizationResult;
+}
+
+// ── Enriched Views for Frontend Command Center ───────────────────────
+
 export interface EnrichedScheduledBlock extends ScheduledBlock {
   candidate: BlockCandidate | null;
-  explanation: ExplanationEntry | null;
+  rejectionReason: string | null;
 }
 
-/**
- * An UnscheduledBlock joined with its BlockCandidate source data.
- */
-export interface EnrichedUnscheduledBlock extends UnscheduledBlock {
-  candidate: BlockCandidate | null;
+export interface EnrichedUnscheduledBlock extends BlockCandidate {
+  candidate: BlockCandidate;
+  rejectionReason: string;
 }
 
-/**
- * The complete data the dashboard needs, pre-joined from result + request.
- */
+export type DataSourceType = "LIVE_API" | "FIXTURE";
+
 export interface DashboardData {
   result: OptimizationResult;
   request: OptimizationRequest;
   enrichedScheduled: EnrichedScheduledBlock[];
   enrichedUnscheduled: EnrichedUnscheduledBlock[];
+  dataSource: DataSourceType;
+  apiLatencyMs?: number;
+  apiEndpoint?: string;
 }
