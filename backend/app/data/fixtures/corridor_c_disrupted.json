@@ -406,7 +406,7 @@
       "duration_minutes": 90,
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
-      "priority_score": 0.4953,
+      "priority_score": 0.4954,
       "risk_score": 0.3755,
       "dependencies": [],
       "mutual_exclusion_group": null,
