@@ -4,18 +4,33 @@
  * Connects directly to the canonical FastAPI optimizer backend:
  *   POST http://127.0.0.1:8000/optimize
  *
- * If the live backend is available, optimizes in real time and sets dataSource = "LIVE_API".
- * If the backend is unavailable or offline, gracefully falls back to canonical fixture data
- * and sets dataSource = "FIXTURE".
+ * TWO INDEPENDENT FACTS, NEVER CONFLATED:
+ *
+ *   connectivity    ONLINE / DEGRADED / OFFLINE - did the backend answer?
+ *   dataProvenance  where the DATA came from.
+ *
+ * These used to be one field, and a reachable backend was labelled
+ * "LIVE_API", which the header rendered as "LIVE BACKEND: CONNECTED"
+ * while the request body was a checked-in synthetic fixture. A live
+ * connection is not live data.
+ *
+ * Provenance is decided here, on the frontend, because the frontend is
+ * what chooses the input: every request below is built from
+ * src/data/corridor_a_blocks.json, so the only honest provenance value
+ * this module can currently emit is SYNTHETIC_FIXTURE - whether or not
+ * the backend responds. The backend is never asked to assert
+ * provenance; it receives an OptimizationRequest and cannot know
+ * whether its contents are real.
  */
 
 import type {
   OptimizationResult,
   OptimizationRequest,
+  ConnectivityStatus,
+  DataProvenance,
   DashboardData,
   EnrichedScheduledBlock,
   EnrichedUnscheduledBlock,
-  DataSourceType,
   DisruptionEvent,
   RecoveryResponse,
 } from "@/types/contracts";
@@ -27,8 +42,30 @@ export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 /**
- * Fetch optimization data: tries live FastAPI backend first,
- * falls back to canonical fixture if unavailable.
+ * Provenance of everything this module currently sends to the optimizer.
+ *
+ * The dashboard's request body is always the checked-in fixture below,
+ * so this is a statement of fact, not a default. When a real or
+ * realistic-static corridor dataset is introduced, provenance must be
+ * carried on that dataset and threaded through here - it must not be
+ * inferred from whether the backend replied.
+ */
+const DASHBOARD_INPUT_PROVENANCE: DataProvenance = "SYNTHETIC_FIXTURE";
+
+/**
+ * Checked-in fixtures have no meaningful generation timestamp, so
+ * freshness is genuinely UNKNOWN and is reported as such rather than
+ * being filled in with the current time.
+ */
+const FIXTURE_GENERATED_AT: string | undefined = undefined;
+
+/**
+ * Fetch optimization data: tries the FastAPI backend first, falls back
+ * to the canonical fixture result if it is unreachable or errors.
+ *
+ * Returns connectivity reflecting what the backend actually did, and
+ * provenance reflecting what was actually sent - never one inferred
+ * from the other.
  */
 export async function fetchOptimizationData(): Promise<DashboardData> {
   const startTime = Date.now();
@@ -51,45 +88,81 @@ export async function fetchOptimizationData(): Promise<DashboardData> {
     if (res.ok) {
       const result: OptimizationResult = await res.json();
       const latencyMs = Date.now() - startTime;
+      // The backend answered, so connectivity is ONLINE. The data it
+      // solved is still the synthetic fixture we posted, so provenance
+      // is unchanged.
       return enrichData(
         result,
         request,
-        "LIVE_API",
-        latencyMs,
-        `${API_BASE_URL}/optimize`
+        "ONLINE",
+        DASHBOARD_INPUT_PROVENANCE,
+        {
+          apiLatencyMs: latencyMs,
+          apiEndpoint: `${API_BASE_URL}/optimize`,
+          dataGeneratedAt: FIXTURE_GENERATED_AT,
+        }
       );
     }
 
     console.warn(
       `Backend API responded with status ${res.status}. Falling back to canonical fixture.`
     );
+
+    // Reachable but the operation failed: the displayed plan is a
+    // pre-computed fixture result, not this backend's answer.
+    return enrichData(
+      fixtureResult as unknown as OptimizationResult,
+      request,
+      "DEGRADED",
+      DASHBOARD_INPUT_PROVENANCE,
+      {
+        apiEndpoint: "local-fixture: milestone1_result.json",
+        dataGeneratedAt: FIXTURE_GENERATED_AT,
+        connectivityDetail: `Backend responded with status ${res.status}; showing pre-computed fixture result.`,
+      }
+    );
   } catch (err) {
     console.warn(
       "Live backend optimizer unreachable or timed out. Using canonical fixture data.",
       err instanceof Error ? err.message : err
     );
-  }
 
-  // Fallback to canonical fixture
-  const fallbackResult = fixtureResult as unknown as OptimizationResult;
-  return enrichData(
-    fallbackResult,
-    request,
-    "FIXTURE",
-    undefined,
-    "local-fixture: corridor_a_blocks.json"
-  );
+    return enrichData(
+      fixtureResult as unknown as OptimizationResult,
+      request,
+      "OFFLINE",
+      DASHBOARD_INPUT_PROVENANCE,
+      {
+        apiEndpoint: "local-fixture: milestone1_result.json",
+        dataGeneratedAt: FIXTURE_GENERATED_AT,
+        connectivityDetail:
+          err instanceof Error
+            ? err.message
+            : "Backend unreachable or timed out.",
+      }
+    );
+  }
+}
+
+/** Optional context recorded alongside an enriched dashboard payload. */
+export interface EnrichmentContext {
+  apiLatencyMs?: number;
+  apiEndpoint?: string;
+  dataGeneratedAt?: string;
+  connectivityDetail?: string;
 }
 
 /**
- * Join optimization result blocks with request candidates and rejection audit trail.
+ * Join optimization result blocks with request candidates and rejection
+ * audit trail, and record the connectivity/provenance/freshness facts
+ * the UI renders.
  */
 export function enrichData(
   result: OptimizationResult,
   request: OptimizationRequest,
-  dataSource: DataSourceType = "FIXTURE",
-  apiLatencyMs?: number,
-  apiEndpoint?: string
+  connectivity: ConnectivityStatus,
+  dataProvenance: DataProvenance,
+  context: EnrichmentContext = {}
 ): DashboardData {
   const candidateMap = new Map(
     (request.candidates || []).map((c) => [c.block_id, c])
@@ -123,9 +196,12 @@ export function enrichData(
     request,
     enrichedScheduled,
     enrichedUnscheduled,
-    dataSource,
-    apiLatencyMs,
-    apiEndpoint,
+    connectivity,
+    dataProvenance,
+    dataGeneratedAt: context.dataGeneratedAt,
+    connectivityDetail: context.connectivityDetail,
+    apiLatencyMs: context.apiLatencyMs,
+    apiEndpoint: context.apiEndpoint,
   };
 }
 

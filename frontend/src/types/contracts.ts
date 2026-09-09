@@ -160,14 +160,70 @@ export interface EnrichedUnscheduledBlock extends BlockCandidate {
   rejectionReason: string;
 }
 
-export type DataSourceType = "LIVE_API" | "FIXTURE";
+/**
+ * Whether the optimizer backend answered. This says nothing whatsoever
+ * about where the DATA came from.
+ *
+ * ONLINE   - the backend responded and solved the request.
+ * DEGRADED - the backend was reachable but the operation failed
+ *            (non-2xx), so the displayed plan is not its answer.
+ * OFFLINE  - the backend could not be reached at all.
+ */
+export type ConnectivityStatus = "ONLINE" | "DEGRADED" | "OFFLINE";
 
+/**
+ * Where the DATA being displayed came from. This is a property of the
+ * input, which the frontend owns: it is the frontend that chooses to
+ * POST a checked-in fixture, so only the frontend can honestly label
+ * provenance. The backend receives an OptimizationRequest and has no
+ * way to know whether its contents are real, so it must never be asked
+ * to assert this.
+ *
+ * SYNTHETIC_FIXTURE - generated demo data checked into the repository.
+ *                     Currently the ONLY truthful value: every request
+ *                     the dashboard sends is built from
+ *                     src/data/corridor_a_blocks.json.
+ * REALISTIC_STATIC  - transcribed from published, cited sources.
+ *                     Not yet available; reserved.
+ * LIVE_FEED         - a live operational feed. Not yet available;
+ *                     reserved. Do not use until one actually exists.
+ */
+export type DataProvenance =
+  | "SYNTHETIC_FIXTURE"
+  | "REALISTIC_STATIC"
+  | "LIVE_FEED";
+
+/**
+ * NOTE: there is deliberately no single combined "data source" field.
+ *
+ * A `DataSourceType` of "LIVE_API" | "FIXTURE" used to stand in for
+ * both facts at once, which is how a reachable backend serving a
+ * checked-in synthetic fixture came to be rendered as "LIVE BACKEND:
+ * CONNECTED". Connectivity and provenance are independent and are kept
+ * as separate fields below; do not reintroduce a merged field.
+ */
 export interface DashboardData {
   result: OptimizationResult;
   request: OptimizationRequest;
   enrichedScheduled: EnrichedScheduledBlock[];
   enrichedUnscheduled: EnrichedUnscheduledBlock[];
-  dataSource: DataSourceType;
+
+  /** Did the backend answer? */
+  connectivity: ConnectivityStatus;
+
+  /** Where did the displayed data come from? */
+  dataProvenance: DataProvenance;
+
+  /**
+   * When the displayed data was produced. For a checked-in fixture
+   * there is no meaningful generation time, so this is undefined and
+   * the UI must show "UNKNOWN" rather than inventing "now".
+   */
+  dataGeneratedAt?: string;
+
+  /** Why connectivity is DEGRADED/OFFLINE, when it is. */
+  connectivityDetail?: string;
+
   apiLatencyMs?: number;
   apiEndpoint?: string;
 }

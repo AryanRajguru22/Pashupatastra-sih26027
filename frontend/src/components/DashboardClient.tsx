@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import type { DashboardData, DisruptionEvent } from "@/types/contracts";
+import type {
+  ConnectivityStatus,
+  DashboardData,
+  DisruptionEvent,
+} from "@/types/contracts";
 import AppHeader from "@/components/AppHeader";
 import CommandCenterView from "@/components/CommandCenterView";
 import PlanView from "@/components/PlanView";
@@ -56,22 +60,36 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
       const outcome = await triggerRecovery(baselineData.request, disruption);
       if (!outcome.ok) {
         setRecoveryError(outcome.message);
-        if (outcome.reason === "unreachable") {
-          // The backend just proved unreachable - stop claiming "LIVE
-          // BACKEND: CONNECTED" from stale page-load state until a fresh
-          // fetch (re-optimize) proves otherwise. Never silently keep
-          // showing a live badge next to a real connection failure.
-          setData((prev) => ({ ...prev, dataSource: "FIXTURE" }));
-          setBaselineData((prev) => ({ ...prev, dataSource: "FIXTURE" }));
-        }
+        // The backend just failed. Downgrade the CONNECTIVITY badge from
+        // stale page-load state until a fresh fetch proves otherwise.
+        // Provenance is untouched: a connection failure says nothing
+        // about where the data came from, and the data has not changed.
+        const nextConnectivity: ConnectivityStatus =
+          outcome.reason === "unreachable" ? "OFFLINE" : "DEGRADED";
+        setData((prev) => ({
+          ...prev,
+          connectivity: nextConnectivity,
+          connectivityDetail: outcome.message,
+        }));
+        setBaselineData((prev) => ({
+          ...prev,
+          connectivity: nextConnectivity,
+          connectivityDetail: outcome.message,
+        }));
         return;
       }
+      // Recovery succeeded, so the backend is ONLINE. The recovered plan
+      // was computed from the same synthetic input, so provenance is
+      // carried over unchanged rather than upgraded.
       const recoveredData = enrichData(
         outcome.data.recovery_result,
         outcome.data.updated_request,
-        baselineData.dataSource,
-        undefined,
-        `${API_BASE_URL}/recover`
+        "ONLINE",
+        baselineData.dataProvenance,
+        {
+          apiEndpoint: `${API_BASE_URL}/recover`,
+          dataGeneratedAt: baselineData.dataGeneratedAt,
+        }
       );
       setRecoveryComparison(compareSchedules(baselineData, recoveredData));
       setActiveDisruption(outcome.data.disruption);
@@ -108,7 +126,10 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     setView("WORKSPACE");
   };
 
-  const isLiveBackend = data.dataSource === "LIVE_API";
+  // Whether the BACKEND answered. Deliberately not named "isLive": it
+  // gates live actions (recovery needs a working backend), never the
+  // provenance of the displayed data.
+  const isBackendOnline = data.connectivity === "ONLINE";
   const isViewingRecovered = recoveryComparison !== null;
 
   const stage: OperationalStage = isViewingRecovered
@@ -126,7 +147,8 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
       <AppHeader
         stage={stage}
         activeView={view}
-        isLiveBackend={isLiveBackend}
+        connectivity={data.connectivity}
+        dataProvenance={data.dataProvenance}
         solveTimeMs={solveTimeMs}
         onNavCommand={handleNavCommand}
         onNavPlan={handleNavPlan}
@@ -139,7 +161,6 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
             <CommandCenterView
               key="command"
               data={data}
-              isLiveBackend={isLiveBackend}
               solveTimeMs={solveTimeMs}
               activeDisruption={activeDisruption}
               recoveryComparison={recoveryComparison}
@@ -162,7 +183,9 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
               requestContext={baselineData.request}
               data={data}
               disabledReason={
-                !isLiveBackend ? "Live backend required to simulate recovery (currently in fixture mode)." : null
+                !isBackendOnline
+                  ? "A reachable backend is required to simulate recovery (currently showing a pre-computed fixture result)."
+                  : null
               }
               isLoading={isRecovering}
               error={recoveryError}

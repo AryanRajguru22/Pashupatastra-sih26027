@@ -5,10 +5,16 @@ import type { DashboardData, DisruptionEvent } from "@/types/contracts";
 import type { RecoveryComparison } from "@/lib/recoveryComparison";
 import { corridorCapacityPct, riskNeutralizedPct, workTypeBreakdown } from "@/lib/metrics";
 import { formatWorkType } from "@/lib/format";
+import {
+  connectivityLabel,
+  freshnessLabel,
+  isBackendConnected,
+  isLiveData,
+  provenanceLabel,
+} from "@/lib/dataStatus";
 
 interface CommandCenterViewProps {
   data: DashboardData;
-  isLiveBackend: boolean;
   solveTimeMs: number;
   activeDisruption: DisruptionEvent | null;
   recoveryComparison: RecoveryComparison | null;
@@ -26,7 +32,6 @@ interface CommandCenterViewProps {
  */
 export default function CommandCenterView({
   data,
-  isLiveBackend,
   solveTimeMs,
   activeDisruption,
   recoveryComparison,
@@ -80,23 +85,42 @@ export default function CommandCenterView({
       <div className="absolute bottom-12 right-1/4 w-[600px] h-[320px] bg-gradient-to-tl from-secondary-container/15 via-secondary/5 to-transparent blur-[140px] rounded-full pointer-events-none" />
 
       <div className="relative z-20 pt-space-md flex flex-col gap-space-2xs animate-fade-in-up">
-        <div className="flex items-center gap-space-xs font-label-mono text-label-mono">
+        {/* Connectivity and provenance stated separately and in that
+          * order: the backend being reachable never implies the data it
+          * solved is live. */}
+        <div className="flex items-center gap-space-xs font-label-mono text-label-mono flex-wrap">
           <span
             className={`w-1.5 h-1.5 rounded-full ${
-              isLiveBackend ? "bg-primary-container animate-pulse" : "bg-secondary"
+              isBackendConnected(data.connectivity)
+                ? "bg-primary-container animate-pulse"
+                : "bg-secondary"
             }`}
           />
           <span className="text-on-surface-variant">
-            {isLiveBackend ? "LIVE BACKEND CONNECTED" : "FIXTURE MODE"} &middot; {request.corridor_id}
+            {connectivityLabel(data.connectivity)}
           </span>
+          <span className="text-on-surface-variant/50">&middot;</span>
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              isLiveData(data.dataProvenance)
+                ? "bg-primary-container"
+                : "bg-secondary"
+            }`}
+          />
+          <span className="text-on-surface-variant">
+            {provenanceLabel(data.dataProvenance)}
+          </span>
+          <span className="text-on-surface-variant/50">&middot;</span>
+          <span className="text-on-surface-variant">{request.corridor_id}</span>
         </div>
         <h1 className="font-headline-lg text-headline-lg text-primary tracking-tight font-normal">
           <span className="italic">Command</span>{" "}
           <span className="not-italic text-on-surface font-light">Center</span>
         </h1>
         <p className="font-body-sm text-body-sm text-on-surface-variant max-w-xl">
-          Operational overview sourced entirely from the live CP-SAT optimizer result — no
-          simulated telemetry, no fabricated metrics.
+          Operational overview computed entirely from the CP-SAT optimizer result — no
+          simulated telemetry, no fabricated metrics. The underlying corridor data is
+          synthetic demo data, not an operational feed.
         </p>
       </div>
 
@@ -133,8 +157,18 @@ export default function CommandCenterView({
           </span>
           <div className="flex flex-col gap-space-xs font-label-mono text-label-mono text-on-surface-variant">
             <div className="flex justify-between">
-              <span>DATA SOURCE</span>
-              <span className="text-on-surface">{data.dataSource}</span>
+              <span>BACKEND</span>
+              <span className="text-on-surface">{data.connectivity}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>DATA PROVENANCE</span>
+              <span className="text-on-surface">{data.dataProvenance}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>DATA FRESHNESS</span>
+              <span className="text-on-surface">
+                {freshnessLabel(data.dataGeneratedAt)}
+              </span>
             </div>
             <div className="flex justify-between">
               <span>SOLVER</span>

@@ -1,6 +1,16 @@
 "use client";
 
 import type { AppView, OperationalStage } from "@/lib/stage";
+import type {
+  ConnectivityStatus,
+  DataProvenance,
+} from "@/types/contracts";
+import {
+  connectivityLabel,
+  isBackendConnected,
+  isLiveData,
+  provenanceLabel,
+} from "@/lib/dataStatus";
 
 // Matches package.json's real "version" field - static build metadata, not
 // a fabricated live-telemetry status.
@@ -9,7 +19,8 @@ const APP_VERSION = "0.1.0";
 interface AppHeaderProps {
   stage: OperationalStage;
   activeView: AppView;
-  isLiveBackend: boolean;
+  connectivity: ConnectivityStatus;
+  dataProvenance: DataProvenance;
   solveTimeMs: number;
   onNavCommand: () => void;
   onNavPlan: () => void;
@@ -31,7 +42,8 @@ interface AppHeaderProps {
 export default function AppHeader({
   stage,
   activeView,
-  isLiveBackend,
+  connectivity,
+  dataProvenance,
   solveTimeMs,
   onNavCommand,
   onNavPlan,
@@ -103,14 +115,32 @@ export default function AppHeader({
 
         <div className="flex items-center gap-space-lg shrink-0">
           <div className="hidden md:flex items-center gap-space-md">
+            {/* Connectivity and provenance are rendered as two separate
+              * badges on purpose. A reachable backend proves only that the
+              * backend answered; the data it solved is whatever we posted,
+              * which is currently a synthetic fixture. Merging these into a
+              * single "LIVE" badge is what previously made the header claim
+              * live data over checked-in demo data. */}
             <div className="flex items-center gap-space-xs px-space-sm py-space-2xs rounded-full bg-surface-container-low">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
-                  isLiveBackend ? "bg-primary-container animate-ping" : "bg-secondary"
+                  isBackendConnected(connectivity)
+                    ? "bg-primary-container animate-ping"
+                    : "bg-secondary"
                 }`}
               />
               <span className="font-label-caps text-label-caps text-on-surface">
-                {isLiveBackend ? "LIVE BACKEND: CONNECTED" : "FIXTURE MODE: OFFLINE"}
+                {connectivityLabel(connectivity)}
+              </span>
+            </div>
+            <div className="flex items-center gap-space-xs px-space-sm py-space-2xs rounded-full bg-surface-container-low">
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isLiveData(dataProvenance) ? "bg-primary-container" : "bg-secondary"
+                }`}
+              />
+              <span className="font-label-caps text-label-caps text-on-surface">
+                {provenanceLabel(dataProvenance)}
               </span>
             </div>
             <div className="flex items-center gap-space-xs px-space-sm py-space-2xs rounded-full bg-surface-container-low">
