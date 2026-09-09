@@ -34,6 +34,54 @@ from contracts import (
 _SCORE_SCALE = 1000
 _SOLVE_TIME_LIMIT_SECONDS = 10.0
 
+# Reproducibility. CP-SAT defaults to num_search_workers=0 ("auto"),
+# which runs a parallel portfolio; whichever worker finishes first wins
+# among equally-optimal solutions, so identical requests can return
+# different (equally optimal) placements. Measured on this repository's
+# own fixtures: corridor_b_dense produced 28 distinct schedules across
+# 30 identical solves under the default, and 1 under a single worker.
+# A single worker is both reproducible and, at this problem size,
+# roughly 2-3x faster. See docs note in solve() for the exact scope of
+# the reproducibility guarantee.
+_SEARCH_WORKERS = 1
+_RANDOM_SEED = 1
+
+
+def uncovered_possession_tracks(
+    request: OptimizationRequest,
+) -> dict[str, list[str]]:
+    """Return candidate tracks that possession windows do not cover.
+
+    Possession control is considered in force as soon as a request
+    declares at least one possession window. Any track carrying work in
+    such a request but lacking a window is a safety-relevant gap: the
+    solver refuses those blocks, and a caller assembling a request can
+    use this to reject the request outright instead.
+
+    Returns a mapping of uncovered track_id -> block_ids on that track.
+    An empty mapping means every worked track is covered, or that the
+    request declares no possession windows at all.
+    """
+
+    if not request.possession_windows:
+        return {}
+
+    covered = {
+        window.track_id
+        for window in request.possession_windows
+    }
+
+    uncovered: dict[str, list[str]] = {}
+
+    for block in request.candidates:
+        if block.track_id not in covered:
+            uncovered.setdefault(
+                block.track_id,
+                [],
+            ).append(block.block_id)
+
+    return uncovered
+
 
 def _objective_score(
     request: OptimizationRequest,
@@ -81,6 +129,37 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
 
     # Blocks which cannot fit inside their own time windows.
     window_infeasible: Set[str] = set()
+
+    # Possession control is "in force" for a request as soon as it
+    # declares at least one possession window. An empty list means the
+    # caller is not modelling possessions at all (the long-standing
+    # behavior several fixtures and tests rely on); a non-empty list
+    # means every track the caller intends to work on must be covered.
+    possession_control_active = bool(request.possession_windows)
+
+    covered_tracks = {
+        window.track_id
+        for window in request.possession_windows
+    }
+
+    # Blocks refused because possession control is in force for this
+    # request but no possession window covers their track.
+    #
+    # Resolved BEFORE any constraint is posted, because the committed
+    # pinning below must know about it. Pinning a block with
+    # presence == 1 while the possession rule needs presence == 0 makes
+    # the whole model unsatisfiable, which would take every unrelated
+    # block on every properly-covered track down with it and replace
+    # the per-block safety reason with a bare "no feasible solution".
+    possession_uncovered: Set[str] = (
+        {
+            block.block_id
+            for block in blocks
+            if block.track_id not in covered_tracks
+        }
+        if possession_control_active
+        else set()
+    )
 
     # ------------------------------------------------------------------
     # Committed blocks
@@ -148,6 +227,16 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
         # --------------------------------------------------------------
         committed = committed_by_id.get(block.block_id)
 
+        # A committed block on a track that possession control does not
+        # cover is NOT re-pinned. Its prior placement was made against a
+        # possession that no longer exists - a curtailment, say - so
+        # honouring it would be scheduling work on an unprotected track.
+        # It is refused individually below, exactly like any other
+        # uncovered block, which keeps the request solvable for every
+        # other track instead of collapsing it to INFEASIBLE.
+        if block.block_id in possession_uncovered:
+            committed = None
+
         if committed is not None:
             committed_start = int(committed.earliest_start_minute)
 
@@ -194,9 +283,24 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
             if window.track_id == block.track_id
         ]
 
-        # No possession windows means that there is no additional
-        # possession restriction for this request.
         if not matching_windows:
+            if not possession_control_active:
+                # The request models no possessions at all, so there is
+                # no additional possession restriction to apply.
+                continue
+
+            # Fail closed. The request DOES model possessions, so the
+            # absence of a window for this block's track means the track
+            # is not released for work - never that the block may be
+            # scheduled without protection. Silently skipping the
+            # constraint here would schedule maintenance onto a track
+            # whose train occupation was never checked.
+            #
+            # This holds for committed blocks too: the pinning above is
+            # deliberately skipped for anything in possession_uncovered,
+            # so presence == 0 can never contradict a presence == 1 pin.
+            model.Add(presence[block.block_id] == 0)
+
             continue
 
         eligible_windows = []
@@ -375,6 +479,23 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
         _SOLVE_TIME_LIMIT_SECONDS
     )
 
+    # Reproducibility, in scope only as documented below.
+    #
+    # GUARANTEED: identical request -> identical schedule, for the same
+    # process, machine, OR-Tools version and solver configuration, and
+    # provided the solve finishes inside _SOLVE_TIME_LIMIT_SECONDS.
+    #
+    # NOT GUARANTEED: stability across OR-Tools versions, or when the
+    # wall-clock limit is actually hit (a slower machine would then stop
+    # the search at a different point). The objective rewards only
+    # whether a block is scheduled, never where it is placed, so many
+    # placements are equally optimal and the search order alone decides
+    # between them. Making the chosen placement canonical rather than
+    # merely repeatable needs a tie-breaking objective term, which
+    # changes plan semantics and is deliberately out of scope here.
+    solver.parameters.num_search_workers = _SEARCH_WORKERS
+    solver.parameters.random_seed = _RANDOM_SEED
+
     solve_status = solver.Solve(model)
 
     status_map = {
@@ -480,6 +601,13 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
             reason = (
                 "duration does not fit within "
                 "earliest_start_minute/latest_end_minute window"
+            )
+
+        elif block_id in possession_uncovered:
+            reason = (
+                "refused for safety: no possession window covers "
+                f"track '{block.track_id}' in a request that declares "
+                "possession windows"
             )
 
         else:

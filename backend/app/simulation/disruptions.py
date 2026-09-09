@@ -143,6 +143,21 @@ def apply_possession_curtailment(
             window
         )
 
+    # Fail closed. The solver treats an empty possession_windows list as
+    # "this request does not model possessions", which lifts possession
+    # protection entirely. A curtailment that removed the last window
+    # would therefore silently turn protection OFF - the exact opposite
+    # of what curtailing a possession means. Refuse instead; the
+    # /recover router maps ValueError to HTTP 400.
+    if request.possession_windows and not remaining_windows:
+        raise ValueError(
+            "Possession curtailment would remove every possession "
+            "window from the request. Refusing: an empty possession "
+            "window list disables possession protection rather than "
+            "tightening it. Curtail a narrower interval or a single "
+            "track."
+        )
+
     updated.possession_windows = (
         remaining_windows
     )
