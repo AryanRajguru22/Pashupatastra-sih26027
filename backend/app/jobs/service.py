@@ -16,6 +16,8 @@ from backend.app.data.generator import (
     CorridorDataGenerator,
 )
 
+from contracts import PossessionWindow
+
 from backend.app.data.models import Corridor
 
 from backend.app.jobs.models import (
@@ -24,7 +26,9 @@ from backend.app.jobs.models import (
 )
 
 from backend.app.jobs.repository import (
+    TERMINAL_STATUSES,
     JobRepository,
+    TerminalJobError,
 )
 
 
@@ -32,6 +36,25 @@ DEFAULT_CORRIDOR_ID = os.getenv(
     "PASHUPAT_CORRIDOR_ID",
     "CORRIDOR_A",
 )
+
+# Sprint 2 possession windows come from the deterministic corridor
+# generator, not from any live or real-time source. This label travels
+# with every optimization response so the provenance is never
+# misrepresented as live train data.
+POSSESSION_SOURCE_GENERATED_STATIC = "GENERATED_STATIC"
+
+# Job statuses whose work has been committed to field personnel and
+# must therefore be preserved (pinned) through future optimization.
+COMMITTED_STATUSES = ("notified",)
+
+# The corridor generator, the shipped fixtures and BlockCandidate's own
+# default latest_end_minute all use a 1440-minute (24h) planning day.
+OPTIMIZATION_HORIZON_MINUTES = 1440
+DEFAULT_MIN_HEADWAY_MINUTES = 15
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 class JobService:
@@ -229,10 +252,7 @@ class JobService:
         # 6. Store in DB
         # ---------------------------------
 
-        created_at = (
-            datetime.now(timezone.utc)
-            .isoformat()
-        )
+        created_at = _now()
 
         job = {
             "job_id":
@@ -277,6 +297,9 @@ class JobService:
             "created_at":
                 created_at,
 
+            "updated_at":
+                created_at,
+
             "block_candidate":
                 scored_block.to_dict(),
         }
@@ -316,9 +339,17 @@ class JobService:
                 f"'{job['status']}'"
             )
 
+        # Notifying is what makes the work operationally committed:
+        # field personnel have been told to be on the track. The
+        # persisted BlockCandidate is marked committed here so that a
+        # later optimization reconstructs it as an existing committed
+        # block and the solver preserves its placement.
         return self.repository.update_status(
             job_id,
             JobStatus.NOTIFIED.value,
+            updated_at=_now(),
+            block_status=BlockStatus.COMMITTED.value,
+            is_committed=True,
         )
 
     # -----------------------------------------
@@ -349,6 +380,7 @@ class JobService:
         return self.repository.update_status(
             job_id,
             JobStatus.COMPLETED.value,
+            updated_at=_now(),
         )
 
     # -----------------------------------------
@@ -398,11 +430,77 @@ class JobService:
                 "than schedule start"
             )
 
+        # Completed work is terminal. Without this guard a completed
+        # job was silently forced back to 'scheduled' and re-entered
+        # the optimization candidate set. The repository enforces the
+        # same rule, so the guarantee holds even for callers that
+        # bypass this service.
+        if job["status"] in TERMINAL_STATUSES:
+            raise TerminalJobError(
+                f"Job '{job_id}' is in terminal status "
+                f"'{job['status']}' and cannot be rescheduled"
+            )
+
         return self.repository.update_schedule(
             job_id,
             start_minute,
             end_minute,
+            updated_at=_now(),
         )
+
+    # -----------------------------------------
+    # Optimization input classification
+    # -----------------------------------------
+
+    def possession_windows(self) -> list[PossessionWindow]:
+        """Possession windows for this corridor.
+
+        Sourced from the deterministic corridor generator. These are
+        GENERATED_STATIC operational slots (night block, midday slot,
+        evening off-peak), NOT live train data - see
+        POSSESSION_SOURCE_GENERATED_STATIC. Corridor itself carries no
+        possession field, so the generator is the only source available
+        in Sprint 2.
+        """
+
+        generator = CorridorDataGenerator(seed=42)
+
+        return generator.generate_possession_windows(
+            self.corridor.tracks,
+            horizon_minutes=OPTIMIZATION_HORIZON_MINUTES,
+        )
+
+    def classify_for_optimization(
+        self,
+    ) -> tuple[list[BlockCandidate], list[BlockCandidate]]:
+        """Split active jobs into (all candidates, committed subset).
+
+        Per the approved lifecycle:
+          reported                -> free candidate
+          scheduled, not notified -> free candidate, may be replanned
+          notified                -> committed, must be preserved
+          completed               -> terminal, excluded entirely
+
+        The committed subset is a subset of the candidate list, not a
+        separate collection: the solver iterates request.candidates and
+        looks up committed placements by block_id, so a committed block
+        that is absent from candidates would never be modelled at all.
+        """
+
+        candidates: list[BlockCandidate] = []
+        committed: list[BlockCandidate] = []
+
+        for job in self.repository.list_active():
+            block = BlockCandidate.from_dict(
+                job["block_candidate"]
+            )
+
+            candidates.append(block)
+
+            if job["status"] in COMMITTED_STATUSES:
+                committed.append(block)
+
+        return candidates, committed
 
     # -----------------------------------------
     # Asset selection
@@ -470,6 +568,12 @@ def as_public_job(
             job["schedule_end_minute"],
         "created_at":
             job["created_at"],
+        "updated_at":
+            job.get("updated_at"),
+        "last_solver_status":
+            job.get("last_solver_status"),
+        "last_refusal_reason":
+            job.get("last_refusal_reason"),
         "block_candidate":
             job["block_candidate"],
     }

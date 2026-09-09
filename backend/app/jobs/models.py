@@ -83,6 +83,13 @@ class JobResponse(BaseModel):
     schedule_end_minute: Optional[int] = None
 
     created_at: str
+    updated_at: Optional[str] = None
+
+    # Last optimization outcome for this job. Both stay None until an
+    # optimization run has actually considered it, so "never optimized"
+    # is distinguishable from "considered and refused".
+    last_solver_status: Optional[str] = None
+    last_refusal_reason: Optional[str] = None
 
     block_candidate: dict
 
@@ -90,3 +97,54 @@ class JobResponse(BaseModel):
 class JobActionResponse(BaseModel):
     job: JobResponse
     message: str
+
+
+class ScheduledJobOutcome(BaseModel):
+    job_id: str
+    track_id: str
+    start_minute: int
+    end_minute: int
+    is_committed: bool
+
+
+class UnscheduledJobOutcome(BaseModel):
+    job_id: str
+    track_id: str
+    # Verbatim from the solver. Never synthesised to look like success.
+    reason: str
+
+
+class OptimizationCounts(BaseModel):
+    considered: int
+    committed: int
+    scheduled: int
+    unscheduled: int
+
+
+class JobOptimizationResponse(BaseModel):
+    """Honest outcome of one corridor optimization batch.
+
+    Reports scheduled and unscheduled work separately so a partially
+    successful run can never read as a fully successful one.
+    """
+
+    corridor_id: str
+    solver_status: str
+    solve_time_seconds: float
+
+    # Provenance of the possession data the schedule was built against.
+    # Sprint 2 uses deterministic generated windows, reported as
+    # GENERATED_STATIC. It is never described as live or real-time.
+    possession_source: str
+    possession_window_count: int
+
+    # Tracks carrying work that no possession window covers. The solver
+    # refuses those blocks rather than scheduling them unprotected.
+    uncovered_tracks: list[str]
+
+    generated_at: str
+
+    counts: OptimizationCounts
+    scheduled: list[ScheduledJobOutcome]
+    unscheduled: list[UnscheduledJobOutcome]
+    infeasibility_reasons: list[str]
