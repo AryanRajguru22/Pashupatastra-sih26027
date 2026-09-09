@@ -12,3 +12,10 @@ stitch/
 scripts/milestone1_result.json
 
 .env
+
+# Local maintenance-jobs SQLite database - runtime state, not source.
+# Tests use PASHUPAT_JOBS_DB (see backend/tests/conftest.py) instead.
+jobs.db
+jobs.db-journal
+jobs.db-wal
+jobs.db-shm

@@ -1,13 +1,24 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from typing import Any, Optional
 
 
-DEFAULT_DB_PATH = (
-    Path(__file__).resolve().parents[3] / "jobs.db"
+# The production default stays the repository-root jobs.db so existing
+# deployments and the running API are unchanged. The environment
+# override exists so tests (and any future multi-corridor deployment)
+# can point at their own file instead of sharing this one - importing
+# backend.app.api.main constructs a JobService at module import, so
+# without an override every test run touches the real database.
+DEFAULT_DB_PATH = Path(
+    os.getenv(
+        "PASHUPAT_JOBS_DB",
+        Path(__file__).resolve().parents[3] / "jobs.db",
+    )
 )
 
 
@@ -23,7 +34,7 @@ class JobRepository:
         return conn
 
     def _initialize(self) -> None:
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS maintenance_jobs (
@@ -58,7 +69,7 @@ class JobRepository:
 
     def create(self, job: dict[str, Any]) -> dict[str, Any]:
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
 
             conn.execute(
                 """
@@ -109,7 +120,7 @@ class JobRepository:
         job_id: str,
     ) -> Optional[dict[str, Any]]:
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
 
             row = conn.execute(
                 """
@@ -127,7 +138,7 @@ class JobRepository:
 
     def list_all(self) -> list[dict[str, Any]]:
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
 
             rows = conn.execute(
                 """
@@ -144,7 +155,7 @@ class JobRepository:
 
     def list_active(self) -> list[dict[str, Any]]:
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
 
             rows = conn.execute(
                 """
@@ -166,7 +177,7 @@ class JobRepository:
         status: str,
     ) -> Optional[dict[str, Any]]:
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
 
             conn.execute(
                 """
@@ -188,7 +199,7 @@ class JobRepository:
         end_minute: int,
     ) -> Optional[dict[str, Any]]:
 
-        with self._connect() as conn:
+        with closing(self._connect()) as conn, conn:
 
             conn.execute(
                 """
