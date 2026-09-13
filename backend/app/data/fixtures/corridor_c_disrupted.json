@@ -1,5 +1,6 @@
 {
   "corridor_id": "CORRIDOR_C_DISRUPTED",
+  "horizon_start": "2026-09-10T00:00:00+05:30",
   "horizon_minutes": 1440,
   "tracks": [
     "UP-1",
@@ -12,6 +13,7 @@
       "track_id": "UP-1",
       "work_type": "ROUTINE_INSPECTION",
       "duration_minutes": 45,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 60,
       "latest_end_minute": 105,
       "priority_score": 0.3716,
@@ -44,6 +46,7 @@
       "track_id": "DOWN-1",
       "work_type": "ROUTINE_INSPECTION",
       "duration_minutes": 60,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 90,
       "latest_end_minute": 150,
       "priority_score": 0.318,
@@ -76,6 +79,7 @@
       "track_id": "DOWN-1",
       "work_type": "ROUTINE_INSPECTION",
       "duration_minutes": 45,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 30,
       "latest_end_minute": 360,
       "priority_score": 0.5845,
@@ -108,6 +112,7 @@
       "track_id": "UP-1",
       "work_type": "OHE_MAINTENANCE",
       "duration_minutes": 120,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
       "priority_score": 0.5357,
@@ -140,6 +145,7 @@
       "track_id": "DOWN-1",
       "work_type": "OHE_MAINTENANCE",
       "duration_minutes": 120,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
       "priority_score": 0.5201,
@@ -173,6 +179,7 @@
       "track_id": "UP-1",
       "work_type": "ROUTINE_INSPECTION",
       "duration_minutes": 60,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 660,
       "latest_end_minute": 930,
       "priority_score": 0.4116,
@@ -205,6 +212,7 @@
       "track_id": "DOWN-1",
       "work_type": "ROUTINE_INSPECTION",
       "duration_minutes": 60,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
       "priority_score": 0.4619,
@@ -237,6 +245,7 @@
       "track_id": "DOWN-1",
       "work_type": "ROUTINE_INSPECTION",
       "duration_minutes": 45,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
       "priority_score": 0.537,
@@ -270,6 +279,7 @@
       "track_id": "UP-1",
       "work_type": "ROUTINE_INSPECTION",
       "duration_minutes": 45,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
       "priority_score": 0.4892,
@@ -303,6 +313,7 @@
       "track_id": "UP-1",
       "work_type": "BALLAST_TAMPING",
       "duration_minutes": 120,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 30,
       "latest_end_minute": 360,
       "priority_score": 0.657,
@@ -336,6 +347,7 @@
       "track_id": "UP-1",
       "work_type": "TRACK_RENEWAL",
       "duration_minutes": 180,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 660,
       "latest_end_minute": 930,
       "priority_score": 0.8222,
@@ -371,6 +383,7 @@
       "track_id": "DOWN-1",
       "work_type": "OHE_MAINTENANCE",
       "duration_minutes": 90,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 660,
       "latest_end_minute": 930,
       "priority_score": 0.695,
@@ -404,6 +417,7 @@
       "track_id": "DOWN-1",
       "work_type": "EMERGENCY_REPAIR",
       "duration_minutes": 90,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
       "priority_score": 0.4953,
@@ -436,6 +450,7 @@
       "track_id": "UP-1",
       "work_type": "OHE_MAINTENANCE",
       "duration_minutes": 105,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 30,
       "latest_end_minute": 1410,
       "priority_score": 0.4823,
@@ -469,6 +484,7 @@
       "track_id": "UP-1",
       "start_minute": 30,
       "end_minute": 300,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "window_type": "NIGHT_TRAFFIC_BLOCK"
     },
     {
@@ -476,6 +492,7 @@
       "track_id": "UP-1",
       "start_minute": 690,
       "end_minute": 870,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "window_type": "MIDDAY_MAINTENANCE_SLOT"
     },
     {
@@ -483,6 +500,7 @@
       "track_id": "UP-1",
       "start_minute": 1260,
       "end_minute": 1410,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "window_type": "EVENING_OFF_PEAK"
     },
     {
@@ -490,6 +508,7 @@
       "track_id": "DOWN-1",
       "start_minute": 30,
       "end_minute": 300,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "window_type": "NIGHT_TRAFFIC_BLOCK"
     },
     {
@@ -497,6 +516,7 @@
       "track_id": "DOWN-1",
       "start_minute": 690,
       "end_minute": 870,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "window_type": "MIDDAY_MAINTENANCE_SLOT"
     },
     {
@@ -504,6 +524,7 @@
       "track_id": "DOWN-1",
       "start_minute": 1260,
       "end_minute": 1410,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "window_type": "EVENING_OFF_PEAK"
     }
   ],
@@ -514,6 +535,7 @@
       "track_id": "UP-1",
       "work_type": "ROUTINE_INSPECTION",
       "duration_minutes": 45,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 60,
       "latest_end_minute": 105,
       "priority_score": 0.3716,
@@ -546,6 +568,7 @@
       "track_id": "DOWN-1",
       "work_type": "ROUTINE_INSPECTION",
       "duration_minutes": 60,
+      "section_id": "CORRIDOR_C_DISRUPTED_S0-CORRIDOR_C_DISRUPTED_S1",
       "earliest_start_minute": 90,
       "latest_end_minute": 150,
       "priority_score": 0.318,

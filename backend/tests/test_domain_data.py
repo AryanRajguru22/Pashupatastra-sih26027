@@ -67,7 +67,7 @@ class TestDomainModelsAndFeatureAdapter(unittest.TestCase):
         track = TrackSegment(
             track_id="UP-1",
             corridor_id="CORR-NDLS-AGC",
-            section_id="SEC-01",
+            segment_name="SEG-01",
             section_name="NDLS-Mathura Up Line",
             direction="UP",
             km_start=0.0,
@@ -113,7 +113,7 @@ class TestDomainModelsAndFeatureAdapter(unittest.TestCase):
         track = TrackSegment(
             track_id="DOWN-1",
             corridor_id="CORR-01",
-            section_id="SEC-01",
+            segment_name="SEG-01",
             section_name="Down Main",
             direction="DOWN",
             km_start=0.0,
@@ -169,7 +169,7 @@ class TestDomainModelsAndFeatureAdapter(unittest.TestCase):
         track = TrackSegment(
             track_id="UP-1",
             corridor_id="CORR-TEST",
-            section_id="SEC-01",
+            segment_name="SEG-01",
             section_name="Main Line",
             direction="UP",
             km_start=0.0,
@@ -224,7 +224,7 @@ class TestDomainModelsAndFeatureAdapter(unittest.TestCase):
         track = TrackSegment(
             track_id="UP-1",
             corridor_id="CORR-TEST",
-            section_id="SEC-01",
+            segment_name="SEG-01",
             section_name="Main Line",
             direction="UP",
             km_start=0.0,

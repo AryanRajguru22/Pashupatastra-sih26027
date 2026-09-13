@@ -121,6 +121,25 @@ class OptimizationCounts(BaseModel):
     unscheduled: int
 
 
+class ProvenanceResponse(BaseModel):
+    """Sprint 3 Step 9 canonical provenance, mirroring
+    backend.app.data.provenance.ProvenanceProfile.to_dict().
+
+    Four independent axes plus the derived effective value. `effective`
+    is always the weakest-link result of the other four fields - it is
+    never set independently, because the dict this model validates
+    comes straight out of ProvenanceProfile.to_dict(), which computes
+    it fresh every time rather than storing it. See
+    backend/app/data/provenance.py for the full rule.
+    """
+
+    topology: str
+    timetable: str
+    asset_condition: str
+    possession: str
+    effective: str
+
+
 class JobOptimizationResponse(BaseModel):
     """Honest outcome of one corridor optimization batch.
 
@@ -132,11 +151,30 @@ class JobOptimizationResponse(BaseModel):
     solver_status: str
     solve_time_seconds: float
 
-    # Provenance of the possession data the schedule was built against.
-    # Sprint 2 uses deterministic generated windows, reported as
-    # GENERATED_STATIC. It is never described as live or real-time.
+    # LEGACY, kept verbatim for backward compatibility - see
+    # backend.app.data.provenance.from_possession_source, which is the
+    # single place this string is now derived from the canonical
+    # `provenance.possession` axis below rather than being an
+    # independent source of truth. Sprint 2 uses deterministic
+    # generated windows, reported as GENERATED_STATIC. It is never
+    # described as live or real-time.
     possession_source: str
+
+    # HOW those windows were computed (Sprint 3 Step 10):
+    # CANONICAL_TIMETABLE_DERIVED (train-free gaps from canonical
+    # section traversals) or GENERATED_STATIC_SLOTS (fixed operational
+    # slots modelling no train movement). A derivation label, NOT a
+    # provenance value - both derivations are SYNTHETIC on the
+    # provenance axis, so possession_source alone cannot tell them
+    # apart. See backend.app.jobs.service.
+    possession_derivation: str
+
     possession_window_count: int
+
+    # Canonical four-axis provenance (Sprint 3 Step 9). possession_source
+    # above is mechanically derived from provenance.possession, not set
+    # independently - see backend/app/jobs/optimization.py.
+    provenance: ProvenanceResponse
 
     # Tracks carrying work that no possession window covers. The solver
     # refuses those blocks rather than scheduling them unprotected.

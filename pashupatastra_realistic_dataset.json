@@ -365,6 +365,7 @@
   "trains": [
     {
       "train_number": "12049",
+      "service_date": "2026-09-10",
       "train_name": "Gatimaan Express",
       "train_type": "GATIMAAN_EXPRESS",
       "direction": "DOWN",
@@ -451,6 +452,7 @@
     },
     {
       "train_number": "12001",
+      "service_date": "2026-09-10",
       "train_name": "Shatabdi Express",
       "train_type": "SHATABDI_EXPRESS",
       "direction": "DOWN",
@@ -537,6 +539,7 @@
     },
     {
       "train_number": "12279",
+      "service_date": "2026-09-10",
       "train_name": "Taj Express",
       "train_type": "TAJ_EXPRESS",
       "direction": "DOWN",
@@ -623,6 +626,7 @@
     },
     {
       "train_number": "14211",
+      "service_date": "2026-09-10",
       "train_name": "Delhi–Agra Intercity",
       "train_type": "INTERCITY_EXPRESS",
       "direction": "DOWN",
@@ -709,6 +713,7 @@
     },
     {
       "train_number": "12057",
+      "service_date": "2026-09-10",
       "train_name": "Yamuna Jan Shatabdi",
       "train_type": "JAN_SHATABDI",
       "direction": "DOWN",
@@ -795,6 +800,7 @@
     },
     {
       "train_number": "12919",
+      "service_date": "2026-09-10",
       "train_name": "Braj Superfast Express",
       "train_type": "SUPERFAST_EXPRESS",
       "direction": "DOWN",
@@ -881,6 +887,7 @@
     },
     {
       "train_number": "12192",
+      "service_date": "2026-09-10",
       "train_name": "Gatimaan Express",
       "train_type": "GATIMAAN_EXPRESS",
       "direction": "DOWN",
@@ -967,6 +974,7 @@
     },
     {
       "train_number": "12415",
+      "service_date": "2026-09-10",
       "train_name": "Shatabdi Express",
       "train_type": "SHATABDI_EXPRESS",
       "direction": "DOWN",
@@ -1053,6 +1061,7 @@
     },
     {
       "train_number": "12625",
+      "service_date": "2026-09-10",
       "train_name": "Taj Express",
       "train_type": "TAJ_EXPRESS",
       "direction": "DOWN",
@@ -1139,6 +1148,7 @@
     },
     {
       "train_number": "12925",
+      "service_date": "2026-09-10",
       "train_name": "Delhi–Agra Intercity",
       "train_type": "INTERCITY_EXPRESS",
       "direction": "DOWN",
@@ -1225,6 +1235,7 @@
     },
     {
       "train_number": "12431",
+      "service_date": "2026-09-10",
       "train_name": "Yamuna Jan Shatabdi",
       "train_type": "JAN_SHATABDI",
       "direction": "DOWN",
@@ -1311,6 +1322,7 @@
     },
     {
       "train_number": "12047",
+      "service_date": "2026-09-10",
       "train_name": "Braj Superfast Express",
       "train_type": "SUPERFAST_EXPRESS",
       "direction": "DOWN",
@@ -1397,6 +1409,7 @@
     },
     {
       "train_number": "12050",
+      "service_date": "2026-09-10",
       "train_name": "Gatimaan Express",
       "train_type": "GATIMAAN_EXPRESS",
       "direction": "UP",
@@ -1483,6 +1496,7 @@
     },
     {
       "train_number": "12002",
+      "service_date": "2026-09-10",
       "train_name": "Shatabdi Express",
       "train_type": "SHATABDI_EXPRESS",
       "direction": "UP",
@@ -1569,6 +1583,7 @@
     },
     {
       "train_number": "12280",
+      "service_date": "2026-09-10",
       "train_name": "Taj Express",
       "train_type": "TAJ_EXPRESS",
       "direction": "UP",
@@ -1655,6 +1670,7 @@
     },
     {
       "train_number": "14212",
+      "service_date": "2026-09-10",
       "train_name": "Delhi–Agra Intercity",
       "train_type": "INTERCITY_EXPRESS",
       "direction": "UP",
@@ -1741,6 +1757,7 @@
     },
     {
       "train_number": "12058",
+      "service_date": "2026-09-10",
       "train_name": "Yamuna Jan Shatabdi",
       "train_type": "JAN_SHATABDI",
       "direction": "UP",
@@ -1827,6 +1844,7 @@
     },
     {
       "train_number": "12920",
+      "service_date": "2026-09-10",
       "train_name": "Braj Superfast Express",
       "train_type": "SUPERFAST_EXPRESS",
       "direction": "UP",
@@ -1913,6 +1931,7 @@
     },
     {
       "train_number": "12191",
+      "service_date": "2026-09-10",
       "train_name": "Gatimaan Express",
       "train_type": "GATIMAAN_EXPRESS",
       "direction": "UP",
@@ -1999,6 +2018,7 @@
     },
     {
       "train_number": "12416",
+      "service_date": "2026-09-10",
       "train_name": "Shatabdi Express",
       "train_type": "SHATABDI_EXPRESS",
       "direction": "UP",
@@ -2085,6 +2105,7 @@
     },
     {
       "train_number": "12626",
+      "service_date": "2026-09-10",
       "train_name": "Taj Express",
       "train_type": "TAJ_EXPRESS",
       "direction": "UP",
@@ -2171,6 +2192,7 @@
     },
     {
       "train_number": "12926",
+      "service_date": "2026-09-10",
       "train_name": "Delhi–Agra Intercity",
       "train_type": "INTERCITY_EXPRESS",
       "direction": "UP",
@@ -2257,6 +2279,7 @@
     },
     {
       "train_number": "12432",
+      "service_date": "2026-09-10",
       "train_name": "Yamuna Jan Shatabdi",
       "train_type": "JAN_SHATABDI",
       "direction": "UP",
@@ -2343,6 +2366,7 @@
     },
     {
       "train_number": "12048",
+      "service_date": "2026-09-10",
       "train_name": "Braj Superfast Express",
       "train_type": "SUPERFAST_EXPRESS",
       "direction": "UP",

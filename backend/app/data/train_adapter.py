@@ -329,6 +329,34 @@ def generate_section_possession_windows_from_trains(
     occupies that section from departure at the first station to arrival
     at the next station. Actual timestamps are preferred; scheduled +
     delay is used when actual data is unavailable.
+
+    LEGACY - superseded by
+    backend.app.data.timetable_adapter.derive_section_possession_windows.
+    Retained unchanged because its exact output (including the compound
+    "UP-1:7-32" track_id it builds via section_track_id) is pinned by
+    existing tests. Do not build new callers on it. Three defects,
+    documented rather than patched here so the pinned behaviour stays
+    stable:
+
+    1. SILENT SECTION MISATTRIBUTION (worst of the three). Corridor
+       station_pairs are zipped POSITIONALLY against the train's own
+       station_times. That only lines up for trains running in
+       increasing-km corridor order. A train running the other way
+       lists its stops in the opposite order, so station_times[i] is
+       not the corridor's i-th station: in the checked-in dataset every
+       UP train's AGC->RKM occupation is attributed to section
+       NDLS-NZM, 190 km away. It raises nothing - it just produces
+       wrong windows. The replacement resolves sections from the
+       STATION PAIR the train actually runs between.
+
+    2. NO MIDNIGHT ROLLOVER. _to_minutes maps HH:MM into a single day,
+       so an overnight run gives a decreasing interval and is rejected
+       outright by the movement_end <= movement_start guard below.
+
+    3. REQUIRES A CORRIDOR-LENGTH station_times ARRAY. It raises unless
+       len(station_times) == len(stations), so a train that skips a
+       stop, starts short or terminates early cannot be represented at
+       all.
     """
 
     if horizon_minutes <= 0:

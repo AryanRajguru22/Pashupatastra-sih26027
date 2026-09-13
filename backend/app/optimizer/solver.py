@@ -26,6 +26,7 @@ from contracts import (
     BlockStatus,
     OptimizationRequest,
     OptimizationResult,
+    PossessionWindow,
     ScheduledBlock,
     SolverStatus,
 )
@@ -47,6 +48,53 @@ _SEARCH_WORKERS = 1
 _RANDOM_SEED = 1
 
 
+def _resource_key(block: BlockCandidate) -> tuple[str, str | None]:
+    """The solver's no-overlap / capacity resource identity for a block.
+
+    Canonical identity is (track_id, section_id), NOT a compound string
+    such as "UP-1:32-66" - see backend.app.data.models.Section and
+    contracts.BlockCandidate.section_id. track_id keeps its existing
+    meaning as the physical/logical track; section_id narrows that down
+    to one section of it.
+
+    A block that declares no section_id (every pre-Sprint-3-Step-3
+    caller: the jobs pipeline, golden_scenario.json, and any hand-built
+    request) keys on (track_id, None), which is exactly one group per
+    track_id - identical to the old track_id-only grouping. Sections
+    only become distinct resources once a caller actually populates
+    section_id.
+    """
+    return (block.track_id, block.section_id)
+
+
+def _possession_window_covers_block(
+    window: PossessionWindow,
+    block: BlockCandidate,
+) -> bool:
+    """Whether a possession window's identity matches a block's identity.
+
+    track_id must always match. section_id match is asymmetric, by
+    design, to stay compatible with callers that do not model sections
+    at all:
+
+      - If the block declares no section_id (None), it is matched by
+        track_id alone - the pre-Sprint-3-Step-3 behavior every existing
+        fixture and the jobs pipeline rely on.
+      - If the block DOES declare a section_id, the window must declare
+        the identical section_id. A window covering a different section
+        of the same track_id (or no section at all) is NOT a match -
+        this is what stops a possession for "UP-1 section A" from
+        silently covering work that actually requires "UP-1 section B".
+    """
+    if window.track_id != block.track_id:
+        return False
+
+    if block.section_id is None:
+        return True
+
+    return window.section_id == block.section_id
+
+
 def uncovered_possession_tracks(
     request: OptimizationRequest,
 ) -> dict[str, list[str]]:
@@ -54,9 +102,10 @@ def uncovered_possession_tracks(
 
     Possession control is considered in force as soon as a request
     declares at least one possession window. Any track carrying work in
-    such a request but lacking a window is a safety-relevant gap: the
-    solver refuses those blocks, and a caller assembling a request can
-    use this to reject the request outright instead.
+    such a request but lacking a window covering its (track_id,
+    section_id) identity is a safety-relevant gap: the solver refuses
+    those blocks, and a caller assembling a request can use this to
+    reject the request outright instead.
 
     Returns a mapping of uncovered track_id -> block_ids on that track.
     An empty mapping means every worked track is covered, or that the
@@ -66,15 +115,15 @@ def uncovered_possession_tracks(
     if not request.possession_windows:
         return {}
 
-    covered = {
-        window.track_id
-        for window in request.possession_windows
-    }
-
     uncovered: dict[str, list[str]] = {}
 
     for block in request.candidates:
-        if block.track_id not in covered:
+        covered = any(
+            _possession_window_covers_block(window, block)
+            for window in request.possession_windows
+        )
+
+        if not covered:
             uncovered.setdefault(
                 block.track_id,
                 [],
@@ -137,13 +186,9 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
     # means every track the caller intends to work on must be covered.
     possession_control_active = bool(request.possession_windows)
 
-    covered_tracks = {
-        window.track_id
-        for window in request.possession_windows
-    }
-
     # Blocks refused because possession control is in force for this
-    # request but no possession window covers their track.
+    # request but no possession window covers their (track_id,
+    # section_id) identity - see _possession_window_covers_block.
     #
     # Resolved BEFORE any constraint is posted, because the committed
     # pinning below must know about it. Pinning a block with
@@ -155,7 +200,10 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
         {
             block.block_id
             for block in blocks
-            if block.track_id not in covered_tracks
+            if not any(
+                _possession_window_covers_block(window, block)
+                for window in request.possession_windows
+            )
         }
         if possession_control_active
         else set()
@@ -280,7 +328,7 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
         matching_windows = [
             window
             for window in request.possession_windows
-            if window.track_id == block.track_id
+            if _possession_window_covers_block(window, block)
         ]
 
         if not matching_windows:
@@ -351,16 +399,20 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
     # ------------------------------------------------------------------
     # Track no-overlap + headway
     # ------------------------------------------------------------------
+    # Resource identity is (track_id, section_id) - see _resource_key.
+    # Two blocks sharing a track_id but occupying different sections are
+    # distinct resources and may overlap in time; two blocks sharing
+    # both track_id and section_id are the same resource and may not.
     headway = max(0, int(request.min_headway_minutes))
 
-    by_track: Dict[str, List[str]] = {}
+    by_resource: Dict[tuple[str, str | None], List[str]] = {}
 
     for block in blocks:
-        by_track.setdefault(block.track_id, []).append(
+        by_resource.setdefault(_resource_key(block), []).append(
             block.block_id
         )
 
-    for track_id, block_ids in by_track.items():
+    for resource_key, block_ids in by_resource.items():
         buffered_intervals = []
 
         for block_id in block_ids:
@@ -573,6 +625,7 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
                     start_minute=start_minute,
                     end_minute=end_minute,
                     work_type=block.work_type,
+                    section_id=block.section_id,
                     priority_score=block.priority_score,
                     risk_score=block.risk_score,
                     is_committed=is_committed,
@@ -653,15 +706,16 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
                     )
 
                 else:
-                    # Look for a same-track scheduled block with a
-                    # stronger objective contribution.
+                    # Look for a same-resource (track_id, section_id)
+                    # scheduled block with a stronger objective
+                    # contribution.
                     scheduled_competitor = next(
                         (
                             other_id
                             for other_id in scheduled_ids
                             if (
-                                by_id[other_id].track_id
-                                == block.track_id
+                                _resource_key(by_id[other_id])
+                                == _resource_key(block)
                             )
                         ),
                         None,

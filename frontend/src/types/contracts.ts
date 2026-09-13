@@ -67,6 +67,8 @@ export interface PossessionWindow {
   track_id: string;
   start_minute: number;
   end_minute: number;
+  /** Bare section identifier (e.g. "NDLS-NZM"); never a compound of track_id and a km range. */
+  section_id?: string | null;
   window_type?: string;
 }
 
@@ -76,6 +78,8 @@ export interface BlockCandidate {
   track_id: string;
   work_type: WorkType | string;
   duration_minutes: number;
+  /** Bare section identifier (e.g. "NDLS-NZM"); track_id stays the bare track id (e.g. "UP-1"). */
+  section_id?: string | null;
   earliest_start_minute: number;
   latest_end_minute: number;
   priority_score: number;
@@ -93,6 +97,8 @@ export interface ScheduledBlock {
   start_minute: number;
   end_minute: number;
   work_type: WorkType | string;
+  /** Bare section identifier, carried through from the scheduled BlockCandidate. */
+  section_id?: string | null;
   priority_score: number;
   risk_score: number;
   is_committed: boolean;
@@ -101,6 +107,16 @@ export interface ScheduledBlock {
 
 export interface OptimizationRequest {
   corridor_id: string;
+  /**
+   * ISO-8601 datetime with an explicit UTC offset (Asia/Kolkata,
+   * +05:30, for this domain) anchoring minute 0 of the planning
+   * horizon. Every *_minute field on this contract (possession
+   * windows, candidate windows, scheduled blocks, ...) is an integer
+   * offset from this anchor, not minutes-from-midnight - it may
+   * legitimately exceed 1440 (a multi-day horizon) or cross a
+   * calendar midnight (e.g. 23:30 -> 04:30 next day is 1410 -> 1710).
+   */
+  horizon_start: string;
   horizon_minutes: number;
   tracks: string[];
   candidates: BlockCandidate[];
@@ -202,6 +218,48 @@ export type DataProvenance =
  * CONNECTED". Connectivity and provenance are independent and are kept
  * as separate fields below; do not reintroduce a merged field.
  */
+
+// ── Canonical four-axis provenance (Sprint 3 Step 9) ─────────────────
+//
+// Mirrors backend.app.data.provenance.ProvenanceProfile /
+// ProvenanceLevel (backend/app/data/provenance.py) - the single place
+// the backend unifies "where did this input come from" across four
+// independent input classes: topology, timetable, asset condition and
+// possession. `effective` is the weakest-link result of the other
+// four (backend computes it, never stores it independently); treat it
+// as derived, not something to set from the frontend.
+//
+// This is NOT the same type as `DataProvenance` above. `DataProvenance`
+// is the DASHBOARD's own, frontend-owned fact about what it POSTs to
+// /optimize (a single checked-in fixture, today always
+// SYNTHETIC_FIXTURE) - the backend never asserts it. `ProvenanceProfile`
+// is the JOBS PIPELINE's server-computed, four-axis provenance,
+// returned on JobOptimizationResponse.provenance
+// (POST /corridors/{id}/optimize-jobs). No frontend code consumes the
+// jobs API yet, so nothing wires this type to a component today - it
+// exists so a future jobs-pipeline UI has the canonical vocabulary to
+// build against, per Sprint 3 Step 9.
+//
+// Documented correspondence with `DataProvenance` (see
+// backend/app/data/provenance.py's FRONTEND_DATA_PROVENANCE_MAP, which
+// is the tested source of truth for this table - keep both in sync):
+//
+//   SYNTHETIC_FIXTURE -> every axis SYNTHETIC
+//   REALISTIC_STATIC  -> REAL_STATIC (reserved; not yet emitted)
+//   LIVE_FEED         -> no ProvenanceLevel equivalent. There is no
+//                        LIVE member on ProvenanceLevel and none should
+//                        ever be added - see that module's "NO LIVE
+//                        VALUE" docstring section.
+export type ProvenanceLevel = "REAL_STATIC" | "REAL_SCHEDULED" | "SYNTHETIC";
+
+export interface ProvenanceProfile {
+  topology: ProvenanceLevel;
+  timetable: ProvenanceLevel;
+  asset_condition: ProvenanceLevel;
+  possession: ProvenanceLevel;
+  /** Weakest-link result of the four axes above. Server-computed. */
+  effective: ProvenanceLevel;
+}
 export interface DashboardData {
   result: OptimizationResult;
   request: OptimizationRequest;

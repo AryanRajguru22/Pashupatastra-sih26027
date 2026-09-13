@@ -9,6 +9,7 @@ import random
 from typing import Any, Dict, List, Optional
 
 from contracts.schemas import (
+    DEFAULT_HORIZON_START,
     BlockCandidate,
     BlockStatus,
     DisruptionEvent,
@@ -25,6 +26,7 @@ from backend.app.data.models import (
     TrackSegment,
 )
 from backend.app.data.feature_adapter import ScoringFeatureAdapter
+from backend.app.data.section_registry import SectionRegistry
 
 
 class CorridorDataGenerator:
@@ -66,7 +68,7 @@ class CorridorDataGenerator:
                 TrackSegment(
                     track_id=tid,
                     corridor_id=corridor_id,
-                    section_id=f"SEC-{corridor_id}-{tid}",
+                    segment_name=f"SEG-{corridor_id}-{tid}",
                     section_name=f"{direction} Main Line ({tid})",
                     direction=direction,
                     km_start=0.0,
@@ -78,6 +80,91 @@ class CorridorDataGenerator:
                 )
             )
         return tracks
+
+    def generate_synthetic_stations(
+        self,
+        corridor_id: str,
+        corridor_length_km: float,
+    ) -> List[Dict[str, Any]]:
+        """Deterministic ABSTRACT endpoints for a synthetic corridor.
+
+        These are NOT railway stations. They are placeholder endpoints
+        that exist only so a synthetic corridor can express its span
+        through the same Section vocabulary as a real one. The ids are
+        deliberately corridor-scoped and obviously synthetic
+        ("CORRIDOR_A_S0"), never real station codes, and the chainages
+        are the corridor's own declared length - nothing is invented.
+
+        Exactly TWO endpoints are produced, giving exactly ONE section
+        per corridor. That is deliberate: the pre-Step-7 generator gave
+        each track a single per-track alias, so every track was one
+        undivided resource. Emitting one span keeps that resource
+        grouping bit-identical while changing only the vocabulary. A
+        synthetic corridor has no station topology to subdivide it and
+        inventing intermediate stations would fabricate railway
+        geometry.
+        """
+
+        return [
+            {
+                "station_id": f"{corridor_id}_S0",
+                "corridor_id": corridor_id,
+                "name": f"{corridor_id} synthetic origin",
+                "km": 0.0,
+            },
+            {
+                "station_id": f"{corridor_id}_S1",
+                "corridor_id": corridor_id,
+                "name": f"{corridor_id} synthetic terminus",
+                "km": float(corridor_length_km),
+            },
+        ]
+
+    @staticmethod
+    def _sole_section_id(registry: SectionRegistry) -> str:
+        """The single section of a synthetic corridor.
+
+        Synthetic corridors have exactly one span (see
+        generate_synthetic_stations), so there is one canonical
+        section_id to assign. This raises rather than picking one if
+        that ever stops being true, so a corridor that gains real
+        topology cannot silently have all its work assigned to an
+        arbitrary section.
+        """
+
+        section_ids = registry.section_ids()
+
+        if len(section_ids) != 1:
+            raise ValueError(
+                f"Corridor {registry.corridor_id!r} has "
+                f"{len(section_ids)} sections. The synthetic generator "
+                "only knows how to assign work to a single-span "
+                "corridor; a multi-section corridor must assign "
+                "section_id per asset location."
+            )
+
+        return section_ids[0]
+
+    def build_section_registry(
+        self,
+        corridor_id: str,
+        tracks: List[TrackSegment],
+        corridor_length_km: float,
+    ) -> SectionRegistry:
+        """The authoritative section vocabulary for a synthetic corridor.
+
+        Every canonical section_id the generator emits comes from here,
+        so the generator no longer mints section identities of its own.
+        """
+
+        return SectionRegistry.from_stations(
+            corridor_id,
+            self.generate_synthetic_stations(
+                corridor_id,
+                corridor_length_km,
+            ),
+            track_ids=[track.track_id for track in tracks],
+        )
 
     def generate_assets(
         self,
@@ -142,6 +229,7 @@ class CorridorDataGenerator:
         self,
         tracks: List[TrackSegment],
         horizon_minutes: int = 1440,
+        registry: Optional[SectionRegistry] = None,
     ) -> List[PossessionWindow]:
         """Generates standard Indian Railways operational possession windows per track.
 
@@ -149,7 +237,19 @@ class CorridorDataGenerator:
         1. Night Traffic Block: 00:30 to 05:00 (minute 30 to 300) -> 270 min
         2. Midday Maintenance Slot: 11:30 to 14:30 (minute 690 to 870) -> 180 min
         3. Evening Off-Peak Window: 21:00 to 23:30 (minute 1260 to 1410) -> 150 min
+
+        section_id comes from the corridor's SectionRegistry (Sprint 3
+        Step 7). It used to be TrackSegment.section_id - a per-track
+        alias that was not a railway section at all, and which could
+        never match the station-span sections the timetable adapter
+        produces.
         """
+        section_id = (
+            self._sole_section_id(registry)
+            if registry is not None
+            else None
+        )
+
         windows: List[PossessionWindow] = []
         for track in tracks:
             windows.append(
@@ -158,6 +258,7 @@ class CorridorDataGenerator:
                     track_id=track.track_id,
                     start_minute=30,
                     end_minute=300,
+                    section_id=section_id,
                     window_type="NIGHT_TRAFFIC_BLOCK",
                 )
             )
@@ -167,6 +268,7 @@ class CorridorDataGenerator:
                     track_id=track.track_id,
                     start_minute=690,
                     end_minute=870,
+                    section_id=section_id,
                     window_type="MIDDAY_MAINTENANCE_SLOT",
                 )
             )
@@ -176,6 +278,7 @@ class CorridorDataGenerator:
                     track_id=track.track_id,
                     start_minute=1260,
                     end_minute=1410,
+                    section_id=section_id,
                     window_type="EVENING_OFF_PEAK",
                 )
             )
@@ -189,8 +292,14 @@ class CorridorDataGenerator:
         horizon_minutes: int = 1440,
         include_dependencies: bool = True,
         include_mutual_exclusions: bool = True,
+        registry: Optional[SectionRegistry] = None,
     ) -> List[BlockCandidate]:
         """Generates candidate maintenance blocks grounded in railway work types and scoring inputs."""
+        candidate_section_id = (
+            self._sole_section_id(registry)
+            if registry is not None
+            else None
+        )
         work_type_map = {
             AssetType.RAIL_SECTION.value: [WorkType.BALLAST_TAMPING.value, WorkType.TRACK_RENEWAL.value, WorkType.ROUTINE_INSPECTION.value],
             AssetType.TURNOUT_POINT.value: [WorkType.SIGNALLING_INTERLOCKING.value, WorkType.EMERGENCY_REPAIR.value, WorkType.ROUTINE_INSPECTION.value],
@@ -273,6 +382,11 @@ class CorridorDataGenerator:
                 track_id=asset.track_id,
                 work_type=work_type,
                 duration_minutes=duration,
+                # Canonical section identity, resolved through the
+                # corridor's SectionRegistry - never TrackSegment's old
+                # per-track alias, and never an ad-hoc or compound
+                # string. See generate_possession_windows.
+                section_id=candidate_section_id,
                 earliest_start_minute=earliest_start,
                 latest_end_minute=latest_end,
                 priority_score=priority,
@@ -316,8 +430,11 @@ class CorridorDataGenerator:
         """Scenario A — Baseline 2-track mainline corridor (12 candidates)."""
         self.set_seed(seed)
         tracks = self.generate_corridor_tracks("CORRIDOR_A", num_tracks=2, corridor_length_km=35.0)
+        registry = self.build_section_registry("CORRIDOR_A", tracks, 35.0)
         assets = self.generate_assets(tracks, num_assets_per_track=8)
-        possession_windows = self.generate_possession_windows(tracks, horizon_minutes=1440)
+        possession_windows = self.generate_possession_windows(
+            tracks, horizon_minutes=1440, registry=registry
+        )
         candidates = self.generate_candidate_blocks(
             assets=assets,
             tracks=tracks,
@@ -325,10 +442,12 @@ class CorridorDataGenerator:
             horizon_minutes=1440,
             include_dependencies=True,
             include_mutual_exclusions=True,
+            registry=registry,
         )
 
         return OptimizationRequest(
             corridor_id="CORRIDOR_A",
+            horizon_start=DEFAULT_HORIZON_START,
             horizon_minutes=1440,
             tracks=[t.track_id for t in tracks],
             candidates=candidates,
@@ -341,8 +460,11 @@ class CorridorDataGenerator:
         """Scenario B — High-density 4-track trunk corridor (24 candidates)."""
         self.set_seed(seed)
         tracks = self.generate_corridor_tracks("CORRIDOR_B_DENSE", num_tracks=4, corridor_length_km=60.0)
+        registry = self.build_section_registry("CORRIDOR_B_DENSE", tracks, 60.0)
         assets = self.generate_assets(tracks, num_assets_per_track=10)
-        possession_windows = self.generate_possession_windows(tracks, horizon_minutes=1440)
+        possession_windows = self.generate_possession_windows(
+            tracks, horizon_minutes=1440, registry=registry
+        )
         candidates = self.generate_candidate_blocks(
             assets=assets,
             tracks=tracks,
@@ -350,10 +472,12 @@ class CorridorDataGenerator:
             horizon_minutes=1440,
             include_dependencies=True,
             include_mutual_exclusions=True,
+            registry=registry,
         )
 
         return OptimizationRequest(
             corridor_id="CORRIDOR_B_DENSE",
+            horizon_start=DEFAULT_HORIZON_START,
             horizon_minutes=1440,
             tracks=[t.track_id for t in tracks],
             candidates=candidates,
@@ -366,8 +490,11 @@ class CorridorDataGenerator:
         """Scenario C — Disruption and Re-optimization Testbed (14 candidates, 2 committed)."""
         self.set_seed(seed)
         tracks = self.generate_corridor_tracks("CORRIDOR_C_DISRUPTED", num_tracks=2, corridor_length_km=40.0)
+        registry = self.build_section_registry("CORRIDOR_C_DISRUPTED", tracks, 40.0)
         assets = self.generate_assets(tracks, num_assets_per_track=8)
-        possession_windows = self.generate_possession_windows(tracks, horizon_minutes=1440)
+        possession_windows = self.generate_possession_windows(
+            tracks, horizon_minutes=1440, registry=registry
+        )
         candidates = self.generate_candidate_blocks(
             assets=assets,
             tracks=tracks,
@@ -375,6 +502,7 @@ class CorridorDataGenerator:
             horizon_minutes=1440,
             include_dependencies=True,
             include_mutual_exclusions=True,
+            registry=registry,
         )
 
         committed_blocks = []
@@ -393,6 +521,7 @@ class CorridorDataGenerator:
 
         return OptimizationRequest(
             corridor_id="CORRIDOR_C_DISRUPTED",
+            horizon_start=DEFAULT_HORIZON_START,
             horizon_minutes=1440,
             tracks=[t.track_id for t in tracks],
             candidates=candidates,

@@ -14,6 +14,7 @@ from contracts.schemas import (
     DisruptionEvent,
     RecoveryRequest,
     RecoveryResponse,
+    DEFAULT_HORIZON_START,
 )
 
 __all__ = [
@@ -29,4 +30,5 @@ __all__ = [
     "DisruptionEvent",
     "RecoveryRequest",
     "RecoveryResponse",
+    "DEFAULT_HORIZON_START",
 ]
