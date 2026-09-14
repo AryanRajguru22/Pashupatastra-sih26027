@@ -106,6 +106,13 @@ class JobEventType(str, Enum):
       BLOCK_COMMITTED          the current proposal was committed/pinned
                                (the existing `notify` transition)
       JOB_COMPLETED            the job reached its terminal state
+      PROPOSAL_REJECTED        an authority refused the CURRENT proposal
+                               outright (Sprint 3 Slice 3); the job
+                               returns to 'reported'
+      PROPOSAL_POSTPONED       an authority deferred the CURRENT
+                               proposal to a not-before date (Sprint 3
+                               Slice 3); the job returns to 'reported'
+                               with earliest_start_minute raised
       TRANSITION_REJECTED      a requested transition was refused; the
                                attempt is recorded, state is unchanged
 
@@ -139,6 +146,8 @@ class JobEventType(str, Enum):
     SCHEDULE_ASSIGNED = "SCHEDULE_ASSIGNED"
     BLOCK_COMMITTED = "BLOCK_COMMITTED"
     JOB_COMPLETED = "JOB_COMPLETED"
+    PROPOSAL_REJECTED = "PROPOSAL_REJECTED"
+    PROPOSAL_POSTPONED = "PROPOSAL_POSTPONED"
     TRANSITION_REJECTED = "TRANSITION_REJECTED"
 
 
@@ -209,6 +218,18 @@ def _canonical_json(value: Any) -> str:
         ensure_ascii=False,
         allow_nan=False,
     )
+
+
+def canonical_json(value: Any) -> str:
+    """Public alias of the canonical JSON form used by JobEvent.canonical_bytes().
+
+    Exposed so other modules that need the SAME deterministic
+    serialization (e.g. backend.app.jobs.proposal.BlockProposal.digest())
+    do not re-implement it independently and risk a second, divergent
+    spelling of "canonical JSON" in this codebase.
+    """
+
+    return _canonical_json(value)
 
 
 @dataclass(frozen=True)
@@ -354,6 +375,7 @@ __all__ = [
     "JobEvent",
     "JobEventType",
     "JobStateSnapshot",
+    "canonical_json",
     "event_timestamp",
     "make_event",
     "new_event_id",

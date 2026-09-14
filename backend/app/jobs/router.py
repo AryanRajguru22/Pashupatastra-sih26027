@@ -26,6 +26,7 @@ from backend.app.jobs.lifecycle import (
 )
 
 from backend.app.jobs.models import (
+    ApproveProposalRequest,
     BlockProposalResponse,
     CommitBlockRequest,
     JobActionResponse,
@@ -35,7 +36,9 @@ from backend.app.jobs.models import (
     JobOptimizationResponse,
     JobResponse,
     JobStatus,
+    PostponeProposalRequest,
     ProposalExplanationItem,
+    RejectProposalRequest,
 )
 
 from backend.app.jobs.optimization import (
@@ -361,6 +364,177 @@ def notify_job(
             **as_public_job(job)
         ),
         message="Job notified",
+    )
+
+
+@router.post(
+    "/jobs/{job_id}/proposal/approve",
+    response_model=JobActionResponse,
+)
+def approve_proposal(
+    job_id: str,
+    body: ApproveProposalRequest,
+    actor: Actor = Depends(request_actor),
+) -> JobActionResponse:
+    """Approve (commit) the job's CURRENT NEW-block proposal.
+
+    Delegates to the same commit machinery as POST /jobs/{job_id}/notify
+    (JobAction.COMMIT_BLOCK; no separate APPROVE_PROPOSAL permission
+    exists) - see JobService.approve_proposal. expected_proposal_run_id
+    is mandatory here, unlike /notify's optional body.
+    """
+
+    try:
+        job = service.approve_proposal(
+            job_id,
+            actor=actor,
+            expected_proposal_run_id=body.expected_proposal_run_id,
+        )
+
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    except _CONFLICTS as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return JobActionResponse(
+        job=JobResponse(
+            **as_public_job(job)
+        ),
+        message="Proposal approved",
+    )
+
+
+@router.post(
+    "/jobs/{job_id}/proposal/reject",
+    response_model=JobActionResponse,
+)
+def reject_proposal(
+    job_id: str,
+    body: RejectProposalRequest,
+    actor: Actor = Depends(request_actor),
+) -> JobActionResponse:
+    """Reject the job's CURRENT NEW-block proposal outright.
+
+    scheduled -> reported. The job stays eligible for the next
+    optimization attempt to produce a genuinely new proposal - see
+    JobService.reject_proposal.
+    """
+
+    try:
+        job = service.reject_proposal(
+            job_id,
+            actor=actor,
+            expected_proposal_run_id=body.expected_proposal_run_id,
+            reason=body.reason,
+        )
+
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    except _CONFLICTS as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return JobActionResponse(
+        job=JobResponse(
+            **as_public_job(job)
+        ),
+        message="Proposal rejected",
+    )
+
+
+@router.post(
+    "/jobs/{job_id}/proposal/postpone",
+    response_model=JobActionResponse,
+)
+def postpone_proposal(
+    job_id: str,
+    body: PostponeProposalRequest,
+    actor: Actor = Depends(request_actor),
+) -> JobActionResponse:
+    """Postpone the job's CURRENT NEW-block proposal to a not-before date.
+
+    scheduled -> reported, with the block's earliest_start_minute raised
+    so the next optimization attempt cannot place it earlier than
+    selected_date - see JobService.postpone_proposal. A date outside
+    this deployment's supported optimization horizon fails closed (400)
+    rather than silently accepted.
+    """
+
+    try:
+        job = service.postpone_proposal(
+            job_id,
+            actor=actor,
+            expected_proposal_run_id=body.expected_proposal_run_id,
+            reason=body.reason,
+            selected_date=body.selected_date,
+        )
+
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    except _CONFLICTS as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return JobActionResponse(
+        job=JobResponse(
+            **as_public_job(job)
+        ),
+        message="Proposal postponed",
     )
 
 

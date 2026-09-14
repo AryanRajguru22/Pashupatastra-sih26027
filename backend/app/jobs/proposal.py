@@ -36,6 +36,7 @@ WHAT A PROPOSAL IS NOT
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional, Sequence
 
@@ -43,7 +44,7 @@ from contracts import BlockStatus
 
 from backend.app.audit.models import OptimizationRunRecord
 from backend.app.data.provenance import ProvenanceProfile
-from backend.app.jobs.events import JobEvent, JobEventType
+from backend.app.jobs.events import JobEvent, JobEventType, canonical_json
 from backend.app.jobs.history import StoredJobEvent
 from backend.app.jobs.lifecycle import COMMITTED_STATUSES, proposal_run_id_of
 
@@ -108,6 +109,46 @@ class BlockProposal:
     provenance: ProvenanceProfile
 
     generated_at: str
+
+    def digest(self) -> str:
+        """SHA-256 hex digest over this proposal's stable identity/placement.
+
+        Audit traceability only (Sprint 3 Slice 3) - it is NOT the
+        stale-proposal safety mechanism. expected_proposal_run_id,
+        checked inside the transactional mutation path (see
+        backend.app.jobs.lifecycle.plan_postpone/plan_reject/
+        plan_commit), is what actually stops a write from landing on a
+        proposal other than the one reviewed; this digest exists so a
+        recorded decision can be shown, after the fact, to have acted
+        on an unchanged proposal.
+
+        Deliberately over IDENTITY and PLACEMENT fields only -
+        proposal_id, job_id, optimization_run_id, corridor_id, track_id,
+        section_id, start_minute, end_minute, duration_minutes,
+        work_type. priority_score/risk_score/objective_score,
+        explanation, provenance and generated_at are derived or
+        explanatory: rewording an explanation string or recomputing a
+        score must not change what this digest reports about WHICH
+        placement this is.
+
+        Uses the SAME canonical JSON form as JobEvent.canonical_bytes()
+        (backend.app.jobs.events.canonical_json), so this codebase has
+        exactly one spelling of "canonical JSON", not two.
+        """
+
+        payload = {
+            "proposal_id": self.proposal_id,
+            "job_id": self.job_id,
+            "optimization_run_id": self.optimization_run_id,
+            "corridor_id": self.corridor_id,
+            "track_id": self.track_id,
+            "section_id": self.section_id,
+            "start_minute": self.start_minute,
+            "end_minute": self.end_minute,
+            "duration_minutes": self.duration_minutes,
+            "work_type": self.work_type,
+        }
+        return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
 
     def to_dict(self) -> dict[str, Any]:
         return {

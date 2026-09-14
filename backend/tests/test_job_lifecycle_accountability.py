@@ -1767,6 +1767,9 @@ def test_every_state_changing_route_is_a_reviewed_history_recording_path():
         ("POST", "/jobs"),
         ("POST", "/corridors/{corridor_id}/optimize-jobs"),
         ("POST", "/jobs/{job_id}/notify"),
+        ("POST", "/jobs/{job_id}/proposal/approve"),
+        ("POST", "/jobs/{job_id}/proposal/reject"),
+        ("POST", "/jobs/{job_id}/proposal/postpone"),
         ("POST", "/jobs/{job_id}/complete"),
         ("POST", "/optimize"),
         ("POST", "/recover"),
@@ -1821,6 +1824,32 @@ _REPORT_BODY = {
 }
 
 
+_PROPOSAL_REVIEW_BODY = {
+    "expected_proposal_run_id": "RUN-DOES-NOT-EXIST",
+    "reason": "Impersonation check",
+    "selected_date": "2026-09-10",
+}
+
+
+def _proposal_review_body(path: str) -> dict | None:
+    """A syntactically valid body for whichever route `path` is.
+
+    Every proposal-review route requires a non-empty body; sending none
+    (or an empty {}) would fail with 422 before the actor check ever
+    runs, which would test body validation instead of the actor
+    rejection these tests exist to prove. The run id is bogus - these
+    requests must never reach a point where that matters.
+    """
+
+    if path.endswith("/proposal/approve"):
+        return {"expected_proposal_run_id": _PROPOSAL_REVIEW_BODY["expected_proposal_run_id"]}
+
+    if path.endswith("/proposal/reject") or path.endswith("/proposal/postpone"):
+        return dict(_PROPOSAL_REVIEW_BODY)
+
+    return None
+
+
 @pytest.mark.parametrize("role", ["SYSTEM", "system", " System "])
 def test_no_state_changing_route_accepts_a_system_role(client, role):
     from backend.app.jobs.router import service as router_service
@@ -1836,9 +1865,12 @@ def test_no_state_changing_route_accepts_a_system_role(client, role):
         "/jobs",
         "/corridors/CORRIDOR_A/optimize-jobs",
         f"/jobs/{job_id}/notify",
+        f"/jobs/{job_id}/proposal/approve",
+        f"/jobs/{job_id}/proposal/reject",
+        f"/jobs/{job_id}/proposal/postpone",
         f"/jobs/{job_id}/complete",
     ):
-        body = _REPORT_BODY if path == "/jobs" else None
+        body = _REPORT_BODY if path == "/jobs" else _proposal_review_body(path)
         response = client.post(path, json=body, headers=headers)
         assert response.status_code == 403, (path, response.text)
 
@@ -1854,9 +1886,13 @@ def test_system_looking_id_with_a_human_role_is_rejected_on_every_route(client):
     for path in (
         "/corridors/CORRIDOR_A/optimize-jobs",
         f"/jobs/{job['job_id']}/notify",
+        f"/jobs/{job['job_id']}/proposal/approve",
+        f"/jobs/{job['job_id']}/proposal/reject",
+        f"/jobs/{job['job_id']}/proposal/postpone",
         f"/jobs/{job['job_id']}/complete",
     ):
-        assert client.post(path, headers=headers).status_code == 400, path
+        body = _proposal_review_body(path)
+        assert client.post(path, json=body, headers=headers).status_code == 400, path
 
     assert client.get(f"/jobs/{job['job_id']}").json()["status"] == "reported"
 

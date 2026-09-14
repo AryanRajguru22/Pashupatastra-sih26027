@@ -17,9 +17,10 @@ WHAT THIS IS NOT
     The intended role split - WORKER reports and completes, AUTHORITY
     approves/postpones/rejects, SYSTEM scores and optimizes, ADMIN
     manages identities - is deliberately NOT encoded as a table here.
-    The approval actions do not exist yet, and a permission table with
-    no action to guard would be speculative code that later slices
-    would have to reconcile rather than build on.
+    The actions below (including REJECT_PROPOSAL/POSTPONE_PROPOSAL,
+    added in Sprint 3 Slice 3) all pass through this same seam, but no
+    policy that actually restricts who may call which action ships yet -
+    that is still a later slice's work.
 """
 
 from __future__ import annotations
@@ -40,6 +41,15 @@ class JobAction(str, Enum):
     COMPLETE_JOB = "COMPLETE_JOB"
     READ_JOB_HISTORY = "READ_JOB_HISTORY"
     READ_BLOCK_PROPOSAL = "READ_BLOCK_PROPOSAL"
+
+    # Sprint 3 Slice 3: authority review of a NEW block proposal.
+    # Approval is deliberately NOT a separate action here - it is the
+    # same domain commit transition as COMMIT_BLOCK above, and
+    # JobService.approve_proposal delegates to the existing commit
+    # machinery (notify) rather than introducing a second commit
+    # concept guarded by a second permission.
+    REJECT_PROPOSAL = "REJECT_PROPOSAL"
+    POSTPONE_PROPOSAL = "POSTPONE_PROPOSAL"
 
 
 class AuthorizationDenied(Exception):

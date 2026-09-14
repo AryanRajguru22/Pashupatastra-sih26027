@@ -862,6 +862,204 @@ def plan_commit(
     return plan
 
 
+def _require_nonblank(value: Optional[str], what: str) -> None:
+    if not value or not str(value).strip():
+        raise InvalidTransitionError(f"{what} is required")
+
+
+def plan_reject(
+    job_id: str,
+    *,
+    actor: Actor,
+    at: str,
+    reason: str,
+    expected_proposal_run_id: str,
+) -> Plan:
+    """scheduled -> reported: refuse the CURRENT proposal outright.
+
+    Unlike plan_commit, expected_proposal_run_id is MANDATORY here - a
+    human rejection decision must always be pinned to the specific
+    proposal that was reviewed, never "whatever proposal is current".
+    reason is mandatory too, and becomes the job's last_refusal_reason
+    (the same field a solver refusal writes - see _withdrawn), so
+    _no_proposal_reason reports it identically either way.
+
+    Reuses _withdrawn(), the exact same "clear placement, return to
+    reported" mutation a solver's own refusal applies to a stale
+    'scheduled' job (see _plan_refusal) - a human rejection and a
+    solver withdrawal are the same state change, described by a
+    different event.
+    """
+
+    _require_nonblank(expected_proposal_run_id, "expected_proposal_run_id")
+    _require_nonblank(reason, "reason")
+
+    def plan(rows):
+        job = rows[job_id]
+        status = job["status"]
+
+        if status != SCHEDULED:
+            raise InvalidTransitionError(
+                f"Job '{job_id}' cannot reject a proposal from status "
+                f"'{status}'"
+            )
+
+        if job.get("schedule_start_minute") is None or job.get("schedule_end_minute") is None:
+            raise InvalidTransitionError(
+                f"Job '{job_id}' is 'scheduled' but has no current "
+                "proposal to reject"
+            )
+
+        current_run = proposal_run_id_of(job)
+
+        if expected_proposal_run_id != current_run:
+            raise StaleProposalError(
+                f"Job '{job_id}' proposal is from run {current_run!r}, not "
+                f"the expected {expected_proposal_run_id!r}; the proposal "
+                "being rejected is not the one that was reviewed"
+            )
+
+        before = _snapshot(job)
+        rejected_start = job.get("schedule_start_minute")
+        rejected_end = job.get("schedule_end_minute")
+
+        mutation = _withdrawn(
+            replace(JobMutation.unchanged(job), updated_at=at), job, reason
+        )
+
+        event = make_event(
+            job_id,
+            JobEventType.PROPOSAL_REJECTED,
+            actor,
+            occurred_at=at,
+            reason=reason,
+            optimization_run_id=current_run,
+            before_state=before,
+            after_state=_snapshot(mutation.as_job(job)),
+            metadata={
+                "transition": "reject",
+                "rejected_start_minute": rejected_start,
+                "rejected_end_minute": rejected_end,
+                "expected_proposal_run_id": expected_proposal_run_id,
+            },
+        )
+
+        return [mutation], [event]
+
+    return plan
+
+
+def plan_postpone(
+    job_id: str,
+    *,
+    actor: Actor,
+    at: str,
+    reason: str,
+    selected_date: str,
+    not_before_minute: int,
+    expected_proposal_run_id: str,
+    proposal_digest: Optional[str] = None,
+) -> Plan:
+    """scheduled -> reported: defer the CURRENT proposal to a not-before date.
+
+    not_before_minute is the ALREADY-CONVERTED horizon-relative minute -
+    see backend.app.data.horizon_anchor.horizon_relative_minutes, the
+    one authoritative conversion. This function does not compute it and
+    does not re-derive it from selected_date; a caller that has not
+    converted selected_date through that path has not honoured the
+    horizon contract, and selected_date is recorded here only as
+    traceability metadata, never re-parsed.
+
+    Fails closed (InvalidTransitionError) if not_before_minute falls
+    outside [0, latest_end_minute) of the job's own stored block: a
+    postponement can never silently create schedulable availability
+    beyond what this deployment's optimization horizon supports, and a
+    "postpone into the past" is rejected the same way a "postpone
+    beyond the horizon" is - both are an invalid target, not a stale
+    proposal.
+
+    proposal_digest is audit traceability only (see
+    backend.app.jobs.proposal.BlockProposal.digest) - expected_proposal_
+    run_id, checked above, is what actually makes a stale postpone fail.
+    """
+
+    _require_nonblank(expected_proposal_run_id, "expected_proposal_run_id")
+    _require_nonblank(reason, "reason")
+
+    def plan(rows):
+        job = rows[job_id]
+        status = job["status"]
+
+        if status != SCHEDULED:
+            raise InvalidTransitionError(
+                f"Job '{job_id}' cannot postpone a proposal from status "
+                f"'{status}'"
+            )
+
+        if job.get("schedule_start_minute") is None or job.get("schedule_end_minute") is None:
+            raise InvalidTransitionError(
+                f"Job '{job_id}' is 'scheduled' but has no current "
+                "proposal to postpone"
+            )
+
+        current_run = proposal_run_id_of(job)
+
+        if expected_proposal_run_id != current_run:
+            raise StaleProposalError(
+                f"Job '{job_id}' proposal is from run {current_run!r}, not "
+                f"the expected {expected_proposal_run_id!r}; the proposal "
+                "being postponed is not the one that was reviewed"
+            )
+
+        block = job["block_candidate"]
+        latest_end = int(block.get("latest_end_minute", 1440))
+
+        if not_before_minute < 0 or not_before_minute >= latest_end:
+            raise InvalidTransitionError(
+                f"Job '{job_id}' cannot be postponed to {selected_date!r}: "
+                f"it resolves to minute {not_before_minute} relative to "
+                "this deployment's optimization horizon, which only "
+                f"covers [0, {latest_end}); choose a date inside the "
+                "supported horizon"
+            )
+
+        before = _snapshot(job)
+        original_start = job.get("schedule_start_minute")
+        original_end = job.get("schedule_end_minute")
+
+        withdrawn = _withdrawn(
+            replace(JobMutation.unchanged(job), updated_at=at), job, reason
+        )
+        postponed_block = copy.deepcopy(withdrawn.block_candidate)
+        postponed_block["earliest_start_minute"] = int(not_before_minute)
+        mutation = replace(withdrawn, block_candidate=postponed_block)
+
+        event = make_event(
+            job_id,
+            JobEventType.PROPOSAL_POSTPONED,
+            actor,
+            occurred_at=at,
+            reason=reason,
+            optimization_run_id=current_run,
+            before_state=before,
+            after_state=_snapshot(mutation.as_job(job)),
+            metadata={
+                "transition": "postpone",
+                "selected_date": selected_date,
+                "not_before_minute": int(not_before_minute),
+                "original_proposal_run_id": current_run,
+                "original_start_minute": original_start,
+                "original_end_minute": original_end,
+                "expected_proposal_run_id": expected_proposal_run_id,
+                "proposal_digest": proposal_digest,
+            },
+        )
+
+        return [mutation], [event]
+
+    return plan
+
+
 def plan_completion(job_id: str, *, actor: Actor, at: str) -> Plan:
     """notified -> completed."""
 
@@ -1063,6 +1261,8 @@ __all__ = [
     "plan_completion",
     "plan_optimization_failure",
     "plan_optimization_outcome",
+    "plan_postpone",
+    "plan_reject",
     "plan_schedule_assignment",
     "proposal_run_id_of",
     "protect_committed_and_terminal_state",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date as _date
 from enum import Enum
 from typing import Optional
 
@@ -153,6 +154,67 @@ class CommitBlockRequest(BaseModel):
         min_length=1,
         max_length=128,
     )
+
+
+class ApproveProposalRequest(BaseModel):
+    """Body for POST /jobs/{job_id}/proposal/approve (Sprint 3 Slice 3).
+
+    Unlike CommitBlockRequest (the existing /notify body, kept optional
+    for compatibility), expected_proposal_run_id is REQUIRED here: an
+    authority approving a reviewed proposal must always name it, so an
+    approval can never silently commit whatever happens to be current.
+    Approval itself delegates to the existing commit machinery
+    (JobService.notify) rather than a second commit implementation -
+    see JobService.approve_proposal.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_proposal_run_id: str = Field(min_length=1, max_length=128)
+
+
+class RejectProposalRequest(BaseModel):
+    """Body for POST /jobs/{job_id}/proposal/reject (Sprint 3 Slice 3).
+
+    Both fields are mandatory: a rejection must name the exact proposal
+    it refuses and state why.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_proposal_run_id: str = Field(min_length=1, max_length=128)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class PostponeProposalRequest(BaseModel):
+    """Body for POST /jobs/{job_id}/proposal/postpone (Sprint 3 Slice 3).
+
+    selected_date is a calendar date (YYYY-MM-DD), converted to a
+    not-before minute through the one authoritative horizon-anchoring
+    conversion - backend.app.data.horizon_anchor.horizon_relative_minutes
+    - at local midnight of that date (see JobService.postpone_proposal).
+    It is never a specific time of day: postponing expresses "not before
+    this date", not "not before this instant".
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_proposal_run_id: str = Field(min_length=1, max_length=128)
+    reason: str = Field(min_length=1, max_length=2000)
+    selected_date: str = Field(min_length=1, max_length=10)
+
+    @field_validator("selected_date")
+    @classmethod
+    def validate_selected_date(cls, value: str) -> str:
+        try:
+            _date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError(
+                f"selected_date must be an ISO-8601 date (YYYY-MM-DD), "
+                f"got {value!r}"
+            ) from exc
+
+        return value
 
 
 class ActorResponse(BaseModel):

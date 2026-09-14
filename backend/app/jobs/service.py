@@ -18,6 +18,8 @@ from backend.app.data.corridor_dataset import (
     load_corridor_dataset,
 )
 
+from backend.app.data.horizon_anchor import horizon_relative_minutes
+
 from backend.app.data.feature_adapter import (
     ScoringFeatureAdapter,
     WORK_TYPE_DEFAULT_DURATIONS,
@@ -72,6 +74,8 @@ from backend.app.jobs.lifecycle import (
     creation_events,
     plan_commit,
     plan_completion,
+    plan_postpone,
+    plan_reject,
     assert_committed_state_consistent,
     plan_schedule_assignment,
     proposal_run_id_of,
@@ -768,6 +772,19 @@ class JobService:
         reader = self._resolve_actor(actor)
         self.authorization.authorize(reader, JobAction.READ_BLOCK_PROPOSAL)
 
+        return self._build_current_proposal(job_id)
+
+    def _build_current_proposal(self, job_id: str) -> BlockProposal:
+        """The build logic behind current_proposal, with no authorization call.
+
+        Split out so approve_proposal/reject_proposal/postpone_proposal
+        (Sprint 3 Slice 3) can obtain the SAME derived proposal - e.g. to
+        compute BlockProposal.digest() for audit metadata - under their
+        OWN action's authorization check, without a second
+        READ_BLOCK_PROPOSAL authorization firing for one caller-visible
+        action. See current_proposal for what each exception means.
+        """
+
         job = self.repository.get(job_id)
 
         if job is None:
@@ -809,6 +826,22 @@ class JobService:
 
         return build_block_proposal(job, self.corridor.corridor_id, events, run)
 
+    def _current_proposal_digest(self, job_id: str) -> Optional[str]:
+        """Best-effort BlockProposal.digest() for audit metadata only.
+
+        Never raises and never blocks a transition: the digest is
+        traceability, not the safety mechanism (that is
+        expected_proposal_run_id, checked inside the transactional
+        mutation itself). If the proposal cannot be rebuilt right now -
+        including a benign race against a concurrent writer - the
+        transition proceeds and simply records no digest.
+        """
+
+        try:
+            return self._build_current_proposal(job_id).digest()
+        except (KeyError, NoBlockProposalError):
+            return None
+
     # -----------------------------------------
     # scheduled -> notified
     # -----------------------------------------
@@ -846,6 +879,146 @@ class JobService:
                 actor=committer,
                 at=event_timestamp(),
                 expected_proposal_run_id=expected_proposal_run_id,
+            ),
+        )
+
+    # -----------------------------------------
+    # Authority review of a NEW block proposal (Sprint 3 Slice 3)
+    # -----------------------------------------
+
+    def approve_proposal(
+        self,
+        job_id: str,
+        actor: Actor | None = None,
+        *,
+        expected_proposal_run_id: str,
+    ) -> dict[str, Any]:
+        """Approve the job's CURRENT proposal: scheduled -> notified.
+
+        There is deliberately no second commit implementation here:
+        this delegates straight to notify(), the existing commit
+        machinery, which already requires JobAction.COMMIT_BLOCK - not
+        a separate APPROVE_PROPOSAL permission - and already records
+        BLOCK_COMMITTED. The only difference from calling notify()
+        directly is that expected_proposal_run_id is MANDATORY here
+        (notify's own body makes it optional, for compatibility), so an
+        approval can never silently commit "whatever is current".
+        """
+
+        if not expected_proposal_run_id or not expected_proposal_run_id.strip():
+            raise ValueError(
+                "expected_proposal_run_id is required to approve a proposal"
+            )
+
+        return self.notify(
+            job_id,
+            actor=actor,
+            expected_proposal_run_id=expected_proposal_run_id,
+        )
+
+    def reject_proposal(
+        self,
+        job_id: str,
+        actor: Actor | None = None,
+        *,
+        expected_proposal_run_id: str,
+        reason: str,
+    ) -> dict[str, Any]:
+        """Reject the job's CURRENT proposal outright: scheduled -> reported.
+
+        expected_proposal_run_id and reason are both mandatory: a
+        rejection decision must name the exact proposal it refuses and
+        why. The job returns to 'reported' with reason recorded as
+        last_refusal_reason (see backend.app.jobs.lifecycle.plan_reject)
+        so it reads identically to a solver-side refusal, and remains
+        eligible for the next optimization attempt to produce a
+        genuinely new proposal.
+        """
+
+        rejecter = self._resolve_actor(actor)
+        self.authorization.authorize(rejecter, JobAction.REJECT_PROPOSAL)
+
+        if not expected_proposal_run_id or not expected_proposal_run_id.strip():
+            raise ValueError(
+                "expected_proposal_run_id is required to reject a proposal"
+            )
+
+        if not reason or not reason.strip():
+            raise ValueError("reason is required to reject a proposal")
+
+        return self._transition(
+            job_id,
+            rejecter,
+            "reject",
+            plan_reject(
+                job_id,
+                actor=rejecter,
+                at=event_timestamp(),
+                reason=reason,
+                expected_proposal_run_id=expected_proposal_run_id,
+            ),
+        )
+
+    def postpone_proposal(
+        self,
+        job_id: str,
+        actor: Actor | None = None,
+        *,
+        expected_proposal_run_id: str,
+        reason: str,
+        selected_date: str,
+        horizon_start: str = OPTIMIZATION_HORIZON_START,
+    ) -> dict[str, Any]:
+        """Postpone the job's CURRENT proposal: scheduled -> reported.
+
+        selected_date is converted to a not-before minute through
+        horizon_relative_minutes - the one authoritative horizon-
+        anchoring conversion (backend.app.data.horizon_anchor) - using
+        the SAME horizon_start this deployment's optimizer anchors
+        every run to (OPTIMIZATION_HORIZON_START), so the
+        earliest_start_minute written onto the job's block is in the
+        exact coordinate frame the next optimization run and its solver
+        will read it in. horizon_start is overridable only for tests
+        that need to prove the conversion itself; no production caller
+        passes it.
+
+        Fails closed (InvalidTransitionError, from
+        backend.app.jobs.lifecycle.plan_postpone) if the converted
+        minute falls outside this job's own supported horizon - past or
+        beyond - rather than silently creating availability the
+        optimizer was never meant to offer.
+        """
+
+        postponer = self._resolve_actor(actor)
+        self.authorization.authorize(postponer, JobAction.POSTPONE_PROPOSAL)
+
+        if not expected_proposal_run_id or not expected_proposal_run_id.strip():
+            raise ValueError(
+                "expected_proposal_run_id is required to postpone a proposal"
+            )
+
+        if not reason or not reason.strip():
+            raise ValueError("reason is required to postpone a proposal")
+
+        not_before_minute = horizon_relative_minutes(
+            selected_date, 0, 0, horizon_start
+        )
+
+        digest = self._current_proposal_digest(job_id)
+
+        return self._transition(
+            job_id,
+            postponer,
+            "postpone",
+            plan_postpone(
+                job_id,
+                actor=postponer,
+                at=event_timestamp(),
+                reason=reason,
+                selected_date=selected_date,
+                not_before_minute=not_before_minute,
+                expected_proposal_run_id=expected_proposal_run_id,
+                proposal_digest=digest,
             ),
         )
 
