@@ -91,12 +91,81 @@ class JobResponse(BaseModel):
     last_solver_status: Optional[str] = None
     last_refusal_reason: Optional[str] = None
 
+    # The optimization run that produced the CURRENT placement - the
+    # optimization_runs.run_id holding that solve's request and result.
+    # None when the job has no placement, or when its placement was
+    # assigned directly rather than proposed by an optimization run.
+    proposal_run_id: Optional[str] = None
+
     block_candidate: dict
 
 
 class JobActionResponse(BaseModel):
     job: JobResponse
     message: str
+
+
+class CommitBlockRequest(BaseModel):
+    """Optional body for POST /jobs/{job_id}/notify.
+
+    expected_proposal_run_id pins the commit to the proposal the caller
+    reviewed: if the job's current proposal came from a different run,
+    the commit is refused with 409 and the attempt is recorded. Omitting
+    the body keeps the pre-Slice-1 behaviour (commit the current
+    proposal).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_proposal_run_id: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=128,
+    )
+
+
+class ActorResponse(BaseModel):
+    actor_id: str
+    role: str
+    kind: str
+    # How much the backend knows about this identity. Until an
+    # authentication slice exists this is never "authenticated":
+    # DECLARED_UNVERIFIED (caller-asserted), NONE (no identity given) or
+    # SYSTEM_INTERNAL (the application itself).
+    assurance: str
+
+
+class JobStateResponse(BaseModel):
+    status: str
+    block_status: str
+    is_committed: bool
+    schedule_start_minute: Optional[int] = None
+    schedule_end_minute: Optional[int] = None
+    proposal_run_id: Optional[str] = None
+
+
+class JobEventResponse(BaseModel):
+    """One job lifecycle event, as recorded. Read-only."""
+
+    sequence: int
+    event_id: str
+    schema_version: int
+    entity_type: str
+    job_id: str
+    event_type: str
+    occurred_at: str
+    actor: ActorResponse
+    reason: Optional[str] = None
+    # optimization_runs.run_id this event belongs to, when any.
+    optimization_run_id: Optional[str] = None
+    before_state: Optional[JobStateResponse] = None
+    after_state: Optional[JobStateResponse] = None
+    metadata: dict
+
+
+class JobHistoryResponse(BaseModel):
+    job_id: str
+    events: list[JobEventResponse]
 
 
 class ScheduledJobOutcome(BaseModel):
@@ -148,6 +217,11 @@ class JobOptimizationResponse(BaseModel):
     """
 
     corridor_id: str
+
+    # optimization_runs.run_id of this batch. Every job lifecycle event
+    # the batch produced carries the same id.
+    optimization_run_id: str
+
     solver_status: str
     solve_time_seconds: float
 

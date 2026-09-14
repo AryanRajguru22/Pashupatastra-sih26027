@@ -27,8 +27,7 @@ abandon the whole batch.
 
 from __future__ import annotations
 
-import threading
-from datetime import datetime, timezone
+from dataclasses import replace
 from typing import Any
 
 from contracts import (
@@ -38,9 +37,22 @@ from contracts import (
     PossessionWindow,
 )
 
-from backend.app.audit.models import SYSTEM_ACTOR
 from backend.app.audit.repository import AuditRepository
-from backend.app.audit.service import AuditService
+from backend.app.audit.service import AuditService, new_run_id
+
+from backend.app.identity.actor import Actor, unidentified_actor
+from backend.app.identity.authorization import JobAction
+
+from backend.app.jobs.events import event_timestamp
+
+from backend.app.jobs.lifecycle import (
+    OUTCOME_ERROR,
+    OUTCOME_NOT_RUN,
+    CommittedStateIntegrityError,
+    OptimizationAttempt,
+    plan_optimization_failure,
+    plan_optimization_outcome,
+)
 
 from backend.app.data.provenance import (
     ProvenanceLevel,
@@ -245,18 +257,37 @@ def summarize_outcome(
 class JobOptimizationService:
     """Runs the real solver over persisted jobs and records the outcome.
 
-    CONCURRENCY LIMITATION (honest statement of scope):
-    the lock below is an in-process threading.Lock. It serializes
-    concurrent optimize calls inside ONE application process, which is
-    the current deployment shape - a single uvicorn process backed by a
-    single SQLite file. It provides NO protection across multiple
-    processes, workers or hosts. Multi-instance safety needs a database
-    or external lock and is deliberately out of Sprint 2 scope.
+    CONCURRENCY (honest statement of scope):
+    optimization holds JobService.lifecycle_lock - the SAME lock that
+    commit (notify), completion and schedule assignment hold - for the
+    whole snapshot -> solve -> write sequence. Within ONE application
+    process (the current deployment shape: a single uvicorn process
+    backed by a single SQLite file) that means an optimization can never
+    interleave with another optimization or with a commit.
+
+    The lock provides NO protection across processes, workers or hosts.
+    What does hold across processes is fail-closed rather than
+    serializing: the outcome is written in one BEGIN IMMEDIATE
+    transaction that re-checks every considered job's status against
+    the snapshot the solver saw, and refuses the whole batch
+    (ConcurrentJobModificationError) if any changed. Multi-instance
+    serialization needs a database or external lock and remains out of
+    scope.
+
+    LIFECYCLE HISTORY
+    Every attempt that considers at least one job records, per job, who
+    requested it and what the system decided - including attempts that
+    fail. Any attempt that does not (re)place a scheduled job withdraws
+    that job's uncommitted proposal (see backend.app.jobs.lifecycle).
     """
 
     def __init__(self, service: JobService | None = None):
         self.service = service or JobService()
-        self._lock = threading.Lock()
+
+        # Shared with every JobService transition. Kept under the old
+        # attribute name as well so existing references still resolve
+        # to the one lock rather than a second, private one.
+        self._lock = self.service.lifecycle_lock
 
         # The audit repository is pinned to this exact JobService's own
         # repository.db_path, not to any independently-resolved
@@ -271,7 +302,15 @@ class JobOptimizationService:
     def optimize_corridor(
         self,
         corridor_id: str | None = None,
+        actor: Actor | None = None,
     ) -> dict[str, Any]:
+
+        requester = actor if actor is not None else unidentified_actor()
+
+        self.service.authorization.authorize(
+            requester,
+            JobAction.REQUEST_OPTIMIZATION,
+        )
 
         target = corridor_id or self.service.corridor.corridor_id
 
@@ -281,13 +320,31 @@ class JobOptimizationService:
                 f"corridor '{self.service.corridor.corridor_id}'."
             )
 
-        # Single-flight: two authorities pressing "optimize" at the
-        # same moment must not read the same active set, solve
-        # independently and interleave their writes.
+        # Single-flight across every lifecycle transition: two
+        # authorities pressing "optimize", or one optimizing while
+        # another commits, must not read the same active set and
+        # interleave their writes.
         with self._lock:
-            candidates, committed = (
-                self.service.classify_for_optimization()
-            )
+            try:
+                candidates, committed, expected_statuses = (
+                    self.service.optimization_snapshot()
+                )
+
+            except CommittedStateIntegrityError as exc:
+                # Refused before any job was considered: no solver run, no
+                # optimization_runs row, no proposal written or withdrawn.
+                # The refusal is recorded on each inconsistent job.
+                self.service.record_rejected_transition(
+                    list(exc.job_ids), requester, "optimize", exc
+                )
+                raise
+
+            if not candidates:
+                raise NoEligibleJobsError(
+                    "No active maintenance jobs to optimize."
+                )
+
+            job_ids = [block.block_id for block in candidates]
 
             # ONE horizon for this run, resolved once here and passed to
             # BOTH the possession boundary and the request builder. The
@@ -299,25 +356,47 @@ class JobOptimizationService:
             horizon_start = OPTIMIZATION_HORIZON_START
             horizon_minutes = OPTIMIZATION_HORIZON_MINUTES
 
-            possession = self.service.possession_inputs(
-                horizon_start,
-                horizon_minutes,
-            )
-
-            windows = possession.windows
-
-            request = build_jobs_optimization_request(
+            attempt = OptimizationAttempt(
                 corridor_id=target,
-                tracks=[
-                    track.track_id
-                    for track in self.service.corridor.tracks
-                ],
-                candidates=candidates,
-                possession_windows=windows,
-                committed=committed,
+                requester=requester,
+                requested_at=event_timestamp(),
+                run_id=new_run_id(),
                 horizon_start=horizon_start,
-                horizon_minutes=horizon_minutes,
             )
+
+            try:
+                possession = self.service.possession_inputs(
+                    horizon_start,
+                    horizon_minutes,
+                )
+
+                windows = possession.windows
+
+                request = build_jobs_optimization_request(
+                    corridor_id=target,
+                    tracks=[
+                        track.track_id
+                        for track in self.service.corridor.tracks
+                    ],
+                    candidates=candidates,
+                    possession_windows=windows,
+                    committed=committed,
+                    horizon_start=horizon_start,
+                    horizon_minutes=horizon_minutes,
+                )
+
+            except Exception as exc:
+                # Refused before the solver ran (no possession data, or
+                # possession inputs that could not be built safely).
+                # No optimization_runs row exists, so the job events
+                # carry no run id.
+                self._record_failure(
+                    job_ids,
+                    replace(attempt, run_id=None),
+                    exc,
+                    OUTCOME_NOT_RUN,
+                )
+                raise
 
             uncovered = uncovered_possession_tracks(request)
 
@@ -347,38 +426,68 @@ class JobOptimizationService:
             # refused/infeasible outcome, or (via re-raise) on a
             # solver exception, which reaches the caller exactly as it
             # would without auditing.
-            result = self._audit_service.record_run(
-                request,
-                solve,
-                trigger="jobs_optimize",
-                actor=SYSTEM_ACTOR,
-                provenance_snapshot={
-                    "possession_source": possession_source,
-                    "possession_derivation": possession.derivation,
-                    "possession_window_count": len(windows),
-                    "uncovered_tracks": sorted(uncovered),
-                    "provenance": provenance_profile.to_dict(),
-                    **_rejection_summary(possession),
-                },
-            )
+            # The run's actor column records who caused the run, the
+            # same actor as each job's OPTIMIZATION_REQUESTED event. The
+            # system decisions that follow are recorded under
+            # SYSTEM:OPTIMIZER with this run id.
+            try:
+                result = self._audit_service.record_run(
+                    request,
+                    solve,
+                    trigger=attempt.trigger,
+                    actor=requester.actor_id,
+                    run_id=attempt.run_id,
+                    provenance_snapshot={
+                        "possession_source": possession_source,
+                        "possession_derivation": possession.derivation,
+                        "possession_window_count": len(windows),
+                        "uncovered_tracks": sorted(uncovered),
+                        "provenance": provenance_profile.to_dict(),
+                        **_rejection_summary(possession),
+                    },
+                )
+
+            except Exception as exc:
+                # record_run already wrote the ERROR optimization_runs
+                # row; job history references it by run id.
+                self._record_failure(job_ids, attempt, exc, OUTCOME_ERROR)
+                raise
 
             scheduled, refused = summarize_outcome(
                 result,
                 candidates,
             )
 
-            generated_at = datetime.now(timezone.utc).isoformat()
+            generated_at = event_timestamp()
 
-            # One transaction for the whole batch.
-            self.service.repository.apply_optimization_outcome(
-                scheduled=scheduled,
-                refused=refused,
-                updated_at=generated_at,
-                solver_status=result.status,
-            )
+            # One transaction for the whole batch: every job's new state
+            # and every lifecycle event, or none of them.
+            try:
+                self.service.repository.mutate_jobs(
+                    job_ids,
+                    plan_optimization_outcome(
+                        job_ids,
+                        attempt=attempt,
+                        completed_at=generated_at,
+                        solver_status=result.status,
+                        placements={entry["job_id"]: entry for entry in scheduled},
+                        refusals={entry["job_id"]: entry["reason"] for entry in refused},
+                        expected_statuses=expected_statuses,
+                    ),
+                    reject_terminal=True,
+                )
+
+            except CommittedStateIntegrityError as exc:
+                # Stored state became inconsistent after the snapshot (a
+                # writer outside this process). The batch was rolled back.
+                self.service.record_rejected_transition(
+                    list(exc.job_ids), requester, "optimize", exc
+                )
+                raise
 
         return {
             "corridor_id": target,
+            "optimization_run_id": attempt.run_id,
             "solver_status": result.status,
             "solve_time_seconds": result.solve_time_seconds,
             "possession_source": possession_source,
@@ -399,3 +508,38 @@ class JobOptimizationService:
                 result.infeasibility_reasons
             ),
         }
+
+    def _record_failure(
+        self,
+        job_ids: list[str],
+        attempt: OptimizationAttempt,
+        error: BaseException,
+        outcome_label: str,
+    ) -> None:
+        """Record a failed attempt in job history, then let the caller re-raise.
+
+        Withdraws every uncommitted proposal the attempt considered, so a
+        proposal can never outlive an attempt that did not reaffirm it.
+        Committed work is untouched. If recording itself fails, the
+        ORIGINAL error still propagates, with a note - history problems
+        must never replace the real cause.
+        """
+
+        try:
+            self.service.repository.mutate_jobs(
+                job_ids,
+                plan_optimization_failure(
+                    job_ids,
+                    attempt=attempt,
+                    failed_at=event_timestamp(),
+                    reason=f"{type(error).__name__}: {error}",
+                    outcome_label=outcome_label,
+                ),
+            )
+
+        except Exception as history_error:  # noqa: BLE001
+            error.add_note(
+                "Job lifecycle history for this failed optimization could "
+                f"not be recorded: {type(history_error).__name__}: "
+                f"{history_error}"
+            )

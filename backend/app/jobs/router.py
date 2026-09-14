@@ -1,14 +1,36 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import (
     APIRouter,
+    Body,
+    Depends,
     HTTPException,
     Query,
 )
 
+from backend.app.api.deps import request_actor
+
+from backend.app.identity.actor import Actor
+
+from backend.app.identity.authorization import AuthorizationDenied
+
+from backend.app.jobs.history import StoredJobEvent
+
+from backend.app.jobs.lifecycle import (
+    CommittedJobError,
+    CommittedStateIntegrityError,
+    ConcurrentJobModificationError,
+    StaleProposalError,
+)
+
 from backend.app.jobs.models import (
+    CommitBlockRequest,
     JobActionResponse,
     JobCreateRequest,
+    JobEventResponse,
+    JobHistoryResponse,
     JobOptimizationResponse,
     JobResponse,
     JobStatus,
@@ -36,9 +58,22 @@ router = APIRouter(
 
 service = JobService()
 
-# Shares the JobService above so both routers see the same repository
-# and corridor. The single-flight lock lives on this instance.
+# Shares the JobService above so both routers see the same repository,
+# corridor and lifecycle lock (JobService.lifecycle_lock).
 optimization_service = JobOptimizationService(service)
+
+
+# Refusals that are conflicts with the job's current state rather than
+# malformed requests. Each maps to 409. CommittedStateIntegrityError means
+# the STORED state is inconsistent: a refusal with the violation in the
+# detail, never an unhandled 500 and never a silent repair.
+_CONFLICTS = (
+    TerminalJobError,
+    CommittedJobError,
+    CommittedStateIntegrityError,
+    StaleProposalError,
+    ConcurrentJobModificationError,
+)
 
 
 @router.post(
@@ -48,10 +83,17 @@ optimization_service = JobOptimizationService(service)
 )
 def create_job(
     request: JobCreateRequest,
+    actor: Actor = Depends(request_actor),
 ) -> JobResponse:
 
     try:
-        job = service.create_job(request)
+        job = service.create_job(request, actor=actor)
+
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
 
     except ValueError as exc:
         raise HTTPException(
@@ -113,6 +155,50 @@ def get_job(
     )
 
 
+@router.get(
+    "/jobs/{job_id}/history",
+    response_model=JobHistoryResponse,
+)
+def get_job_history(
+    job_id: str,
+    actor: Actor = Depends(request_actor),
+) -> JobHistoryResponse:
+    """Chronological, append-only lifecycle history of one job.
+
+    Read-only: there is no route that updates or deletes history, and
+    the underlying table rejects UPDATE and DELETE at the SQL layer.
+    Events contain actor identifiers, roles and assurance levels - no
+    credentials, tokens or secrets are recorded anywhere in history.
+    """
+
+    try:
+        stored = service.job_history(job_id, actor=actor)
+
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Job '{job_id}' not found",
+        ) from exc
+
+    return JobHistoryResponse(
+        job_id=job_id,
+        events=[_event_response(item) for item in stored],
+    )
+
+
+def _event_response(item: StoredJobEvent) -> JobEventResponse:
+    return JobEventResponse(
+        sequence=item.sequence,
+        **item.event.to_dict(),
+    )
+
+
 @router.post(
     "/corridors/{corridor_id}/optimize-jobs",
     response_model=JobOptimizationResponse,
@@ -120,6 +206,7 @@ def get_job(
 )
 def optimize_corridor_jobs(
     corridor_id: str,
+    actor: Actor = Depends(request_actor),
 ) -> JobOptimizationResponse:
     """Run the existing CP-SAT solver over this corridor's active jobs.
 
@@ -130,8 +217,15 @@ def optimize_corridor_jobs(
 
     try:
         outcome = optimization_service.optimize_corridor(
-            corridor_id
+            corridor_id,
+            actor=actor,
         )
+
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
 
     except KeyError as exc:
         raise HTTPException(
@@ -152,7 +246,7 @@ def optimize_corridor_jobs(
             detail=str(exc),
         ) from exc
 
-    except TerminalJobError as exc:
+    except _CONFLICTS as exc:
         raise HTTPException(
             status_code=409,
             detail=str(exc),
@@ -167,12 +261,26 @@ def optimize_corridor_jobs(
 )
 def notify_job(
     job_id: str,
+    body: Optional[CommitBlockRequest] = Body(default=None),
+    actor: Actor = Depends(request_actor),
 ) -> JobActionResponse:
 
     try:
-        job = service.notify(job_id)
+        job = service.notify(
+            job_id,
+            actor=actor,
+            expected_proposal_run_id=(
+                body.expected_proposal_run_id if body is not None else None
+            ),
+        )
 
-    except TerminalJobError as exc:
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    except _CONFLICTS as exc:
         raise HTTPException(
             status_code=409,
             detail=str(exc),
@@ -204,12 +312,19 @@ def notify_job(
 )
 def complete_job(
     job_id: str,
+    actor: Actor = Depends(request_actor),
 ) -> JobActionResponse:
 
     try:
-        job = service.complete(job_id)
+        job = service.complete(job_id, actor=actor)
 
-    except TerminalJobError as exc:
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    except _CONFLICTS as exc:
         raise HTTPException(
             status_code=409,
             detail=str(exc),

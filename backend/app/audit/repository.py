@@ -31,6 +31,7 @@ from typing import Optional
 
 from backend.app.audit.models import OptimizationRunRecord
 from backend.app.jobs.repository import DEFAULT_DB_PATH
+from backend.app.persistence.append_only import install_append_only_guards
 
 
 class AuditRepository:
@@ -71,28 +72,10 @@ class AuditRepository:
 
             # Defense in depth: reject mutation at the SQL layer too,
             # independent of anything this class does or doesn't
-            # expose as a method.
-            conn.execute(
-                """
-                CREATE TRIGGER IF NOT EXISTS optimization_runs_no_update
-                BEFORE UPDATE ON optimization_runs
-                BEGIN
-                    SELECT RAISE(ABORT,
-                        'optimization_runs is append-only: UPDATE is not permitted');
-                END
-                """
-            )
-
-            conn.execute(
-                """
-                CREATE TRIGGER IF NOT EXISTS optimization_runs_no_delete
-                BEFORE DELETE ON optimization_runs
-                BEGIN
-                    SELECT RAISE(ABORT,
-                        'optimization_runs is append-only: DELETE is not permitted');
-                END
-                """
-            )
+            # expose as a method. Shared with the job lifecycle history
+            # table (backend.app.jobs.history) so both are protected by
+            # one mechanism.
+            install_append_only_guards(conn, "optimization_runs")
 
             conn.commit()
 

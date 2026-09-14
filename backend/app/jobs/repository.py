@@ -1,13 +1,26 @@
 from __future__ import annotations
 
+import copy
 import json
 import os
 import sqlite3
-from contextlib import closing
+from contextlib import closing, contextmanager
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Iterable, Iterator, Optional, Sequence
 
 from contracts import BlockStatus
+
+from backend.app.jobs.events import JobEvent
+from backend.app.jobs.history import append_events, ensure_job_events_schema
+from backend.app.jobs.lifecycle import (
+    TERMINAL_STATUSES,
+    OptimizationAttempt,
+    Plan,
+    TerminalJobError,
+    plan_optimization_outcome,
+    protect_committed_and_terminal_state,
+    validate_mutation,
+)
 
 
 # The production default stays the repository-root jobs.db so existing
@@ -24,13 +37,11 @@ DEFAULT_DB_PATH = Path(
 )
 
 
-# Statuses from which a job can never return. A terminal job is
-# excluded from optimization candidate assembly AND cannot have a new
-# schedule written over it (see update_schedule). Both barriers are
-# deliberate: excluding terminal jobs from list_active() alone was not
-# enough, because update_schedule() used to force status back to
-# 'scheduled', resurrecting completed work into the candidate set.
-TERMINAL_STATUSES = ("completed",)
+# TERMINAL_STATUSES and TerminalJobError are defined in
+# backend.app.jobs.lifecycle (the lifecycle rules module) and re-exported
+# here so every existing `from backend.app.jobs.repository import ...`
+# keeps working. A terminal job is excluded from optimization candidate
+# assembly AND can never be written again.
 
 
 # Columns added after the original schema shipped. Applied additively
@@ -42,11 +53,33 @@ _ADDED_COLUMNS = (
 )
 
 
-class TerminalJobError(RuntimeError):
-    """Raised when a mutation would alter a job in a terminal status."""
-
-
 class JobRepository:
+    """Persistence for maintenance jobs and their lifecycle history.
+
+    TWO KINDS OF WRITE, DELIBERATELY SEPARATED
+        mutate_jobs / create(job, events) / append_events
+            The service path (Slice 1). Each call is ONE write-locked
+            transaction (BEGIN IMMEDIATE) that reads the current rows,
+            lets a lifecycle plan decide the new values and events,
+            validates every mutation, writes the rows and appends the
+            events. State and history commit or roll back together.
+
+        update_status / update_schedule / record_refusal /
+        apply_optimization_outcome
+            Pre-Slice-1 primitives kept for compatibility (existing tests
+            call them directly). NOT production mutation paths: no
+            module under backend/app calls them (record_refusal has no
+            caller at all), and test_production_code_never_calls_
+            history_less_repository_writes fails if one ever does. They
+            write NO lifecycle history, but they are not a way around the
+            protected-state invariants: update_status, update_schedule
+            and apply_optimization_outcome refuse to touch a terminal
+            job, to weaken committed work, or to write a job whose
+            committed state is already inconsistent
+            (lifecycle.protect_committed_and_terminal_state).
+            record_refusal refuses terminal jobs and writes only the
+            last_solver_status / last_refusal_reason columns.
+    """
 
     def __init__(self, db_path: str | Path = DEFAULT_DB_PATH):
         self.db_path = str(db_path)
@@ -56,6 +89,28 @@ class JobRepository:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         return conn
+
+    @contextmanager
+    def _write_transaction(self) -> Iterator[sqlite3.Connection]:
+        """One write-locked transaction, closed on exit.
+
+        BEGIN IMMEDIATE takes SQLite's write lock before the first read,
+        so a read-check-write sequence cannot interleave with another
+        writer - including one in a different process, which the
+        in-process lifecycle lock cannot see.
+        """
+
+        conn = self._connect()
+
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            yield conn
+            conn.commit()
+        except BaseException:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def _initialize(self) -> None:
         with closing(self._connect()) as conn, conn:
@@ -91,6 +146,11 @@ class JobRepository:
 
             self._migrate(conn)
 
+            # Additive: the lifecycle history table sits beside
+            # maintenance_jobs in the same file. maintenance_jobs'
+            # own columns are unchanged.
+            ensure_job_events_schema(conn)
+
             conn.commit()
 
     @staticmethod
@@ -117,9 +177,18 @@ class JobRepository:
                     f"ADD COLUMN {column} {column_type}"
                 )
 
-    def create(self, job: dict[str, Any]) -> dict[str, Any]:
+    # ------------------------------------------------------------------
+    # Service write path
+    # ------------------------------------------------------------------
 
-        with closing(self._connect()) as conn, conn:
+    def create(
+        self,
+        job: dict[str, Any],
+        events: Iterable[JobEvent] = (),
+    ) -> dict[str, Any]:
+        """Insert a new job and its creation events in one transaction."""
+
+        with self._write_transaction() as conn:
 
             conn.execute(
                 """
@@ -163,9 +232,102 @@ class JobRepository:
                 ),
             )
 
-            conn.commit()
+            append_events(conn, events)
 
         return self.get(job["job_id"])
+
+    def mutate_jobs(
+        self,
+        job_ids: Sequence[str],
+        plan: Plan,
+        *,
+        reject_terminal: bool = False,
+    ) -> dict[str, dict[str, Any]]:
+        """Apply one lifecycle plan to jobs atomically, with its events.
+
+        Inside a single BEGIN IMMEDIATE transaction:
+          1. read every job (KeyError if any is missing);
+          2. optionally refuse the whole call if any job is terminal;
+          3. call plan(rows) -> (mutations, events);
+          4. validate every mutation against the lifecycle rules;
+          5. write the mutations and append the events.
+
+        Any exception - from the plan, a validation, or SQLite - rolls
+        the whole transaction back: no row changes and no event is kept.
+        """
+
+        with self._write_transaction() as conn:
+            rows: dict[str, dict[str, Any]] = {}
+
+            for job_id in job_ids:
+                row = conn.execute(
+                    "SELECT * FROM maintenance_jobs WHERE job_id = ?",
+                    (job_id,),
+                ).fetchone()
+
+                if row is None:
+                    raise KeyError(f"Job '{job_id}' not found")
+
+                rows[job_id] = self._row_to_dict(row)
+
+            if reject_terminal:
+                for job_id, job in rows.items():
+                    if job["status"] in TERMINAL_STATUSES:
+                        raise TerminalJobError(
+                            f"Job '{job_id}' is in terminal status "
+                            f"'{job['status']}' and cannot be included in "
+                            "an optimization outcome"
+                        )
+
+            mutations, events = plan(rows)
+
+            for mutation in mutations:
+                if mutation.job_id not in rows:
+                    raise KeyError(
+                        f"Plan mutated job '{mutation.job_id}', which was "
+                        "not read in this transaction"
+                    )
+
+                validate_mutation(rows[mutation.job_id], mutation)
+
+                conn.execute(
+                    """
+                    UPDATE maintenance_jobs
+                    SET
+                        status = ?,
+                        schedule_start_minute = ?,
+                        schedule_end_minute = ?,
+                        updated_at = ?,
+                        last_solver_status = ?,
+                        last_refusal_reason = ?,
+                        block_candidate_json = ?
+                    WHERE job_id = ?
+                    """,
+                    (
+                        mutation.status,
+                        mutation.schedule_start_minute,
+                        mutation.schedule_end_minute,
+                        mutation.updated_at,
+                        mutation.last_solver_status,
+                        mutation.last_refusal_reason,
+                        json.dumps(mutation.block_candidate),
+                        mutation.job_id,
+                    ),
+                )
+
+            append_events(conn, events)
+
+        return {job_id: self.get(job_id) for job_id in job_ids}
+
+    def append_events(self, events: Iterable[JobEvent]) -> None:
+        """Record events that accompany no state change (e.g. a refusal)."""
+
+        with self._write_transaction() as conn:
+            append_events(conn, events)
+
+    # ------------------------------------------------------------------
+    # Reads
+    # ------------------------------------------------------------------
 
     def get(
         self,
@@ -254,6 +416,10 @@ class JobRepository:
             for row in rows
         ]
 
+    # ------------------------------------------------------------------
+    # Pre-Slice-1 primitives (no lifecycle history; see class docstring)
+    # ------------------------------------------------------------------
+
     def update_status(
         self,
         job_id: str,
@@ -262,65 +428,60 @@ class JobRepository:
         block_status: str | None = None,
         is_committed: bool | None = None,
     ) -> Optional[dict[str, Any]]:
-        """Move a job to a new status.
+        """Move a job to a new status. Writes no lifecycle history.
 
         `block_status` / `is_committed` mirror the transition into
         block_candidate_json so the persisted BlockCandidate stays
-        consistent with the job row. Notifying a job is what makes the
-        work operationally committed, and a later optimization
-        reconstructs its committed block straight from this JSON.
+        consistent with the job row.
         """
 
-        with closing(self._connect()) as conn, conn:
+        with self._write_transaction() as conn:
 
             row = conn.execute(
-                "SELECT block_candidate_json "
-                "FROM maintenance_jobs WHERE job_id = ?",
+                "SELECT * FROM maintenance_jobs WHERE job_id = ?",
                 (job_id,),
             ).fetchone()
 
             if row is None:
                 return None
 
-            if block_status is None and is_committed is None:
-                conn.execute(
-                    """
-                    UPDATE maintenance_jobs
-                    SET status = ?, updated_at = COALESCE(?, updated_at)
-                    WHERE job_id = ?
-                    """,
-                    (status, updated_at, job_id),
-                )
+            current = self._row_to_dict(row)
+            # A copy: the guard below must see the STORED block in
+            # `current`, not one already edited toward the new value.
+            block_candidate = copy.deepcopy(current["block_candidate"])
 
-            else:
-                block_candidate = json.loads(
-                    row["block_candidate_json"]
-                )
+            if block_status is not None:
+                block_candidate["status"] = block_status
 
-                if block_status is not None:
-                    block_candidate["status"] = block_status
+            if is_committed is not None:
+                block_candidate["is_committed"] = bool(is_committed)
 
-                if is_committed is not None:
-                    block_candidate["is_committed"] = bool(is_committed)
+            protect_committed_and_terminal_state(
+                current,
+                status,
+                block_candidate,
+                (
+                    current["schedule_start_minute"],
+                    current["schedule_end_minute"],
+                ),
+            )
 
-                conn.execute(
-                    """
-                    UPDATE maintenance_jobs
-                    SET
-                        status = ?,
-                        updated_at = COALESCE(?, updated_at),
-                        block_candidate_json = ?
-                    WHERE job_id = ?
-                    """,
-                    (
-                        status,
-                        updated_at,
-                        json.dumps(block_candidate),
-                        job_id,
-                    ),
-                )
-
-            conn.commit()
+            conn.execute(
+                """
+                UPDATE maintenance_jobs
+                SET
+                    status = ?,
+                    updated_at = COALESCE(?, updated_at),
+                    block_candidate_json = ?
+                WHERE job_id = ?
+                """,
+                (
+                    status,
+                    updated_at,
+                    json.dumps(block_candidate),
+                    job_id,
+                ),
+            )
 
         return self.get(job_id)
 
@@ -333,120 +494,38 @@ class JobRepository:
     ) -> None:
         """Persist one whole optimization batch in a single transaction.
 
-        Either every job in the batch records its outcome or none does.
-        Writing each job in its own transaction (the shape the per-job
-        helpers above use) would let a crash mid-batch leave some jobs
-        scheduled against a plan that was never fully applied.
+        Compatibility wrapper, writing no lifecycle history. It applies
+        exactly the same outcome rules as the service path
+        (lifecycle.plan_optimization_outcome) - including withdrawing a
+        stale uncommitted proposal and keeping committed blocks
+        COMMITTED - so the two can never disagree about what an outcome
+        means. JobOptimizationService does not call it.
 
         `scheduled` entries are {job_id, start_minute, end_minute};
         `refused` entries are {job_id, reason}. Terminal jobs are
         rejected before anything is written.
         """
 
-        with closing(self._connect()) as conn, conn:
+        job_ids = [entry["job_id"] for entry in scheduled]
+        job_ids += [entry["job_id"] for entry in refused]
 
-            job_ids = [entry["job_id"] for entry in scheduled]
-            job_ids += [entry["job_id"] for entry in refused]
+        plan = plan_optimization_outcome(
+            job_ids,
+            attempt=OptimizationAttempt(
+                corridor_id="",
+                requester=None,
+                requested_at=updated_at,
+                run_id=None,
+                horizon_start="",
+            ),
+            completed_at=updated_at,
+            solver_status=solver_status,
+            placements={entry["job_id"]: entry for entry in scheduled},
+            refusals={entry["job_id"]: entry["reason"] for entry in refused},
+            record_history=False,
+        )
 
-            rows = {}
-
-            for job_id in job_ids:
-                row = conn.execute(
-                    "SELECT status, block_candidate_json "
-                    "FROM maintenance_jobs WHERE job_id = ?",
-                    (job_id,),
-                ).fetchone()
-
-                if row is None:
-                    raise KeyError(
-                        f"Job '{job_id}' not found"
-                    )
-
-                if row["status"] in TERMINAL_STATUSES:
-                    raise TerminalJobError(
-                        f"Job '{job_id}' is in terminal status "
-                        f"'{row['status']}' and cannot be included in "
-                        "an optimization outcome"
-                    )
-
-                rows[job_id] = row
-
-            for entry in scheduled:
-                job_id = entry["job_id"]
-
-                block_candidate = json.loads(
-                    rows[job_id]["block_candidate_json"]
-                )
-
-                metadata = dict(
-                    block_candidate.get("metadata", {})
-                )
-                metadata["committed_start_minute"] = int(
-                    entry["start_minute"]
-                )
-                metadata["committed_end_minute"] = int(
-                    entry["end_minute"]
-                )
-                block_candidate["metadata"] = metadata
-                block_candidate["status"] = (
-                    BlockStatus.SCHEDULED.value
-                )
-
-                # A job already notified stays notified: field crews
-                # have been told, and the solver preserved its
-                # placement as committed work.
-                next_status = (
-                    rows[job_id]["status"]
-                    if rows[job_id]["status"] == "notified"
-                    else "scheduled"
-                )
-
-                conn.execute(
-                    """
-                    UPDATE maintenance_jobs
-                    SET
-                        schedule_start_minute = ?,
-                        schedule_end_minute = ?,
-                        status = ?,
-                        updated_at = ?,
-                        last_solver_status = ?,
-                        last_refusal_reason = NULL,
-                        block_candidate_json = ?
-                    WHERE job_id = ?
-                    """,
-                    (
-                        int(entry["start_minute"]),
-                        int(entry["end_minute"]),
-                        next_status,
-                        updated_at,
-                        solver_status,
-                        json.dumps(block_candidate),
-                        job_id,
-                    ),
-                )
-
-            for entry in refused:
-                # Status is deliberately untouched: an unscheduled job
-                # stays eligible for the next optimization run. Only
-                # the honest solver reason is recorded.
-                conn.execute(
-                    """
-                    UPDATE maintenance_jobs
-                    SET
-                        updated_at = ?,
-                        last_solver_status = ?,
-                        last_refusal_reason = ?
-                    WHERE job_id = ?
-                    """,
-                    (
-                        updated_at,
-                        solver_status,
-                        entry["reason"],
-                        entry["job_id"],
-                    ),
-                )
-
-            conn.commit()
+        self.mutate_jobs(job_ids, plan, reject_terminal=True)
 
     def update_schedule(
         self,
@@ -456,7 +535,7 @@ class JobRepository:
         updated_at: str,
         solver_status: str | None = None,
     ) -> Optional[dict[str, Any]]:
-        """Persist a solver-assigned schedule for one job.
+        """Persist a schedule for one job. Writes no lifecycle history.
 
         Writes the placement into BOTH representations, which must stay
         consistent: the schedule_* columns (what the API reports) and
@@ -467,29 +546,24 @@ class JobRepository:
         committed block placed it at minute 0 instead of its real
         schedule, which is outside every possession window and made the
         whole re-optimization INFEASIBLE.
+
+        Refuses a terminal job (TerminalJobError) and a committed job
+        (CommittedJobError): forcing either back to 'scheduled' would
+        resurrect terminal work or silently un-pin committed work.
         """
 
-        with closing(self._connect()) as conn, conn:
+        with self._write_transaction() as conn:
 
             row = conn.execute(
-                "SELECT status, block_candidate_json "
-                "FROM maintenance_jobs WHERE job_id = ?",
+                "SELECT * FROM maintenance_jobs WHERE job_id = ?",
                 (job_id,),
             ).fetchone()
 
             if row is None:
                 return None
 
-            # Terminal work is never rescheduled. Without this guard a
-            # completed job was silently returned to 'scheduled' and
-            # re-entered the optimization candidate set.
-            if row["status"] in TERMINAL_STATUSES:
-                raise TerminalJobError(
-                    f"Job '{job_id}' is in terminal status "
-                    f"'{row['status']}' and cannot be rescheduled"
-                )
-
-            block_candidate = json.loads(row["block_candidate_json"])
+            current = self._row_to_dict(row)
+            block_candidate = copy.deepcopy(current["block_candidate"])
 
             metadata = dict(block_candidate.get("metadata", {}))
             metadata["committed_start_minute"] = int(start_minute)
@@ -497,6 +571,13 @@ class JobRepository:
             block_candidate["metadata"] = metadata
 
             block_candidate["status"] = BlockStatus.SCHEDULED.value
+
+            protect_committed_and_terminal_state(
+                current,
+                "scheduled",
+                block_candidate,
+                (int(start_minute), int(end_minute)),
+            )
 
             conn.execute(
                 """
@@ -521,8 +602,6 @@ class JobRepository:
                 ),
             )
 
-            conn.commit()
-
         return self.get(job_id)
 
     def record_refusal(
@@ -534,13 +613,12 @@ class JobRepository:
     ) -> Optional[dict[str, Any]]:
         """Record that optimization considered a job and did not schedule it.
 
-        The job's status is deliberately left alone: an unscheduled job
-        stays eligible for the next optimization run. Only the honest
-        reason from the solver is recorded, so the outcome is never
-        reported as a success.
+        Writes no lifecycle history and does not change status. Not used
+        by the service path, which withdraws a stale uncommitted proposal
+        on refusal (see lifecycle.plan_optimization_outcome).
         """
 
-        with closing(self._connect()) as conn, conn:
+        with self._write_transaction() as conn:
 
             row = conn.execute(
                 "SELECT status FROM maintenance_jobs WHERE job_id = ?",
@@ -568,8 +646,6 @@ class JobRepository:
                 (updated_at, solver_status, reason, job_id),
             )
 
-            conn.commit()
-
         return self.get(job_id)
 
     @staticmethod
@@ -584,3 +660,11 @@ class JobRepository:
         )
 
         return result
+
+
+__all__ = [
+    "DEFAULT_DB_PATH",
+    "JobRepository",
+    "TERMINAL_STATUSES",
+    "TerminalJobError",
+]

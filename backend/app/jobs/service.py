@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
+import threading
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from typing import Any, Optional
 
 from contracts import DEFAULT_HORIZON_START, BlockCandidate, BlockStatus
@@ -43,13 +43,47 @@ from contracts import PossessionWindow
 
 from backend.app.data.models import Corridor
 
+from backend.app.identity.actor import (
+    SCORER,
+    Actor,
+    unidentified_actor,
+)
+
+from backend.app.identity.authorization import (
+    AuthorizationPolicy,
+    JobAction,
+    UnenforcedPolicy,
+)
+
+from backend.app.jobs.events import event_timestamp
+
+from backend.app.jobs.history import (
+    JobHistoryRepository,
+    StoredJobEvent,
+)
+
+from backend.app.jobs.lifecycle import (
+    COMMITTED_STATUSES,
+    CommittedJobError,
+    CommittedStateIntegrityError,
+    InvalidTransitionError,
+    Plan,
+    StaleProposalError,
+    creation_events,
+    plan_commit,
+    plan_completion,
+    assert_committed_state_consistent,
+    plan_schedule_assignment,
+    proposal_run_id_of,
+    rejected_transition_event,
+)
+
 from backend.app.jobs.models import (
     JobCreateRequest,
     JobStatus,
 )
 
 from backend.app.jobs.repository import (
-    TERMINAL_STATUSES,
     JobRepository,
     TerminalJobError,
 )
@@ -132,7 +166,7 @@ DEFAULT_POSSESSION_COMPATIBILITY = (
 
 # Job statuses whose work has been committed to field personnel and
 # must therefore be preserved (pinned) through future optimization.
-COMMITTED_STATUSES = ("notified",)
+# Defined once in backend.app.jobs.lifecycle and imported above.
 
 # The corridor generator, the shipped fixtures and BlockCandidate's own
 # default latest_end_minute all use a 1440-minute (24h) planning day.
@@ -142,10 +176,6 @@ COMMITTED_STATUSES = ("notified",)
 OPTIMIZATION_HORIZON_START = DEFAULT_HORIZON_START
 OPTIMIZATION_HORIZON_MINUTES = 1440
 DEFAULT_MIN_HEADWAY_MINUTES = 15
-
-
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
 
 
 def derived_possession_provenance(
@@ -212,6 +242,36 @@ class PossessionInputs:
 
 
 class JobService:
+    """Maintenance job reporting, lifecycle and optimization input.
+
+    ACTOR CONTEXT (Slice 1)
+        Every state-changing method takes `actor`. It is optional only
+        so pre-Slice-1 in-process callers keep working: an omitted actor
+        is recorded as the explicit UNIDENTIFIED actor
+        (backend.app.identity.actor.unidentified_actor), never as an
+        invented person. The HTTP layer always passes the actor it
+        resolved from the request. Automated work inside a human action
+        (scoring during a report) is recorded under a SYSTEM actor.
+
+    AUTHORIZATION SEAM
+        Each method calls self.authorization.authorize(actor, action)
+        before reading or writing anything. The default policy enforces
+        nothing - see backend.app.identity.authorization.
+
+    LIFECYCLE LOCK
+        lifecycle_lock serializes every transition that can change an
+        existing job - optimization (JobOptimizationService acquires this
+        same lock), commit, completion and schedule assignment - so an
+        optimization cannot rewrite a proposal while it is being
+        committed, and a commit cannot land between an optimization's
+        snapshot and its write. It is an in-process threading.RLock:
+        it protects nothing across processes. The cross-process guard is
+        the database itself (BEGIN IMMEDIATE transactions plus the
+        snapshot check in lifecycle.plan_optimization_outcome), which
+        fails closed with ConcurrentJobModificationError. Report intake
+        (create_job) does not take the lock: a new job cannot conflict
+        with a transition on an existing one.
+    """
 
     def __init__(
         self,
@@ -219,10 +279,22 @@ class JobService:
         corridor: Corridor | None = None,
         dataset: CorridorDataset | None = None,
         registry: SectionRegistry | None = None,
+        authorization: AuthorizationPolicy | None = None,
     ):
         self.repository = (
             repository or JobRepository()
         )
+
+        # Pinned to this repository's own file, exactly as
+        # JobOptimizationService pins its AuditRepository, so an
+        # isolated test database keeps its history isolated too.
+        self.history = JobHistoryRepository(self.repository.db_path)
+
+        self.authorization: AuthorizationPolicy = (
+            authorization or UnenforcedPolicy()
+        )
+
+        self.lifecycle_lock = threading.RLock()
 
         # A dataset corridor carries its own topology, section registry
         # and timetable; a generated corridor carries none of those, and
@@ -358,7 +430,11 @@ class JobService:
     def create_job(
         self,
         request: JobCreateRequest,
+        actor: Actor | None = None,
     ) -> dict[str, Any]:
+
+        reporter = self._resolve_actor(actor)
+        self.authorization.authorize(reporter, JobAction.REPORT_JOB)
 
         # ---------------------------------
         # 1. Validate track
@@ -523,10 +599,10 @@ class JobService:
         )
 
         # ---------------------------------
-        # 6. Store in DB
+        # 6. Store in DB, with its creation history
         # ---------------------------------
 
-        created_at = _now()
+        created_at = event_timestamp()
 
         job = {
             "job_id":
@@ -578,7 +654,15 @@ class JobService:
                 scored_block.to_dict(),
         }
 
-        return self.repository.create(job)
+        return self.repository.create(
+            job,
+            creation_events(
+                job,
+                reporter=reporter,
+                scorer=SCORER,
+                at=created_at,
+            ),
+        )
 
     # -----------------------------------------
     # GET /jobs support
@@ -589,41 +673,66 @@ class JobService:
         return self.repository.list_all()
 
     # -----------------------------------------
+    # Lifecycle history
+    # -----------------------------------------
+
+    def job_history(
+        self,
+        job_id: str,
+        actor: Actor | None = None,
+    ) -> list[StoredJobEvent]:
+        """Every lifecycle event for one job, in commit order.
+
+        KeyError if the job does not exist. Read-only: history has no
+        update or delete operation anywhere in the application.
+        """
+
+        reader = self._resolve_actor(actor)
+        self.authorization.authorize(reader, JobAction.READ_JOB_HISTORY)
+
+        if self.repository.get(job_id) is None:
+            raise KeyError(f"Job '{job_id}' not found")
+
+        return self.history.list_for_job(job_id)
+
+    # -----------------------------------------
     # scheduled -> notified
     # -----------------------------------------
 
     def notify(
         self,
         job_id: str,
+        actor: Actor | None = None,
+        expected_proposal_run_id: str | None = None,
     ) -> dict[str, Any]:
+        """Commit (pin) the job's CURRENT proposal.
 
-        job = self.repository.get(job_id)
+        Notifying is what makes the work operationally committed: the
+        persisted BlockCandidate becomes COMMITTED so a later
+        optimization reconstructs it as an existing committed block and
+        the solver preserves its placement.
 
-        if job is None:
-            raise KeyError(
-                f"Job '{job_id}' not found"
-            )
+        expected_proposal_run_id, when given, must equal the run that
+        produced the current proposal; otherwise StaleProposalError, so
+        a commit can never land on a proposal other than the one the
+        caller reviewed. Omitting it commits whatever proposal is current
+        at the moment the lifecycle lock is held - which, since Slice 1,
+        is always the latest optimization's proposal.
+        """
 
-        if job["status"] != (
-            JobStatus.SCHEDULED.value
-        ):
-            raise ValueError(
-                f"Job '{job_id}' cannot be "
-                "notified from status "
-                f"'{job['status']}'"
-            )
+        committer = self._resolve_actor(actor)
+        self.authorization.authorize(committer, JobAction.COMMIT_BLOCK)
 
-        # Notifying is what makes the work operationally committed:
-        # field personnel have been told to be on the track. The
-        # persisted BlockCandidate is marked committed here so that a
-        # later optimization reconstructs it as an existing committed
-        # block and the solver preserves its placement.
-        return self.repository.update_status(
+        return self._transition(
             job_id,
-            JobStatus.NOTIFIED.value,
-            updated_at=_now(),
-            block_status=BlockStatus.COMMITTED.value,
-            is_committed=True,
+            committer,
+            "notify",
+            plan_commit(
+                job_id,
+                actor=committer,
+                at=event_timestamp(),
+                expected_proposal_run_id=expected_proposal_run_id,
+            ),
         )
 
     # -----------------------------------------
@@ -633,29 +742,84 @@ class JobService:
     def complete(
         self,
         job_id: str,
+        actor: Actor | None = None,
     ) -> dict[str, Any]:
 
-        job = self.repository.get(job_id)
+        completer = self._resolve_actor(actor)
+        self.authorization.authorize(completer, JobAction.COMPLETE_JOB)
 
-        if job is None:
-            raise KeyError(
-                f"Job '{job_id}' not found"
-            )
-
-        if job["status"] != (
-            JobStatus.NOTIFIED.value
-        ):
-            raise ValueError(
-                f"Job '{job_id}' cannot be "
-                "completed from status "
-                f"'{job['status']}'"
-            )
-
-        return self.repository.update_status(
+        return self._transition(
             job_id,
-            JobStatus.COMPLETED.value,
-            updated_at=_now(),
+            completer,
+            "complete",
+            plan_completion(job_id, actor=completer, at=event_timestamp()),
         )
+
+    def _transition(
+        self,
+        job_id: str,
+        actor: Actor,
+        attempted: str,
+        plan: Plan,
+    ) -> dict[str, Any]:
+        """Run one single-job transition under the lifecycle lock.
+
+        A refused transition (invalid from the current state, stale, or
+        against committed/terminal work) is recorded as
+        TRANSITION_REJECTED and then re-raised unchanged, so the attempt
+        is visible in history while the job's state is untouched.
+
+        CommittedStateIntegrityError is recorded the same way: the event's
+        error_type and reason name the integrity violation, and its
+        before/after state show the inconsistent row exactly as stored.
+        """
+
+        with self.lifecycle_lock:
+            try:
+                return self.repository.mutate_jobs([job_id], plan)[job_id]
+
+            except (
+                InvalidTransitionError,
+                StaleProposalError,
+                CommittedJobError,
+                CommittedStateIntegrityError,
+                TerminalJobError,
+            ) as exc:
+                self.record_rejected_transition([job_id], actor, attempted, exc)
+                raise
+
+    def record_rejected_transition(
+        self,
+        job_ids: list[str],
+        actor: Actor,
+        attempted: str,
+        error: BaseException,
+    ) -> None:
+        """Append TRANSITION_REJECTED for each existing job. Changes no state."""
+
+        at = event_timestamp()
+        events = []
+
+        for job_id in job_ids:
+            job = self.repository.get(job_id)
+
+            if job is not None:
+                events.append(
+                    rejected_transition_event(
+                        job,
+                        actor=actor,
+                        attempted=attempted,
+                        error=error,
+                        at=at,
+                    )
+                )
+
+        if events:
+            self.repository.append_events(events)
+
+    @staticmethod
+    def _resolve_actor(actor: Actor | None) -> Actor:
+        return actor if actor is not None else unidentified_actor()
 
     # -----------------------------------------
     # Used by Archit for optimization
@@ -689,11 +853,19 @@ class JobService:
         job_id: str,
         start_minute: int,
         end_minute: int,
+        actor: Actor | None = None,
     ) -> dict[str, Any]:
+        """Assign a placement directly, bypassing the optimizer.
 
-        job = self.repository.get(job_id)
+        No HTTP route calls this. Completed work is terminal
+        (TerminalJobError) and committed work cannot be re-placed
+        (CommittedJobError); both refusals are recorded in history.
+        """
 
-        if job is None:
+        assigner = self._resolve_actor(actor)
+        self.authorization.authorize(assigner, JobAction.ASSIGN_SCHEDULE)
+
+        if self.repository.get(job_id) is None:
             raise KeyError(
                 f"Job '{job_id}' not found"
             )
@@ -704,22 +876,17 @@ class JobService:
                 "than schedule start"
             )
 
-        # Completed work is terminal. Without this guard a completed
-        # job was silently forced back to 'scheduled' and re-entered
-        # the optimization candidate set. The repository enforces the
-        # same rule, so the guarantee holds even for callers that
-        # bypass this service.
-        if job["status"] in TERMINAL_STATUSES:
-            raise TerminalJobError(
-                f"Job '{job_id}' is in terminal status "
-                f"'{job['status']}' and cannot be rescheduled"
-            )
-
-        return self.repository.update_schedule(
+        return self._transition(
             job_id,
-            start_minute,
-            end_minute,
-            updated_at=_now(),
+            assigner,
+            "assign_schedule",
+            plan_schedule_assignment(
+                job_id,
+                start_minute,
+                end_minute,
+                actor=assigner,
+                at=event_timestamp(),
+            ),
         )
 
     # -----------------------------------------
@@ -890,20 +1057,44 @@ class JobService:
         that is absent from candidates would never be modelled at all.
         """
 
+        candidates, committed, _ = self.optimization_snapshot()
+
+        return candidates, committed
+
+    def optimization_snapshot(
+        self,
+    ) -> tuple[list[BlockCandidate], list[BlockCandidate], dict[str, str]]:
+        """classify_for_optimization plus each job's status at read time.
+
+        The statuses are what JobOptimizationService checks again inside
+        the write transaction, so an outcome is never applied to a job
+        that changed after the solver saw it. All three come from ONE
+        read, so they cannot disagree with each other.
+
+        Fails closed with CommittedStateIntegrityError if any active job's
+        stored committed state is inconsistent: the solver would otherwise
+        pin (or fail to pin) a commitment whose integrity is unknown.
+        """
+
         candidates: list[BlockCandidate] = []
         committed: list[BlockCandidate] = []
+        statuses: dict[str, str] = {}
 
-        for job in self.repository.list_active():
+        active = self.repository.list_active()
+        assert_committed_state_consistent(active)
+
+        for job in active:
             block = BlockCandidate.from_dict(
                 job["block_candidate"]
             )
 
             candidates.append(block)
+            statuses[job["job_id"]] = job["status"]
 
             if job["status"] in COMMITTED_STATUSES:
                 committed.append(block)
 
-        return candidates, committed
+        return candidates, committed, statuses
 
     # -----------------------------------------
     # Asset selection
@@ -977,6 +1168,8 @@ def as_public_job(
             job.get("last_solver_status"),
         "last_refusal_reason":
             job.get("last_refusal_reason"),
+        "proposal_run_id":
+            proposal_run_id_of(job),
         "block_candidate":
             job["block_candidate"],
     }

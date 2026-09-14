@@ -41,6 +41,12 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def new_run_id() -> str:
+    """Mint one optimization run identifier."""
+
+    return f"RUN-{uuid.uuid4().hex.upper()}"
+
+
 def serialize_request(request: OptimizationRequest) -> str:
     """Deterministic, safe JSON serialization of an OptimizationRequest.
 
@@ -81,6 +87,7 @@ class AuditService:
         trigger: str,
         actor: str = SYSTEM_ACTOR,
         provenance_snapshot: Optional[dict[str, Any]] = None,
+        run_id: Optional[str] = None,
     ) -> OptimizationResult:
         """Execute solve_fn(request) exactly once and audit the outcome.
 
@@ -88,9 +95,15 @@ class AuditService:
         an ERROR audit record and then re-raises the original
         exception - callers see exactly the same exception they would
         have seen without auditing.
+
+        run_id may be minted by the caller (see new_run_id) when it must
+        reference the run before it exists - the jobs pipeline does, so
+        every job lifecycle event of that run carries the same id as
+        the optimization_runs row. Uniqueness is still enforced by the
+        table's primary key: a reused id raises IntegrityError.
         """
 
-        run_id = f"RUN-{uuid.uuid4().hex.upper()}"
+        run_id = run_id or new_run_id()
         requested_at = _now()
         request_json = serialize_request(request)
         provenance_json = _serialize_provenance(provenance_snapshot)
