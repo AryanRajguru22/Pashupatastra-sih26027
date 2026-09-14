@@ -12,6 +12,18 @@ It only produces:
 
 The CP-SAT optimizer remains responsible for deciding whether and
 when a block can actually be scheduled.
+
+MODEL IDENTITY (Sprint 3 Slice 2)
+    This is a fixed-weight deterministic formula, not a trained model.
+    MODEL_TYPE and MODEL_VERSION below are the honest identity this
+    scorer carries into job history and any BlockProposal built from
+    its output: BASELINE_DETERMINISTIC, never "ML" or "trained". It is
+    NOT trained on real Indian Railways data - the weights are
+    hand-authored constants (RISK_WEIGHTS / PRIORITY_WEIGHTS), and the
+    feature inputs on the maintenance-job path come from the checked-in
+    synthetic dataset. A future trained model gets its own MODEL_TYPE
+    and version; this one must never be relabelled to imply training
+    that did not happen.
 """
 
 from __future__ import annotations
@@ -19,6 +31,14 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from .features import extract_features
+
+
+MODEL_TYPE = "BASELINE_DETERMINISTIC"
+
+# Bump whenever RISK_WEIGHTS, PRIORITY_WEIGHTS or the scoring formula
+# changes, so a stored score can always be traced to the exact rules
+# that produced it.
+MODEL_VERSION = "baseline-deterministic-1.0"
 
 
 # Weights must sum to 1.0.
@@ -133,6 +153,8 @@ def score_block(
         risk_level
         explanation
         features
+        model_type
+        model_version
     """
 
     features = extract_features(block)
@@ -164,4 +186,7 @@ def score_block(
         ),
 
         "features": features,
+
+        "model_type": MODEL_TYPE,
+        "model_version": MODEL_VERSION,
     }

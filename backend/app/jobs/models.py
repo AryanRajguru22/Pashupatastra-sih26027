@@ -5,6 +5,8 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from backend.app.data.models import DefectSeverity
+
 
 class JobType(str, Enum):
     TRACK_RENEWAL = "TRACK_RENEWAL"
@@ -35,6 +37,35 @@ class JobCreateRequest(BaseModel):
     workers_max: int = Field(ge=1)
 
     description: str = Field(min_length=1, max_length=1000)
+
+    # Sprint 3 Slice 2. Optional so every pre-Slice-2 caller (22 existing
+    # construction sites, none of which set this) keeps working
+    # unchanged. When given, this is the WORKER's own assessment of the
+    # defect and is what the scorer is run against - see JobService.
+    # create_job - instead of falling back to whatever condition was
+    # last recorded against the nearest asset. Typed as the enum, not a
+    # free string, so an unrecognised value is a 422 at the boundary
+    # rather than a silently wrong score.
+    severity: Optional[DefectSeverity] = None
+
+    # A pointer to inspection evidence (e.g. a photo/report id) already
+    # held by another system. This module does not store or validate the
+    # evidence itself - only the reference, inside block_candidate.
+    # metadata (see backend.app.jobs.service), which is where the
+    # existing architecture already carries free-form job context.
+    evidence_reference: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=200,
+    )
+
+    # Optional defence-in-depth: this deployment already serves exactly
+    # one corridor (JobService.corridor), so this field is never used to
+    # ROUTE the request - it is validated, when given, against the
+    # service's own corridor_id and rejected (400) on a mismatch, so a
+    # caller that names the wrong corridor fails closed rather than
+    # having its job silently filed against a corridor it did not name.
+    corridor_id: Optional[str] = Field(default=None, min_length=1)
 
     @field_validator("distance_end")
     @classmethod
@@ -207,6 +238,58 @@ class ProvenanceResponse(BaseModel):
     asset_condition: str
     possession: str
     effective: str
+
+
+class ProposalExplanationItem(BaseModel):
+    """One structured reason behind a BlockProposal (Sprint 3 Slice 2).
+
+    A fixed {code, detail} shape rather than free-form generated text,
+    per the Slice 2 explainability requirement: `code` is a stable,
+    machine-checkable label a test or a UI can switch on; `detail` is
+    the human-readable statement of the same fact.
+    """
+
+    code: str
+    detail: str
+
+
+class BlockProposalResponse(BaseModel):
+    """A NEW scheduling proposal for ONE maintenance job (Sprint 3 Slice 2).
+
+    Derived, not separately persisted: built from the job's own row,
+    the specific BLOCK_PROPOSED/BLOCK_REPROPOSED/COMMITTED_BLOCK_PRESERVED
+    history event that produced the current placement, and the
+    optimization_runs record for that run. See backend.app.jobs.proposal.
+
+    A proposal is never a commitment: is_committed is always False here
+    - committing happens through POST /jobs/{job_id}/notify, a distinct
+    action recorded as BLOCK_COMMITTED, never implied by this object's
+    existence.
+    """
+
+    proposal_id: str
+    job_id: str
+    optimization_run_id: str
+    corridor_id: str
+
+    track_id: str
+    section_id: Optional[str] = None
+
+    start_minute: int
+    end_minute: int
+    duration_minutes: int
+
+    work_type: str
+    priority_score: float
+    risk_score: float
+    objective_score: float
+
+    is_committed: bool
+
+    explanation: list[ProposalExplanationItem]
+    provenance: ProvenanceResponse
+
+    generated_at: str
 
 
 class JobOptimizationResponse(BaseModel):

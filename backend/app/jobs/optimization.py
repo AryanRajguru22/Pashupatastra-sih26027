@@ -73,6 +73,16 @@ from backend.app.optimizer.solver import (
     uncovered_possession_tracks,
 )
 
+# Reused, not re-implemented (Sprint 3 Slice 2): these are the exact
+# predicates the solver itself used to decide resource identity and
+# possession coverage. Explaining a placement with anything else risks
+# the explanation silently drifting from what the solver actually
+# enforced.
+from backend.app.optimizer.solver import (
+    _possession_window_covers_block as _window_covers_block,
+)
+from backend.app.optimizer.solver import _resource_key
+
 
 class PossessionDataUnavailableError(RuntimeError):
     """No possession data at all was available for the optimization.
@@ -200,6 +210,99 @@ def _rejection_summary(inputs: PossessionInputs) -> dict[str, Any]:
             rejection.train_number for rejection in rejections
         )[:_MAX_AUDITED_REJECTIONS],
     }
+
+
+def _proposal_explanations(
+    scheduled: list[dict[str, Any]],
+    candidates: list[BlockCandidate],
+    committed: list[BlockCandidate],
+    possession: PossessionInputs,
+) -> dict[str, dict[str, Any]]:
+    """Per-job structured facts to attach to its placement event (Slice 2).
+
+    Computed here, once, from data this call already has - never
+    recomputed later by a reader - so a BlockProposal built from history
+    reflects exactly what was true of THIS run, even if corridor data
+    changes afterwards. See backend.app.jobs.proposal.
+
+    Every value is plain JSON (str/int/float/bool/list/dict) - required
+    by JobEvent's metadata contract - and every list is sorted, since
+    JobEvent round-trips metadata through canonical (sort_keys) JSON.
+    """
+
+    by_id = {block.block_id: block for block in candidates}
+    explanations: dict[str, dict[str, Any]] = {}
+
+    # The pre-solve `committed` snapshot is what was FED to the solver as
+    # pinned work - it is not proof of what the solver actually kept
+    # scheduled. Cross-checking against the post-solve `scheduled` result
+    # (each entry's own is_committed, set from result.scheduled_blocks -
+    # see summarize_outcome / backend.app.optimizer.solver.solve) is what
+    # keeps COMMITTED_BLOCKS_RESPECTED honest: a mate is named only if it
+    # actually remained scheduled-and-committed in THIS run's result, not
+    # merely because it was committed going in.
+    actually_committed_ids = {
+        entry["job_id"] for entry in scheduled if entry.get("is_committed")
+    }
+
+    for entry in scheduled:
+        job_id = entry["job_id"]
+        block = by_id.get(job_id)
+
+        if block is None:
+            continue
+
+        start = int(entry["start_minute"])
+        end = int(entry["end_minute"])
+
+        window = next(
+            (
+                w
+                for w in possession.windows
+                if _window_covers_block(w, block)
+                and w.start_minute <= start
+                and end <= w.end_minute
+            ),
+            None,
+        )
+
+        resource = _resource_key(block)
+        mates = sorted(
+            {
+                mate.block_id
+                for mate in committed
+                if mate.block_id != job_id
+                and _resource_key(mate) == resource
+                and mate.block_id in actually_committed_ids
+            }
+        )
+
+        explanation: dict[str, Any] = {
+            "objective_score": round(block.risk_score + block.priority_score, 4),
+            "committed_resource_mates": mates,
+        }
+
+        if window is not None:
+            explanation["possession_window_start_minute"] = int(window.start_minute)
+            explanation["possession_window_end_minute"] = int(window.end_minute)
+
+        if possession.snapshot is None:
+            # GENERATED_STATIC_SLOTS: no timetable was consulted at all,
+            # so "zero conflicts" would misrepresent "never checked".
+            explanation["train_data_available"] = False
+            explanation["trains_avoided"] = []
+        else:
+            explanation["train_data_available"] = True
+            explanation["trains_avoided"] = sorted(
+                rejection.train_number
+                for rejection in possession.rejections
+                if not rejection.affected_section_ids
+                or block.section_id in rejection.affected_section_ids
+            )
+
+        explanations[job_id] = explanation
+
+    return explanations
 
 
 def summarize_outcome(
@@ -458,6 +561,10 @@ class JobOptimizationService:
                 candidates,
             )
 
+            explanations = _proposal_explanations(
+                scheduled, candidates, committed, possession
+            )
+
             generated_at = event_timestamp()
 
             # One transaction for the whole batch: every job's new state
@@ -473,6 +580,7 @@ class JobOptimizationService:
                         placements={entry["job_id"]: entry for entry in scheduled},
                         refusals={entry["job_id"]: entry["reason"] for entry in refused},
                         expected_statuses=expected_statuses,
+                        explanations=explanations,
                     ),
                     reject_terminal=True,
                 )

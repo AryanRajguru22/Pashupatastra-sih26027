@@ -39,6 +39,7 @@ class JobAction(str, Enum):
     COMMIT_BLOCK = "COMMIT_BLOCK"
     COMPLETE_JOB = "COMPLETE_JOB"
     READ_JOB_HISTORY = "READ_JOB_HISTORY"
+    READ_BLOCK_PROPOSAL = "READ_BLOCK_PROPOSAL"
 
 
 class AuthorizationDenied(Exception):

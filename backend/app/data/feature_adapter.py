@@ -199,12 +199,20 @@ class ScoringFeatureAdapter:
         cls,
         block: BlockCandidate,
         corridor: Corridor,
+        explicit_defect_severity: Optional[str] = None,
     ) -> BlockCandidate:
         """Score a BlockCandidate using its canonical domain Asset/Track.
 
         The shared BlockCandidate contract is preserved. Only its existing
         ``priority_score``, ``risk_score`` and ``metadata`` fields are filled
         from the scoring pipeline.
+
+        explicit_defect_severity, when given, overrides the asset's own
+        stored defect_severity - this is what lets a freshly REPORTED job
+        be scored on the severity the worker just observed rather than on
+        whatever condition was last recorded for the nearest asset. Omit
+        it (the default) to keep scoring off the asset's own record, as
+        every pre-Slice-2 caller does.
         """
         assets_by_id = {asset.asset_id: asset for asset in corridor.assets}
         tracks_by_id = {track.track_id: track for track in corridor.tracks}
@@ -232,13 +240,19 @@ class ScoringFeatureAdapter:
             work_type=block.work_type,
             duration_minutes=block.duration_minutes,
             days_overdue=days_overdue,
-            explicit_defect_severity=asset.defect_severity,
+            explicit_defect_severity=(
+                explicit_defect_severity
+                if explicit_defect_severity is not None
+                else asset.defect_severity
+            ),
         )
 
         block.priority_score = result["priority_score"]
         block.risk_score = result["risk_score"]
         block.metadata["scoring_features"] = result["scoring_input"]
         block.metadata["scoring_explanation"] = result["explanation"]
+        block.metadata["scoring_model_type"] = result["model_type"]
+        block.metadata["scoring_model_version"] = result["model_version"]
 
         return block
 

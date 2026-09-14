@@ -26,6 +26,7 @@ from backend.app.jobs.lifecycle import (
 )
 
 from backend.app.jobs.models import (
+    BlockProposalResponse,
     CommitBlockRequest,
     JobActionResponse,
     JobCreateRequest,
@@ -34,6 +35,7 @@ from backend.app.jobs.models import (
     JobOptimizationResponse,
     JobResponse,
     JobStatus,
+    ProposalExplanationItem,
 )
 
 from backend.app.jobs.optimization import (
@@ -41,6 +43,8 @@ from backend.app.jobs.optimization import (
     NoEligibleJobsError,
     PossessionDataUnavailableError,
 )
+
+from backend.app.jobs.proposal import BlockProposal, NoBlockProposalError
 
 from backend.app.jobs.repository import (
     TerminalJobError,
@@ -196,6 +200,60 @@ def _event_response(item: StoredJobEvent) -> JobEventResponse:
     return JobEventResponse(
         sequence=item.sequence,
         **item.event.to_dict(),
+    )
+
+
+@router.get(
+    "/jobs/{job_id}/proposal",
+    response_model=BlockProposalResponse,
+)
+def get_job_proposal(
+    job_id: str,
+    actor: Actor = Depends(request_actor),
+) -> BlockProposalResponse:
+    """The job's current NEW-scheduling proposal (Sprint 3 Slice 2).
+
+    409 when the job exists but has no current proposal right now -
+    never yet optimized, considered and left UNSCHEDULED, or already
+    committed/completed. A proposal is never a commitment: this route
+    never reports is_committed=True (POST /jobs/{job_id}/notify is the
+    only route that commits work).
+    """
+
+    try:
+        proposal = service.current_proposal(job_id, actor=actor)
+
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Job '{job_id}' not found",
+        ) from exc
+
+    except NoBlockProposalError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    return _proposal_response(proposal)
+
+
+def _proposal_response(proposal: BlockProposal) -> BlockProposalResponse:
+    data = proposal.to_dict()
+
+    return BlockProposalResponse(
+        **{
+            **data,
+            "explanation": [
+                ProposalExplanationItem(**item) for item in data["explanation"]
+            ],
+        }
     )
 
 

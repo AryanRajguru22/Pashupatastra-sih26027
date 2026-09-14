@@ -480,6 +480,7 @@ def plan_optimization_outcome(
     refusals: Mapping[str, str],
     expected_statuses: Optional[Mapping[str, str]] = None,
     record_history: bool = True,
+    explanations: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> Plan:
     """Plan the writes and events for a solver result.
 
@@ -491,6 +492,15 @@ def plan_optimization_outcome(
     changed the job underneath this run, and the whole batch is refused
     (ConcurrentJobModificationError) rather than applied to state the
     solver never saw.
+
+    explanations (Sprint 3 Slice 2), when given, is
+    job_id -> additional structured facts about a PLACED job's outcome
+    (possession window used, which currently-committed jobs share its
+    resource, its objective contribution, train-conflict data). Merged
+    into the placement event's metadata so backend.app.jobs.proposal can
+    build a BlockProposal straight from stored history without
+    recomputing anything the solver already decided. Absent for a
+    refusal - there is no placement to explain.
     """
 
     if record_history and attempt.requester is None:
@@ -526,7 +536,13 @@ def plan_optimization_outcome(
 
             if job_id in placements:
                 mutation, outcome = _plan_placement(
-                    job, base, placements[job_id], attempt, completed_at, solver_status
+                    job,
+                    base,
+                    placements[job_id],
+                    attempt,
+                    completed_at,
+                    solver_status,
+                    (explanations or {}).get(job_id),
                 )
             elif job_id in refusals:
                 mutation, outcome = _plan_refusal(
@@ -561,7 +577,9 @@ def plan_optimization_outcome(
     return plan
 
 
-def _plan_placement(job, base, placement, attempt, completed_at, solver_status):
+def _plan_placement(
+    job, base, placement, attempt, completed_at, solver_status, explanation=None
+):
     job_id = job["job_id"]
     status = job["status"]
     before = _snapshot(job)
@@ -575,6 +593,7 @@ def _plan_placement(job, base, placement, attempt, completed_at, solver_status):
         "end_minute": end,
         "horizon_start": attempt.horizon_start,
         "solver_status": solver_status,
+        **(explanation or {}),
     }
 
     if status in COMMITTED_STATUSES:
@@ -1012,6 +1031,9 @@ def creation_events(
             "scoring_explanation": metadata.get("scoring_explanation", []),
             "scoring_features": metadata.get("scoring_features", {}),
             "scorer": "backend.app.ml.scorer.score_block",
+            "scoring_model_type": metadata.get("scoring_model_type"),
+            "scoring_model_version": metadata.get("scoring_model_version"),
+            "reported_severity": metadata.get("reported_severity"),
         },
     )
 

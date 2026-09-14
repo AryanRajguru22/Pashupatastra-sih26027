@@ -4,7 +4,7 @@ import os
 import threading
 import uuid
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 from contracts import DEFAULT_HORIZON_START, BlockCandidate, BlockStatus
 
@@ -81,6 +81,12 @@ from backend.app.jobs.lifecycle import (
 from backend.app.jobs.models import (
     JobCreateRequest,
     JobStatus,
+)
+
+from backend.app.jobs.proposal import (
+    BlockProposal,
+    NoBlockProposalError,
+    build_block_proposal,
 )
 
 from backend.app.jobs.repository import (
@@ -437,6 +443,25 @@ class JobService:
         self.authorization.authorize(reporter, JobAction.REPORT_JOB)
 
         # ---------------------------------
+        # 0. Validate corridor, when named
+        # ---------------------------------
+        #
+        # This deployment serves exactly one corridor (self.corridor).
+        # corridor_id is optional precisely so it never becomes a
+        # routing mechanism a caller silently depends on; when given, it
+        # is checked, not used to select anything, so a caller that
+        # names the wrong corridor fails closed instead of having its
+        # job filed against a corridor it did not intend.
+        if (
+            request.corridor_id is not None
+            and request.corridor_id != self.corridor.corridor_id
+        ):
+            raise ValueError(
+                f"corridor_id {request.corridor_id!r} does not match this "
+                f"deployment's corridor {self.corridor.corridor_id!r}"
+            )
+
+        # ---------------------------------
         # 1. Validate track
         # ---------------------------------
 
@@ -584,17 +609,37 @@ class JobService:
 
                 "asset_km_location":
                     asset.km_location,
+
+                # Sprint 3 Slice 2: the worker's own report, carried
+                # verbatim in metadata rather than as new BlockCandidate
+                # fields or SQL columns - see JobCreateRequest.severity/
+                # evidence_reference. None when the worker did not
+                # supply one.
+                "reported_severity":
+                    request.severity.value if request.severity else None,
+
+                "evidence_reference":
+                    request.evidence_reference,
             },
         )
 
         # ---------------------------------
         # 5. Use EXISTING scorer
         # ---------------------------------
+        #
+        # A worker-reported severity overrides the asset's own stored
+        # defect_severity for THIS job's score - see
+        # ScoringFeatureAdapter.score_block_candidate. Omitted (None)
+        # keeps the pre-Slice-2 behaviour of scoring off the asset's
+        # record.
 
         scored_block = (
             ScoringFeatureAdapter.score_block_candidate(
                 block,
                 self.corridor,
+                explicit_defect_severity=(
+                    request.severity.value if request.severity else None
+                ),
             )
         )
 
@@ -694,6 +739,75 @@ class JobService:
             raise KeyError(f"Job '{job_id}' not found")
 
         return self.history.list_for_job(job_id)
+
+    # -----------------------------------------
+    # Current BlockProposal (Sprint 3 Slice 2)
+    # -----------------------------------------
+
+    def current_proposal(
+        self,
+        job_id: str,
+        actor: Actor | None = None,
+    ) -> BlockProposal:
+        """The job's current NEW-scheduling proposal, or an explicit refusal.
+
+        KeyError if the job does not exist. NoBlockProposalError - never
+        a fabricated proposal - if the job exists but has none right
+        now: never yet optimized, considered and left UNSCHEDULED, or
+        already committed/completed (a proposal is not a commitment; see
+        backend.app.jobs.proposal).
+
+        Derives the proposal from this job's own history and the
+        optimization_runs record for the run that produced it - see
+        backend.app.jobs.proposal.build_block_proposal. The audit
+        repository is pinned to THIS service's own repository.db_path,
+        exactly as JobOptimizationService pins it, so an isolated test
+        database's proposals are built from that same isolated file.
+        """
+
+        reader = self._resolve_actor(actor)
+        self.authorization.authorize(reader, JobAction.READ_BLOCK_PROPOSAL)
+
+        job = self.repository.get(job_id)
+
+        if job is None:
+            raise KeyError(f"Job '{job_id}' not found")
+
+        if job["status"] != JobStatus.SCHEDULED.value:
+            raise NoBlockProposalError(job_id, _no_proposal_reason(job))
+
+        run_id = proposal_run_id_of(job)
+
+        if run_id is None:
+            raise NoBlockProposalError(
+                job_id,
+                "job is 'scheduled' but carries no optimization_run_id; "
+                "this is a stored-state inconsistency",
+            )
+
+        # Local import: backend.app.audit.repository imports
+        # backend.app.jobs.repository (for DEFAULT_DB_PATH), and
+        # backend/app/jobs/__init__.py eagerly imports this module - a
+        # module-level import here would import audit.repository while
+        # it is still mid-import-of-jobs, a circular import. Every other
+        # in-process caller of AuditRepository (JobOptimizationService)
+        # sits in backend.app.jobs.optimization, a separate module the
+        # package __init__ does not eagerly import, so it does not hit
+        # this cycle.
+        from backend.app.audit.repository import AuditRepository
+
+        run = AuditRepository(self.repository.db_path).get(run_id)
+
+        if run is None:
+            raise NoBlockProposalError(
+                job_id,
+                f"optimization run {run_id!r} referenced by this job's "
+                "proposal was not found in the audit trail",
+            )
+
+        events = self.history.list_for_job(job_id)
+
+        return build_block_proposal(job, self.corridor.corridor_id, events, run)
 
     # -----------------------------------------
     # scheduled -> notified
@@ -1130,6 +1244,28 @@ class JobService:
                     - midpoint_km
                 ),
         )
+
+
+def _no_proposal_reason(job: Mapping[str, Any]) -> str:
+    """Human-readable reason a job in a non-'scheduled' status has no proposal."""
+
+    status = job["status"]
+
+    if status == JobStatus.REPORTED.value:
+        if job.get("last_refusal_reason"):
+            return (
+                "job was considered and left UNSCHEDULED: "
+                f"{job['last_refusal_reason']}"
+            )
+        return "job has not been through optimization yet"
+
+    if status == JobStatus.NOTIFIED.value:
+        return "job's proposal was already committed via notify; it is no longer a pending proposal"
+
+    if status == JobStatus.COMPLETED.value:
+        return "job is completed"
+
+    return f"job is in status {status!r}"
 
 
 def as_public_job(
