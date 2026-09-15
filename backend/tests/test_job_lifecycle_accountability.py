@@ -64,6 +64,11 @@ from backend.app.jobs.optimization import (
 )
 from backend.app.jobs.repository import JobRepository
 from backend.app.jobs.service import JobService
+from backend.tests.execution_helpers import (
+    complete_execution_body,
+    execute_to_completion,
+    start_execution_body,
+)
 
 
 WORKER = human_actor("WORKER-042", ActorRole.WORKER)
@@ -324,26 +329,33 @@ def test_commit_records_the_human_who_committed(service, optimizer):
     assert committed.after_state.is_committed is True
 
 
-def test_completion_records_job_completed_with_the_actual_actor(
+def test_completion_records_execution_events_with_the_actual_actor(
     service, optimizer
 ):
     job, _ = schedule_and_commit(service, optimizer)
 
-    service.complete(job["job_id"], actor=WORKER)
+    execute_to_completion(service, job["job_id"], actor=WORKER)
 
-    completed = last_event(service, job["job_id"])
+    started, completed = history(service, job["job_id"])[-2:]
 
-    assert completed.event_type is E.JOB_COMPLETED
+    assert started.event_type is E.EXECUTION_STARTED
+    assert started.actor == WORKER
+    assert started.before_state.status == "notified"
+    assert started.after_state.status == "in_progress"
+
+    assert completed.event_type is E.EXECUTION_COMPLETED
     assert completed.actor == WORKER
-    assert completed.before_state.status == "notified"
+    assert completed.before_state.status == "in_progress"
     assert completed.after_state.status == "completed"
+
+    assert E.JOB_COMPLETED not in event_types(service, job["job_id"])
 
 
 def test_history_is_chronological_and_complete_for_the_lifecycle(
     service, optimizer
 ):
     job, _ = schedule_and_commit(service, optimizer)
-    service.complete(job["job_id"], actor=WORKER)
+    execute_to_completion(service, job["job_id"], actor=WORKER)
 
     stored = service.history.list_for_job(job["job_id"])
 
@@ -354,7 +366,8 @@ def test_history_is_chronological_and_complete_for_the_lifecycle(
         E.OPTIMIZATION_COMPLETED,
         E.BLOCK_PROPOSED,
         E.BLOCK_COMMITTED,
-        E.JOB_COMPLETED,
+        E.EXECUTION_STARTED,
+        E.EXECUTION_COMPLETED,
     ]
 
     sequences = [item.sequence for item in stored]
@@ -759,7 +772,7 @@ def test_inconsistent_committed_state_is_detected_and_fails_closed_not_repaired(
 
     The old re-optimization bug produced exactly this row; so could any
     future writer bug. It is never rewritten into valid-looking state:
-    optimization refuses the corridor before solving, completion is
+    optimization refuses the corridor before solving, execution start is
     refused, the row stays byte-identical, and each refusal is recorded
     under the human who attempted it with the integrity error named.
     """
@@ -783,7 +796,7 @@ def test_inconsistent_committed_state_is_detected_and_fails_closed_not_repaired(
     assert "reconciliation" in str(optimize_error.value)
 
     with pytest.raises(CommittedStateIntegrityError):
-        service.complete(job_id, actor=WORKER)
+        service.start_execution(job_id, actor=WORKER, **start_execution_body(job))
 
     # Nothing was solved, written, withdrawn or repaired.
     assert count_runs(db_path) == runs_before
@@ -796,7 +809,7 @@ def test_inconsistent_committed_state_is_detected_and_fails_closed_not_repaired(
     assert [e.event_type for e in added] == [E.TRANSITION_REJECTED] * 2
     assert [e.metadata["attempted_transition"] for e in added] == [
         "optimize",
-        "complete",
+        "start_execution",
     ]
     assert [e.actor for e in added] == [ENGINEER, WORKER]
 
@@ -806,7 +819,12 @@ def test_inconsistent_committed_state_is_detected_and_fails_closed_not_repaired(
         assert event.after_state.status == "notified"
         assert event.after_state.block_status == "SCHEDULED"
 
-    for forbidden in (E.COMMITTED_BLOCK_PRESERVED, E.JOB_COMPLETED):
+    for forbidden in (
+        E.COMMITTED_BLOCK_PRESERVED,
+        E.JOB_COMPLETED,
+        E.EXECUTION_STARTED,
+        E.EXECUTION_COMPLETED,
+    ):
         assert types_before.count(forbidden.value) == event_types(
             service, job_id
         ).count(forbidden.value)
@@ -832,7 +850,7 @@ def test_every_kind_of_inconsistent_committed_row_blocks_every_write_path(
     row_before = raw_row(db_path, job_id)
 
     attempts = [
-        lambda: service.complete(job_id, actor=WORKER),
+        lambda: service.start_execution(job_id, actor=WORKER, **start_execution_body(job)),
         lambda: optimizer.optimize_corridor("CORRIDOR_A", actor=ENGINEER),
         lambda: service.repository.update_status(job_id, "completed"),
         lambda: service.repository.apply_optimization_outcome(
@@ -944,10 +962,18 @@ def test_committed_placement_cannot_be_reassigned_through_any_write_path(
 
 def test_completed_job_remains_terminal(service, optimizer, db_path):
     job, _ = schedule_and_commit(service, optimizer)
-    service.complete(job["job_id"], actor=WORKER)
+    execute_to_completion(service, job["job_id"], actor=WORKER)
+    (execution,) = service.get_execution(job["job_id"], actor=WORKER)
 
     for attempt in (
-        lambda: service.complete(job["job_id"], actor=WORKER),
+        lambda: service.start_execution(
+            job["job_id"], actor=WORKER, **start_execution_body(job)
+        ),
+        lambda: service.complete_execution(
+            job["job_id"],
+            actor=WORKER,
+            **complete_execution_body(job, execution.execution_id),
+        ),
         lambda: service.notify(job["job_id"], actor=AUTHORITY),
     ):
         with pytest.raises(InvalidTransitionError):
@@ -966,7 +992,7 @@ def test_completed_job_remains_terminal(service, optimizer, db_path):
         e for e in history(service, job["job_id"])
         if e.event_type is E.TRANSITION_REJECTED
     ]
-    assert len(rejected) == 3
+    assert len(rejected) == 4
     assert all(e.after_state.status == "completed" for e in rejected)
 
 
@@ -974,7 +1000,7 @@ def test_completed_job_never_reenters_optimization_or_gains_system_events(
     service, optimizer
 ):
     job, _ = schedule_and_commit(service, optimizer)
-    service.complete(job["job_id"], actor=WORKER)
+    execute_to_completion(service, job["job_id"], actor=WORKER)
     before = event_types(service, job["job_id"])
 
     report(service, track_id="DOWN-1", distance_start=2000.0)
@@ -1157,7 +1183,7 @@ def test_concurrent_optimizations_and_completion_preserve_invariants(
 
     def complete():
         try:
-            service.complete(committed["job_id"], actor=WORKER)
+            execute_to_completion(service, committed["job_id"], actor=WORKER)
         except BaseException as exc:  # noqa: BLE001
             errors.append(exc)
 
@@ -1509,10 +1535,24 @@ def test_history_endpoint_shows_who_did_what_and_the_resulting_state(client):
     assert committed.status_code == 200, committed.text
     assert committed.json()["job"]["proposal_run_id"] == run_id
 
-    completed = client.post(
-        f"/jobs/{job['job_id']}/complete", headers=WORKER_HEADERS
+    from backend.app.jobs.router import service as router_service
+
+    stored = router_service.repository.get(job["job_id"])
+    started = client.post(
+        f"/jobs/{job['job_id']}/execution/start",
+        json=start_execution_body(stored),
+        headers=WORKER_HEADERS,
     )
-    assert completed.status_code == 200
+    assert started.status_code == 200, started.text
+
+    completed = client.post(
+        f"/jobs/{job['job_id']}/execution/complete",
+        json=complete_execution_body(
+            stored, started.json()["execution"]["execution_id"]
+        ),
+        headers=WORKER_HEADERS,
+    )
+    assert completed.status_code == 200, completed.text
 
     response = client.get(f"/jobs/{job['job_id']}/history")
     assert response.status_code == 200
@@ -1532,7 +1572,8 @@ def test_history_endpoint_shows_who_did_what_and_the_resulting_state(client):
         ("SYSTEM:OPTIMIZER", "SYSTEM", "OPTIMIZATION_COMPLETED", "reported"),
         ("SYSTEM:OPTIMIZER", "SYSTEM", "BLOCK_PROPOSED", "scheduled"),
         ("AUTHORITY-017", "HUMAN", "BLOCK_COMMITTED", "notified"),
-        ("WORKER-042", "HUMAN", "JOB_COMPLETED", "completed"),
+        ("WORKER-042", "HUMAN", "EXECUTION_STARTED", "in_progress"),
+        ("WORKER-042", "HUMAN", "EXECUTION_COMPLETED", "completed"),
     ]
 
     first = body["events"][0]
@@ -1657,17 +1698,19 @@ def test_inconsistent_committed_state_over_http_is_409_and_recorded(client):
         headers=AUTHORITY_HEADERS,
     )
 
+    start_body = start_execution_body(router_service.repository.get(job["job_id"]))
+
     corrupt_row(
         router_service.repository.db_path,
         job["job_id"],
         block={"status": "SCHEDULED"},
     )
 
-    for path, headers in (
-        ("/corridors/CORRIDOR_A/optimize-jobs", ENGINEER_HEADERS),
-        (f"/jobs/{job['job_id']}/complete", WORKER_HEADERS),
+    for path, headers, body in (
+        ("/corridors/CORRIDOR_A/optimize-jobs", ENGINEER_HEADERS, None),
+        (f"/jobs/{job['job_id']}/execution/start", WORKER_HEADERS, start_body),
     ):
-        response = client.post(path, headers=headers)
+        response = client.post(path, json=body, headers=headers)
         assert response.status_code == 409, response.text
         assert "inconsistent" in response.json()["detail"]
 
@@ -1777,8 +1820,8 @@ def test_every_state_changing_route_is_a_reviewed_history_recording_path():
         ("POST", "/jobs/{job_id}/proposal/approve"),
         ("POST", "/jobs/{job_id}/proposal/reject"),
         ("POST", "/jobs/{job_id}/proposal/postpone"),
-        ("POST", "/jobs/{job_id}/complete"),
-        # Sprint 3 Slice 5 Step 3: field execution of an approved block.
+        # Sprint 3 Slice 5: field execution of an approved block, the only
+        # completion mechanism (Step 4 retired POST /jobs/{job_id}/complete).
         # GET /jobs/{job_id}/execution is a read and is excluded above.
         ("POST", "/jobs/{job_id}/execution/start"),
         ("POST", "/jobs/{job_id}/execution/complete"),
@@ -1803,21 +1846,38 @@ def test_every_job_mutation_over_http_records_its_event(client):
 
     assert [e["event_type"] for e in events()] == ["JOB_CREATED", "JOB_SCORED"]
 
-    steps = (
-        ("/corridors/CORRIDOR_A/optimize-jobs", ENGINEER_HEADERS, "BLOCK_PROPOSED", "scheduled"),
-        (f"/jobs/{job_id}/notify", AUTHORITY_HEADERS, "BLOCK_COMMITTED", "notified"),
-        (f"/jobs/{job_id}/complete", WORKER_HEADERS, "JOB_COMPLETED", "completed"),
-    )
+    from backend.app.jobs.router import service as router_service
 
-    for path, headers, event_type, status in steps:
+    def step(path, headers, event_type, status, body=None):
         before = len(events())
-        assert client.post(path, headers=headers).status_code == 200
+        response = client.post(path, json=body, headers=headers)
+        assert response.status_code == 200, (path, response.text)
         added = events()[before:]
 
         assert added, path
         assert added[-1]["event_type"] == event_type
         assert added[-1]["after_state"]["status"] == status
         assert client.get(f"/jobs/{job_id}").json()["status"] == status
+        return response
+
+    step("/corridors/CORRIDOR_A/optimize-jobs", ENGINEER_HEADERS, "BLOCK_PROPOSED", "scheduled")
+    step(f"/jobs/{job_id}/notify", AUTHORITY_HEADERS, "BLOCK_COMMITTED", "notified")
+
+    stored = router_service.repository.get(job_id)
+    started = step(
+        f"/jobs/{job_id}/execution/start",
+        WORKER_HEADERS,
+        "EXECUTION_STARTED",
+        "in_progress",
+        start_execution_body(stored),
+    )
+    step(
+        f"/jobs/{job_id}/execution/complete",
+        WORKER_HEADERS,
+        "EXECUTION_COMPLETED",
+        "completed",
+        complete_execution_body(stored, started.json()["execution"]["execution_id"]),
+    )
 
 
 # ----------------------------------------------------------------------
@@ -1918,7 +1978,6 @@ def test_no_state_changing_route_accepts_a_system_role(client, role):
         f"/jobs/{job_id}/proposal/approve",
         f"/jobs/{job_id}/proposal/reject",
         f"/jobs/{job_id}/proposal/postpone",
-        f"/jobs/{job_id}/complete",
         f"/jobs/{job_id}/execution/start",
         f"/jobs/{job_id}/execution/complete",
         f"/jobs/{job_id}/execution/not-completed",
@@ -1942,7 +2001,6 @@ def test_system_looking_id_with_a_human_role_is_rejected_on_every_route(client):
         f"/jobs/{job['job_id']}/proposal/approve",
         f"/jobs/{job['job_id']}/proposal/reject",
         f"/jobs/{job['job_id']}/proposal/postpone",
-        f"/jobs/{job['job_id']}/complete",
         f"/jobs/{job['job_id']}/execution/start",
         f"/jobs/{job['job_id']}/execution/complete",
         f"/jobs/{job['job_id']}/execution/not-completed",
@@ -1984,7 +2042,7 @@ def test_system_actors_are_only_ever_recorded_for_automated_decisions(service, o
     """Human and automated actions stay distinguishable in every history."""
 
     job, _ = schedule_and_commit(service, optimizer)
-    service.complete(job["job_id"], actor=WORKER)
+    execute_to_completion(service, job["job_id"], actor=WORKER)
 
     automated = {
         E.JOB_SCORED,

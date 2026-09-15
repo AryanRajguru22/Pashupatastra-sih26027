@@ -24,8 +24,9 @@ EXECUTION TOKENS (Sprint 3 Slice 5)
     lives on the mutation, never on a status pair: the history-less
     repository primitives (update_status, update_schedule) build no
     JobMutation, so they structurally cannot start, complete or release
-    execution. The legacy notified -> completed move stays ungated until
-    it is retired in a later Slice 5 step.
+    execution. EVERY entry into completed requires a COMPLETE token from
+    in_progress (Slice 5 Step 4 retired the legacy direct
+    notified -> completed completion and its JOB_COMPLETED event).
 
     The only plans that set a token are plan_execution_start,
     plan_execution_complete and plan_execution_not_completed; the evidence
@@ -123,13 +124,13 @@ COMMITTED_STATUSES = (NOTIFIED, IN_PROGRESS)
 
 # The only lifecycle moves a job may make through the service path.
 #
-# notified -> completed is the LEGACY direct completion, retained only
-# until a later Slice 5 step retires it in favour of
-# in_progress -> completed with a COMPLETE execution token.
+# There is no notified -> completed: work is completed only from
+# in_progress, with a COMPLETE execution token (see
+# _gate_execution_transition, which enforces this for every write path).
 ALLOWED_TRANSITIONS: Dict[str, frozenset] = {
     REPORTED: frozenset({REPORTED, SCHEDULED}),
     SCHEDULED: frozenset({SCHEDULED, REPORTED, NOTIFIED}),
-    NOTIFIED: frozenset({NOTIFIED, IN_PROGRESS, COMPLETED}),
+    NOTIFIED: frozenset({NOTIFIED, IN_PROGRESS}),
     IN_PROGRESS: frozenset({IN_PROGRESS, COMPLETED, REPORTED}),
     COMPLETED: frozenset(),
 }
@@ -139,7 +140,7 @@ ALLOWED_TRANSITIONS: Dict[str, frozenset] = {
 # keeps the commitment (block COMMITTED, exact placement); that one is
 # the execution-token-gated release.
 _COMMITTED_TARGETS: Dict[str, Tuple[str, ...]] = {
-    NOTIFIED: (NOTIFIED, IN_PROGRESS, COMPLETED),
+    NOTIFIED: (NOTIFIED, IN_PROGRESS),
     IN_PROGRESS: (IN_PROGRESS, COMPLETED, REPORTED),
 }
 
@@ -418,11 +419,12 @@ def protect_committed_and_terminal_state(
        written (CommittedStateIntegrityError) - detected, not repaired.
     3. No write may PRODUCE an inconsistent committed job, so a future
        application bug cannot create the state check 2 refuses.
-    4. Execution gate (Sprint 3 Slice 5): entering in_progress, completing
-       an in_progress job and releasing in_progress -> reported each
-       require the matching ExecutionTransition token; a token on any
-       other move is misuse. The history-less repository primitives never
-       pass a token, so they can do none of these.
+    4. Execution gate (Sprint 3 Slice 5): entering in_progress (only from
+       notified), entering completed (only from in_progress) and releasing
+       in_progress -> reported each require the matching
+       ExecutionTransition token; a token on any other move is misuse.
+       The history-less repository primitives never pass a token, so they
+       can do none of these.
     5. A non-committed job has nothing further to protect.
     6. A committed job may only move to the targets in _COMMITTED_TARGETS.
        Every move except the token-gated release keeps a COMMITTED,
@@ -549,15 +551,16 @@ def _gate_execution_transition(
     if new_status == IN_PROGRESS and status != IN_PROGRESS:
         required = ExecutionTransitionKind.START
         described = f"'{status}' -> 'in_progress'"
-    elif new_status == COMPLETED and status == IN_PROGRESS:
+    elif new_status == COMPLETED:
+        # Every entry into completed, from ANY status - including the
+        # history-less update_status primitive on a non-committed job,
+        # which step 5 would otherwise wave through.
         required = ExecutionTransitionKind.COMPLETE
-        described = "'in_progress' -> 'completed'"
+        described = f"'{status}' -> 'completed'"
     elif new_status == REPORTED and status == IN_PROGRESS:
         required = ExecutionTransitionKind.NOT_COMPLETED
         described = "'in_progress' -> 'reported'"
     else:
-        # Not execution-gated - including, until a later Slice 5 step
-        # retires it, the legacy notified -> completed completion.
         if execution is not None:
             raise ExecutionTokenError(
                 f"Job '{job_id}' move '{status}' -> '{new_status}' is not an "
@@ -587,6 +590,12 @@ def _gate_execution_transition(
 
         named = (new_block.get("metadata") or {}).get(EXECUTION_ID_KEY)
     else:
+        if required is ExecutionTransitionKind.COMPLETE and status != IN_PROGRESS:
+            raise ExecutionTokenError(
+                f"Job '{job_id}' can only complete execution from "
+                f"'in_progress', not '{status}'"
+            )
+
         named = ((current.get("block_candidate") or {}).get("metadata") or {}).get(
             EXECUTION_ID_KEY
         )
@@ -649,11 +658,21 @@ def validate_execution_events(
       token's execution_id;
     - an EXECUTION_* event may only be written alongside the token-carrying
       mutation it describes, so history can never claim an execution
-      transition the job row did not make.
+      transition the job row did not make;
+    - JOB_COMPLETED, the retired legacy completion event, is never written
+      (it stays readable in stored history only).
 
     Raises ExecutionTokenError; JobRepository.mutate_jobs calls this
     inside its transaction, so a refusal writes neither rows nor events.
     """
+
+    for event in events:
+        if event.event_type is JobEventType.JOB_COMPLETED:
+            raise ExecutionTokenError(
+                f"JOB_COMPLETED event {event.event_id!r} for job "
+                f"'{event.job_id}' is a retired legacy event; completion is "
+                "recorded only as EXECUTION_COMPLETED"
+            )
 
     execution_types = frozenset(EXECUTION_EVENT_TYPES.values())
     tokens = {
@@ -1466,34 +1485,6 @@ def plan_postpone(
     return plan
 
 
-def plan_completion(job_id: str, *, actor: Actor, at: str) -> Plan:
-    """notified -> completed."""
-
-    def plan(rows):
-        job = rows[job_id]
-        status = job["status"]
-
-        if status != NOTIFIED:
-            raise InvalidTransitionError(
-                f"Job '{job_id}' cannot be completed from status '{status}'"
-            )
-
-        mutation = replace(JobMutation.unchanged(job), status=COMPLETED, updated_at=at)
-
-        event = make_event(
-            job_id,
-            JobEventType.JOB_COMPLETED,
-            actor,
-            occurred_at=at,
-            before_state=_snapshot(job),
-            after_state=_snapshot(mutation.as_job(job)),
-        )
-
-        return [mutation], [event]
-
-    return plan
-
-
 # ----------------------------------------------------------------------
 # Field execution (Sprint 3 Slice 5)
 # ----------------------------------------------------------------------
@@ -2157,7 +2148,6 @@ __all__ = [
     "committed_state_problems",
     "creation_events",
     "plan_commit",
-    "plan_completion",
     "plan_execution_complete",
     "plan_execution_not_completed",
     "plan_execution_start",

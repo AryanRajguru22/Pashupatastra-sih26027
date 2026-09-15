@@ -45,6 +45,8 @@ from backend.app.jobs.service import (
 )
 from contracts import BlockCandidate, OptimizationResult, ScheduledBlock
 
+from backend.tests.execution_helpers import execute_to_completion
+
 
 SAFETY_REFUSAL = "refused for safety"
 
@@ -444,7 +446,7 @@ def complete_a_job(service: JobService, optimizer) -> dict:
     job = report(service)
     optimizer.optimize_corridor("CORRIDOR_A")
     service.notify(job["job_id"])
-    service.complete(job["job_id"])
+    execute_to_completion(service, job["job_id"])
     return job
 
 
@@ -684,9 +686,15 @@ def test_batch_persistence_is_atomic(service: JobService):
     good = report(service)
     doomed = report(service, track_id="DOWN-1", distance_start=2000)
 
-    service.repository.update_status(
-        doomed["job_id"], JobStatus.COMPLETED.value
-    )
+    # Direct-SQL terminal-row fixture: no write path may complete a job
+    # without an evidenced execution, and this test is about batch
+    # atomicity around a terminal row, not about how it became terminal.
+    with sqlite3.connect(service.repository.db_path) as conn:
+        conn.execute(
+            "UPDATE maintenance_jobs SET status = ? WHERE job_id = ?",
+            (JobStatus.COMPLETED.value, doomed["job_id"]),
+        )
+    conn.close()
 
     before = service.repository.get(good["job_id"])
 

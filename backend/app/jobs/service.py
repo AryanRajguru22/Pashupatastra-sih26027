@@ -89,7 +89,6 @@ from backend.app.jobs.lifecycle import (
     StaleProposalError,
     creation_events,
     plan_commit,
-    plan_completion,
     plan_execution_complete,
     plan_execution_not_completed,
     plan_execution_start,
@@ -1236,26 +1235,6 @@ class JobService:
                 expected_proposal_run_id=expected_proposal_run_id,
                 proposal_digest=digest,
             ),
-        )
-
-    # -----------------------------------------
-    # notified -> completed
-    # -----------------------------------------
-
-    def complete(
-        self,
-        job_id: str,
-        actor: Actor | None = None,
-    ) -> dict[str, Any]:
-
-        completer = self._resolve_actor(actor)
-        self.authorization.authorize(completer, JobAction.COMPLETE_JOB)
-
-        return self._transition(
-            job_id,
-            completer,
-            "complete",
-            plan_completion(job_id, actor=completer, at=event_timestamp()),
         )
 
     # -----------------------------------------

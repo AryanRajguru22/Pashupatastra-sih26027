@@ -16,9 +16,15 @@ from fastapi.testclient import TestClient
 
 from backend.app.api.main import app
 from backend.app.jobs.router import service as router_service
+from backend.tests.execution_helpers import (
+    complete_execution_body,
+    start_execution_body,
+)
 
 
 client = TestClient(app)
+
+WORKER_HEADERS = {"X-Actor-Id": "WORKER-042", "X-Actor-Role": "WORKER"}
 
 
 @pytest.fixture(autouse=True)
@@ -192,6 +198,24 @@ def test_optimize_response_reports_partial_success_honestly():
 # ----------------------------------------------------------------------
 
 
+def start_over_http(job_id: str):
+    stored = router_service.repository.get(job_id)
+    return client.post(
+        f"/jobs/{job_id}/execution/start",
+        json=start_execution_body(stored),
+        headers=WORKER_HEADERS,
+    )
+
+
+def complete_over_http(job_id: str, execution_id: str):
+    stored = router_service.repository.get(job_id)
+    return client.post(
+        f"/jobs/{job_id}/execution/complete",
+        json=complete_execution_body(stored, execution_id),
+        headers=WORKER_HEADERS,
+    )
+
+
 def test_full_lifecycle_report_optimize_notify_complete():
     job = create()
 
@@ -201,8 +225,14 @@ def test_full_lifecycle_report_optimize_notify_complete():
     assert notified.status_code == 200
     assert notified.json()["job"]["status"] == "notified"
 
-    completed = client.post(f"/jobs/{job['job_id']}/complete")
-    assert completed.status_code == 200
+    started = start_over_http(job["job_id"])
+    assert started.status_code == 200, started.text
+    assert started.json()["job"]["status"] == "in_progress"
+
+    completed = complete_over_http(
+        job["job_id"], started.json()["execution"]["execution_id"]
+    )
+    assert completed.status_code == 200, completed.text
     assert completed.json()["job"]["status"] == "completed"
 
 
@@ -214,29 +244,54 @@ def test_illegal_transitions_are_rejected():
         client.post(f"/jobs/{job['job_id']}/notify").status_code == 400
     )
 
-    # reported -> completed is illegal
+    # reported -> completed is illegal: there is no open execution
+    no_execution = {
+        "execution_id": f"EXE-{'0' * 32}",
+        "actual_end_at": "2026-09-10T12:00:00+05:30",
+        "after_work_evidence": [
+            {
+                "evidence_reference": "after/photo-1.jpg",
+                "evidence_kind": "PHOTO",
+                "captured_at": "2026-09-10T11:59:00+05:30",
+            }
+        ],
+    }
     assert (
-        client.post(f"/jobs/{job['job_id']}/complete").status_code == 400
+        client.post(
+            f"/jobs/{job['job_id']}/execution/complete",
+            json=no_execution,
+            headers=WORKER_HEADERS,
+        ).status_code
+        == 400
     )
 
     client.post("/corridors/CORRIDOR_A/optimize-jobs")
 
-    # scheduled -> completed is illegal (must be notified first)
+    # scheduled -> completed is illegal (must be approved and started first)
     assert (
-        client.post(f"/jobs/{job['job_id']}/complete").status_code == 400
+        client.post(
+            f"/jobs/{job['job_id']}/execution/complete",
+            json=no_execution,
+            headers=WORKER_HEADERS,
+        ).status_code
+        == 400
     )
+
+    # the retired direct completion route no longer exists
+    assert client.post(f"/jobs/{job['job_id']}/complete").status_code == 404
 
 
 def test_transitions_on_missing_job_return_404():
     assert client.post("/jobs/NOPE/notify").status_code == 404
-    assert client.post("/jobs/NOPE/complete").status_code == 404
+    assert client.get("/jobs/NOPE/execution", headers=WORKER_HEADERS).status_code == 404
 
 
 def test_completed_job_is_excluded_from_later_optimization():
     done = create()
     client.post("/corridors/CORRIDOR_A/optimize-jobs")
     client.post(f"/jobs/{done['job_id']}/notify")
-    client.post(f"/jobs/{done['job_id']}/complete")
+    started = start_over_http(done["job_id"])
+    complete_over_http(done["job_id"], started.json()["execution"]["execution_id"])
 
     frozen = client.get(f"/jobs/{done['job_id']}").json()
 

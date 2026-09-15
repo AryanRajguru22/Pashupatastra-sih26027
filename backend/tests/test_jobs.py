@@ -10,8 +10,19 @@ from backend.app.jobs.repository import (
     JobRepository,
 )
 
+from backend.app.jobs.optimization import (
+    JobOptimizationService,
+)
+
 from backend.app.jobs.service import (
     JobService,
+)
+
+from backend.tests.execution_helpers import (
+    EXECUTION_WORKER,
+    complete_execution_body,
+    execute_to_completion,
+    start_execution,
 )
 
 
@@ -78,12 +89,8 @@ def test_job_lifecycle(
     except ValueError:
         pass
 
-    # reported -> scheduled
-    service.set_schedule(
-        job_id,
-        100,
-        190,
-    )
+    # reported -> scheduled (an optimization proposal)
+    JobOptimizationService(service).optimize_corridor("CORRIDOR_A")
 
     scheduled = service.repository.get(
         job_id
@@ -104,9 +111,21 @@ def test_job_lifecycle(
         == "notified"
     )
 
-    # notified -> completed
-    completed = service.complete(
-        job_id
+    # notified -> completed is not a transition
+    assert not hasattr(service, "complete")
+
+    # notified -> in_progress -> completed, with evidence
+    _, execution = start_execution(service, job_id)
+
+    assert (
+        service.repository.get(job_id)["status"]
+        == "in_progress"
+    )
+
+    completed, _ = service.complete_execution(
+        job_id,
+        actor=EXECUTION_WORKER,
+        **complete_execution_body(notified, execution.execution_id),
     )
 
     assert (
@@ -131,14 +150,10 @@ def test_completed_job_is_excluded(
 
     job_id = job["job_id"]
 
-    service.set_schedule(
-        job_id,
-        100,
-        190,
-    )
+    JobOptimizationService(service).optimize_corridor("CORRIDOR_A")
 
     service.notify(job_id)
-    service.complete(job_id)
+    execute_to_completion(service, job_id)
 
     candidates = (
         service.active_block_candidates()

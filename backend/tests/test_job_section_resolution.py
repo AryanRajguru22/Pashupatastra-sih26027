@@ -70,6 +70,8 @@ from backend.app.optimizer.solver import (
 )
 from contracts import BlockCandidate, OptimizationRequest, PossessionWindow
 
+from backend.tests.execution_helpers import execute_to_completion
+
 
 HORIZON_START = "2026-09-10T00:00:00+05:30"
 HORIZON_MINUTES = 1440
@@ -841,7 +843,7 @@ def test_completed_job_stays_terminal_with_a_resolved_section(
 
     optimizer.optimize_corridor("CORR-NDLS-AGC")
     service.notify(job["job_id"])
-    service.complete(job["job_id"])
+    execute_to_completion(service, job["job_id"])
 
     service.create_job(
         make_job_request(

@@ -561,50 +561,6 @@ def postpone_proposal(
     )
 
 
-@router.post(
-    "/jobs/{job_id}/complete",
-    response_model=JobActionResponse,
-)
-def complete_job(
-    job_id: str,
-    actor: Actor = Depends(request_actor),
-) -> JobActionResponse:
-
-    try:
-        job = service.complete(job_id, actor=actor)
-
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except _CONFLICTS as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
-
-    return JobActionResponse(
-        job=JobResponse(
-            **as_public_job(job)
-        ),
-        message="Job completed",
-    )
-
-
 # ----------------------------------------------------------------------
 # Field execution (Sprint 3 Slice 5 Step 3)
 # ----------------------------------------------------------------------

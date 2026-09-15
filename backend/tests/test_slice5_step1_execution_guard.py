@@ -11,7 +11,8 @@ Pins, against the real repository, lifecycle guard and optimizer:
                 backed by its token), rolling the whole transaction back.
   NO BYPASS     the history-less primitives (update_status, update_schedule)
                 can never start, complete or release execution.
-  STAGING       the legacy notified -> completed completion still works.
+  CLOSED        (Step 4) there is no direct notified -> completed: every
+                entry into completed needs a COMPLETE token from in_progress.
 
 No execution service plan exists yet (Step 2), so the plans that move a
 job into and out of in_progress here are written inline, exactly as a
@@ -613,8 +614,10 @@ def test_update_status_cannot_start_execution(service, optimizer, db_path):
 
 
 def test_terminal_check_precedes_token_interpretation(service, optimizer, db_path):
-    job = commit_job(service, optimizer)
-    done = service.complete(job["job_id"], actor=WORKER)
+    job = in_progress_job(service, optimizer)
+    done = service.repository.mutate_jobs(
+        [job["job_id"]], execution_plan(job["job_id"], "completed")
+    )[job["job_id"]]
     assert done["status"] == "completed"
 
     for kind in K:
@@ -677,7 +680,7 @@ def test_notified_carrying_execution_id_is_an_integrity_violation(
 
     attempts = [
         lambda: optimizer.optimize_corridor("CORRIDOR_A", actor=ENGINEER),
-        lambda: service.complete(job_id, actor=WORKER),
+        lambda: service.repository.update_status(job_id, "completed"),
         lambda: service.repository.mutate_jobs(
             [job_id], execution_plan(job_id, "in_progress")
         ),
@@ -831,18 +834,40 @@ def test_in_progress_block_metadata_cannot_change(
 
 
 # ----------------------------------------------------------------------
-# 17. Staging: legacy notified -> completed still works
+# 17. Step 4: the legacy notified -> completed completion is closed
 # ----------------------------------------------------------------------
 
 
-def test_legacy_notified_completion_still_works_without_a_token(service, optimizer):
+def test_legacy_notified_completion_is_refused_on_every_write_path(
+    service, optimizer, db_path
+):
     job = commit_job(service, optimizer)
-    done = service.complete(job["job_id"], actor=WORKER)
+    job_id = job["job_id"]
+    row_before = raw_row(db_path, job_id)
+    events_before = count_events(db_path)
 
-    assert done["status"] == "completed"
-    types = event_types(service, job["job_id"])
-    assert types[-1] == "JOB_COMPLETED"
-    assert not any(t.startswith("EXECUTION_") for t in types)
+    assert not hasattr(service, "complete")
+
+    with pytest.raises(ExecutionTokenError):
+        service.repository.update_status(job_id, "completed")
+
+    # No token, no event: the old plan_completion shape.
+    assert_refused_atomically(
+        service,
+        db_path,
+        job_id,
+        execution_plan(job_id, "completed", token_kind=None, event_specs=[]),
+        ExecutionTokenError,
+    )
+
+    # Even a well-formed COMPLETE token cannot complete work that never started.
+    assert_refused_atomically(
+        service, db_path, job_id, execution_plan(job_id, "completed"), ExecutionTokenError
+    )
+
+    assert raw_row(db_path, job_id) == row_before
+    assert count_events(db_path) == events_before
+    assert "JOB_COMPLETED" not in event_types(service, job_id)
 
 
 def test_job_mutation_defaults_to_no_execution_token(service):

@@ -559,10 +559,12 @@ def test_start_requires_notified(service, optimizer, db_path, status):
         optimizer.optimize_corridor(CORRIDOR, actor=ENGINEER)
     if status in ("in_progress", "completed"):
         approve_current(service, job_id)
-    if status == "in_progress":
         start(service, service.repository.get(job_id))
     if status == "completed":
-        service.complete(job_id, actor=WORKER)
+        service.repository.mutate_jobs(
+            [job_id],
+            complete_plan(service.repository.get(job_id), open_record(service, job_id)),
+        )
 
     current = service.repository.get(job_id)
     assert current["status"] == status
@@ -1174,7 +1176,15 @@ def test_a_job_never_executed_has_no_records(service, optimizer):
     job = commit_job(service, optimizer)
     assert records(service, job["job_id"]) == []
 
-    service.complete(job["job_id"], actor=WORKER)  # legacy completion, untouched
+    # A pre-Step-4 legacy completed row (direct completion no longer exists,
+    # so it is written as stored data): terminal, with no execution records.
+    with closing(sqlite3.connect(service.repository.db_path)) as conn, conn:
+        conn.execute(
+            "UPDATE maintenance_jobs SET status = 'completed' WHERE job_id = ?",
+            (job["job_id"],),
+        )
+
+    assert service.repository.get(job["job_id"])["status"] == "completed"
     assert records(service, job["job_id"]) == []
 
 

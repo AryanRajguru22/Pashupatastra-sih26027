@@ -105,7 +105,11 @@ class JobEventType(str, Enum):
                                proposed by the optimizer
       BLOCK_COMMITTED          the current proposal was committed/pinned
                                (the existing `notify` transition)
-      JOB_COMPLETED            the job reached its terminal state
+      JOB_COMPLETED            LEGACY, never written since Slice 5 Step 4:
+                               the retired direct notified -> completed.
+                               Kept only so stored pre-Step-4 history still
+                               deserializes; mutate_jobs refuses to write it
+                               (completion is EXECUTION_COMPLETED)
       PROPOSAL_REJECTED        an authority refused the CURRENT proposal
                                outright (Sprint 3 Slice 3); the job
                                returns to 'reported'

@@ -66,6 +66,8 @@ from backend.app.jobs.service import (
 )
 from contracts import PossessionWindow
 
+from backend.tests.execution_helpers import execute_to_completion
+
 
 HORIZON_START = OPTIMIZATION_HORIZON_START  # 2026-09-10T00:00:00+05:30
 SERVICE_DATE = "2026-09-10"
@@ -936,7 +938,7 @@ def test_completed_job_stays_terminal_across_canonical_reoptimization(
 
     optimizer.optimize_corridor("CORR-NDLS-AGC")
     service.notify(job["job_id"])
-    service.complete(job["job_id"])
+    execute_to_completion(service, job["job_id"])
 
     _report(service, "keeps the batch non-empty")
 

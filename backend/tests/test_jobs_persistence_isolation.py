@@ -21,8 +21,10 @@ import sqlite3
 from pathlib import Path
 
 from backend.app.jobs.models import JobCreateRequest
+from backend.app.jobs.optimization import JobOptimizationService
 from backend.app.jobs.repository import DEFAULT_DB_PATH, JobRepository
 from backend.app.jobs.service import JobService
+from backend.tests.execution_helpers import EXECUTION_WORKER, execute_to_completion
 
 
 def make_request() -> JobCreateRequest:
@@ -95,8 +97,10 @@ def test_repository_does_not_leak_connections(tmp_path):
     job = service.create_job(make_request())
     service.list_jobs()
     service.set_schedule(job["job_id"], 100, 160)
+    JobOptimizationService(service).optimize_corridor("CORRIDOR_A")
     service.notify(job["job_id"])
-    service.complete(job["job_id"])
+    execute_to_completion(service, job["job_id"])
+    service.get_execution(job["job_id"], actor=EXECUTION_WORKER)
 
     del service
     gc.collect()

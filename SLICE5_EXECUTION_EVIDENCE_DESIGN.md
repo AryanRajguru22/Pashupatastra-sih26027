@@ -381,7 +381,7 @@ Each step leaves the full suite green.
 
 **Step 1 — Lifecycle state model and guard (pure).** *Opus.*
 Files: `jobs/models.py` (`IN_PROGRESS`), `jobs/lifecycle.py` (`COMMITTED_STATUSES`, `ALLOWED_TRANSITIONS` adds `notified→in_progress`, `in_progress→{in_progress,completed,reported}` while **temporarily keeping** `notified→completed`; `ExecutionTransition`; `JobMutation.execution`; guard steps 4/6; `validate_mutation`; `committed_state_problems` execution_id findings; `_without_placement` pops `execution_id`; `validate_execution_events`), `jobs/repository.py` (`mutate_jobs` cross-check), `jobs/events.py` (three event types), `jobs/service.py` (`_no_proposal_reason` for `in_progress`).
-Staging note: in Step 1 the "entering `completed`" gate applies only to `in_progress → completed`; legacy `notified → completed` and the `update_status(reported, "completed")` fixture (`test_jobs_optimization_workflow.py:687`) keep working until Step 4 turns the gate into "every entry into `completed` requires a COMPLETE token from `in_progress`".
+Staging note: in Step 1 the "entering `completed`" gate applies only to `in_progress → completed`; legacy `notified → completed` and the `update_status(reported, "completed")` fixture (`test_jobs_optimization_workflow.py:687`) keep working until Step 4 turns the gate into "every entry into `completed` requires a COMPLETE token from `in_progress`". *(Historical: Step 4 has shipped and this staging no longer exists — see §15.4.)*
 Invariant: nothing can enter/leave `in_progress` without a token and its event; terminal first; stored-integrity before transitions.
 Tests: G5, G6, G7 (for `in_progress`), A7 at plan level, the three guard tests from §3.5 extended.
 
@@ -404,6 +404,10 @@ records this so the chronology here matches what shipped.
 Files: `lifecycle.py` (remove `notified→completed`, `plan_completion`; widen the guard so every entry into `completed` requires a COMPLETE token from `in_progress`), `service.py` (remove `complete`), `router.py` (remove `/complete`), tests in §11.3, new `tests/execution_helpers.py`.
 Invariant: no completion without after evidence, on any path.
 Tests: §11.3 list, D*, G7, full suite.
+
+**Reality check (see §15.4): Step 4 shipped as planned**, after Steps 3
+and 5 (see §15.3). §15.4 records the exact gate change, the retired
+surface, the `JOB_COMPLETED` decision and the tests migrated.
 
 **Step 5 — HTTP routes.** *Sonnet High.*
 Files: `jobs/router.py` (4 routes, error mapping), `test_job_lifecycle_accountability.py` inventory/system-role/`_proposal_review_body` updates, `test_slice5_execution_api.py`.
@@ -452,12 +456,12 @@ Tests: E4–E11, F1–F7, H1–H4.
 
 ## 15. IMPLEMENTATION REALITY (post-Step 3 remediation)
 
-This section records three already-existing facts about what actually
+§15.1–§15.3 record three already-existing facts about what actually
 shipped, found during the Opus review of Step 3 and confirmed against
 the code. None of them change the architecture in §1–§11; they document
 behaviour the design already implied but did not spell out, plus one
 chronology correction. No transition rule, guard, or route was redesigned
-to produce this section.
+to produce them. §15.4 records Step 4 as shipped.
 
 ### 15.1 Completed-job execution routes return 400, not 409
 
@@ -535,3 +539,74 @@ originally scoped as part of Step 5's "error mapping" and Step 3's
 `report_execution_not_completed` naming; both step descriptions above
 already used the corrected name and the router file, which is why this
 note exists rather than a rewrite of either step.
+
+### 15.4 Step 4 as shipped: evidence-gated completion on every path
+
+The legacy direct completion is closed. The final lifecycle is exactly
+§3.4:
+
+```
+reported    → reported | scheduled
+scheduled   → scheduled | reported | notified
+notified    → notified | in_progress          START token + before-work evidence
+in_progress → in_progress | completed         COMPLETE token + after-work evidence
+            | reported                        NOT_COMPLETED token (release → replanning)
+completed   → ∅                               terminal; never optimized again
+```
+
+**The gate is the authority, not the graph.** `repository.update_status`
+calls `protect_committed_and_terminal_state` directly and never reaches
+`validate_mutation`, so removing `completed` from
+`ALLOWED_TRANSITIONS[notified]` and `_COMMITTED_TARGETS[notified]` alone
+would not have been enough. Guard step 4 (`_gate_execution_transition`)
+now treats **every** entry into `completed`, from any status, as
+requiring a COMPLETE token, and refuses that token unless the current
+status is `in_progress`. Because step 4 runs before step 5 ("non-committed
+→ return"), this also closes `update_status(reported_or_scheduled_job,
+"completed")`, a history-less path the Step 1–3 guard still allowed.
+Refusals are `ExecutionTokenError` (a `CommittedJobError`, 409 over HTTP).
+Stored-integrity (step 2) still runs first, so a corrupted committed row
+keeps surfacing as `CommittedStateIntegrityError`.
+
+**Retired surface (no replacement):** `lifecycle.plan_completion`,
+`JobService.complete`, `POST /jobs/{job_id}/complete`. The only
+completion API is `POST /jobs/{job_id}/execution/complete`.
+`JobAction.COMPLETE_JOB` is kept: `complete_execution` authorizes with it
+(§7).
+
+**`JOB_COMPLETED`:** kept as a `JobEventType` member only so stored
+pre-Step-4 history still deserializes (§8). No production code emits it.
+As defence in depth, `validate_execution_events` — which `mutate_jobs`
+runs inside its transaction — now refuses any plan that tries to write a
+`JOB_COMPLETED` event (whole transaction rolled back), so history can
+never claim a completion the evidence path did not make. A legacy
+completed row still reads as terminal with `executions: []`.
+
+**Unchanged by Step 4:** completed-job execution calls still return 400
+(§15.1); the in-process `lifecycle_lock` limitation (§10) stands.
+
+**Consequence for the test-only `set_schedule` primitive.** A job
+committed through `JobService.set_schedule` (no HTTP route) carries no
+`proposal_run_id`, so it has no approved run to start execution against
+and cannot be completed. Every job committed through the API comes from
+an optimization run, so no production job is affected; tests that used
+`set_schedule → notify → complete` now use optimize → approve → execute.
+The refusal is fail-closed and recorded (`InvalidTransitionError` for a
+missing run id, `StaleProposalError` for any other), pinned by
+`test_a_job_committed_without_an_optimization_run_cannot_be_executed`.
+
+**Tests.** The §11.3 list was migrated onto the execution flow through
+`backend/tests/execution_helpers.py` (`start_execution_body`,
+`complete_execution_body`, `execute_to_completion`); the two legacy
+terminal-row fixtures that can no longer be produced by any write path
+(`test_batch_persistence_is_atomic`, `test_a_job_never_executed_has_no_records`)
+write the row by direct SQL, labelled as such. The Step 1 staging test
+was inverted, not deleted
+(`test_legacy_notified_completion_is_refused_on_every_write_path`).
+`test_slice5_step4_evidence_gated_completion.py` pins the graph, the
+retired surface, every refused write path, the guard directly, the
+`JOB_COMPLETED` refusal, the evidence-gated path, terminality against
+every operation, release/replanning/stale/cross-job protection and
+one-authorization-per-operation. Mutation check at ship time: narrowing
+the gate back to `in_progress`-only completion fails 7 tests; disabling
+the gate fails 17.
