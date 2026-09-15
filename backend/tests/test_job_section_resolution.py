@@ -778,9 +778,16 @@ def test_new_jobs_never_produce_a_none_section_id(tmp_path: Path):
 
 
 def _dataset_service(tmp_path: Path) -> JobService:
+    # horizon_minutes pinned to 1440: these tests are about section
+    # resolution/lifecycle bookkeeping over the real dataset, not horizon
+    # width, so they are pinned to a fixed single-day horizon
+    # independent of OPTIMIZATION_HORIZON_MINUTES (the production
+    # default, widened to 2880 by Slice 4 Step 5) - a change to that
+    # production default must not change what these tests exercise.
     return JobService(
         repository=JobRepository(tmp_path / "jobs.db"),
         dataset=load_corridor_dataset(),
+        horizon_minutes=1440,
     )
 
 
@@ -884,9 +891,12 @@ def test_audit_record_reflects_the_resolved_section_aware_schedule(
 
     db_path = tmp_path / "jobs.db"
 
+    # horizon_minutes pinned to 1440 - see _dataset_service's comment
+    # above; this test is about audit-record content, not horizon width.
     service = JobService(
         repository=JobRepository(db_path),
         dataset=load_corridor_dataset(),
+        horizon_minutes=1440,
     )
     optimizer = JobOptimizationService(service)
 

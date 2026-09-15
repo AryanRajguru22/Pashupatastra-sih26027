@@ -831,7 +831,8 @@ def test_checked_in_dataset_converts_without_rejections():
 
     snapshot = convert_timetable(data["trains"], corridor_topology)
 
-    assert len(snapshot.trains) == 24
+    # 24 synthetic trains per service date x 2 dates (Slice 4 Step 7).
+    assert len(snapshot.trains) == 48
     assert snapshot.rejections == ()
 
 

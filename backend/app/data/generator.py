@@ -225,6 +225,18 @@ class CorridorDataGenerator:
                 asset_counter += 1
         return assets
 
+    # The three synthetic IR possession slots, as day-1 (0-1439) minute
+    # offsets. This is the ONE place these times/labels/id suffixes are
+    # defined - repeat_daily_slots below is the only reader. Do not
+    # duplicate these numbers anywhere else.
+    _DAY_MINUTES = 1440
+    _DAILY_SLOTS = (
+        # (id_suffix, start_minute, end_minute, window_type)
+        ("NIGHT", 30, 300, "NIGHT_TRAFFIC_BLOCK"),
+        ("MIDDAY", 690, 870, "MIDDAY_MAINTENANCE_SLOT"),
+        ("EVENING", 1260, 1410, "EVENING_OFF_PEAK"),
+    )
+
     def generate_possession_windows(
         self,
         tracks: List[TrackSegment],
@@ -233,10 +245,26 @@ class CorridorDataGenerator:
     ) -> List[PossessionWindow]:
         """Generates standard Indian Railways operational possession windows per track.
 
-        Typical IR Slots:
+        Typical IR Slots (day 1, i.e. day offset 0):
         1. Night Traffic Block: 00:30 to 05:00 (minute 30 to 300) -> 270 min
         2. Midday Maintenance Slot: 11:30 to 14:30 (minute 690 to 870) -> 180 min
         3. Evening Off-Peak Window: 21:00 to 23:30 (minute 1260 to 1410) -> 150 min
+
+        Slice 4 Step 6: these same three slots now REPEAT once per
+        calendar day the horizon spans - day 2's NIGHT slot is minute
+        1470-1740 (30+1440 to 300+1440), not a re-based 30-300. There is
+        no modulo anywhere in this method: a day-N slot's minutes are
+        always >= N*1440, exactly like every other absolute-minute value
+        in this codebase (backend.app.data.horizon_anchor). A day whose
+        slot would extend past horizon_minutes is excluded entirely
+        (never truncated) - see repeat_daily_slots.
+
+        This path is, and remains, entirely SYNTHETIC: no timetable is
+        read, no TimetableCoverage check applies, and none of these
+        windows may be reported as anything but generated/synthetic
+        provenance - see backend.app.jobs.service.
+        POSSESSION_DERIVATION_GENERATED_SLOTS and
+        DEFAULT_POSSESSION_COMPATIBILITY, both unchanged by this step.
 
         section_id comes from the corridor's SectionRegistry (Sprint 3
         Step 7). It used to be TrackSegment.section_id - a per-track
@@ -252,36 +280,68 @@ class CorridorDataGenerator:
 
         windows: List[PossessionWindow] = []
         for track in tracks:
-            windows.append(
-                PossessionWindow(
-                    window_id=f"POS-{track.track_id}-NIGHT",
-                    track_id=track.track_id,
-                    start_minute=30,
-                    end_minute=300,
-                    section_id=section_id,
-                    window_type="NIGHT_TRAFFIC_BLOCK",
-                )
+            windows.extend(
+                self.repeat_daily_slots(track.track_id, horizon_minutes, section_id)
             )
-            windows.append(
-                PossessionWindow(
-                    window_id=f"POS-{track.track_id}-MIDDAY",
-                    track_id=track.track_id,
-                    start_minute=690,
-                    end_minute=870,
-                    section_id=section_id,
-                    window_type="MIDDAY_MAINTENANCE_SLOT",
+        return windows
+
+    @classmethod
+    def repeat_daily_slots(
+        cls,
+        track_id: str,
+        horizon_minutes: int,
+        section_id: Optional[str],
+    ) -> List[PossessionWindow]:
+        """The three daily slots, repeated for every day `horizon_minutes` touches.
+
+        Deterministic and pure: no RNG, no I/O. For horizon_minutes ==
+        1440 this reproduces EXACTLY the pre-Step-6 output (same 3
+        windows, same window_ids, same minute values) - the day-0 id
+        suffix is unchanged (e.g. "POS-UP-1-NIGHT"); only day >= 1 adds
+        a "-D{day}" suffix (e.g. "POS-UP-1-NIGHT-D1"), so no existing
+        id can collide with a new one and no existing id changes.
+
+        A day's slot is included only if it fits ENTIRELY inside
+        [0, horizon_minutes) - a slot that would cross the horizon
+        boundary is excluded outright, never truncated, per this
+        method's own invariant (possession slots represent complete
+        available windows). Computing the day-count as a ceiling
+        (rather than requiring horizon_minutes to be an exact multiple
+        of 1440) means this also behaves correctly for a non-multiple
+        horizon_minutes passed directly to this method or to
+        generate_possession_windows - the whole-calendar-day POLICY for
+        the deployment horizon is enforced once, at JobService
+        construction (InvalidHorizonMinutesError), not duplicated here.
+        """
+
+        if horizon_minutes <= 0:
+            return []
+
+        candidate_days = -(-horizon_minutes // cls._DAY_MINUTES)  # ceil div
+
+        windows: List[PossessionWindow] = []
+        for day in range(candidate_days):
+            offset = day * cls._DAY_MINUTES
+            for suffix, start, end, window_type in cls._DAILY_SLOTS:
+                start_minute = start + offset
+                end_minute = end + offset
+
+                if end_minute > horizon_minutes:
+                    continue
+
+                window_id_suffix = suffix if day == 0 else f"{suffix}-D{day}"
+
+                windows.append(
+                    PossessionWindow(
+                        window_id=f"POS-{track_id}-{window_id_suffix}",
+                        track_id=track_id,
+                        start_minute=start_minute,
+                        end_minute=end_minute,
+                        section_id=section_id,
+                        window_type=window_type,
+                    )
                 )
-            )
-            windows.append(
-                PossessionWindow(
-                    window_id=f"POS-{track.track_id}-EVENING",
-                    track_id=track.track_id,
-                    start_minute=1260,
-                    end_minute=1410,
-                    section_id=section_id,
-                    window_type="EVENING_OFF_PEAK",
-                )
-            )
+
         return windows
 
     def generate_candidate_blocks(

@@ -28,6 +28,7 @@ from __future__ import annotations
 import copy
 import json
 import socket
+from datetime import date
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -56,11 +57,11 @@ from backend.app.jobs.optimization import (
 )
 from backend.app.jobs.repository import JobRepository
 from backend.app.jobs.service import (
-    OPTIMIZATION_HORIZON_MINUTES,
     OPTIMIZATION_HORIZON_START,
     POSSESSION_DERIVATION_CANONICAL_TIMETABLE,
     POSSESSION_DERIVATION_GENERATED_SLOTS,
     JobService,
+    TimetableCoverageGapError,
     derived_possession_provenance,
 )
 from contracts import PossessionWindow
@@ -68,6 +69,20 @@ from contracts import PossessionWindow
 
 HORIZON_START = OPTIMIZATION_HORIZON_START  # 2026-09-10T00:00:00+05:30
 SERVICE_DATE = "2026-09-10"
+
+# This suite's own fixtures are deliberately single/dual-day (hand-built
+# trains dated 2026-09-10/11) - a fixed, local "one calendar day" horizon
+# length, independent of the jobs-pipeline's PRODUCTION deployment
+# default (backend.app.jobs.service.OPTIMIZATION_HORIZON_MINUTES), which
+# Slice 4 Step 5 widened to 2880. Before Step 5 the two values happened
+# to be numerically equal, so every call site below used to import the
+# production constant directly and pass it in as "the horizon length";
+# that coupling was coincidental, not intentional - see
+# SLICE4_MULTIDAY_SCHEDULING_DESIGN.md Sec.11. Every one of those call
+# sites now reads THIS constant instead, so this suite keeps testing
+# exactly the single/dual-day scenarios it always tested, unaffected by
+# future changes to the production default.
+ONE_DAY_MINUTES = 1440
 
 
 # ----------------------------------------------------------------------
@@ -169,10 +184,12 @@ def make_dataset(
 def service_with(
     dataset: CorridorDataset,
     tmp_path: Path,
+    **kwargs,
 ) -> JobService:
     return JobService(
         repository=JobRepository(tmp_path / "jobs.db"),
         dataset=dataset,
+        **kwargs,
     )
 
 
@@ -200,7 +217,7 @@ def test_job_service_obtains_canonical_state_through_provider_boundary(
 
     inputs = service_with(dataset, tmp_path).possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     assert inputs.derivation == POSSESSION_DERIVATION_CANONICAL_TIMETABLE
@@ -216,18 +233,21 @@ def test_job_service_obtains_canonical_state_through_provider_boundary(
 def test_shipped_synthetic_dataset_flows_through_the_canonical_adapter(
     tmp_path: Path,
 ):
-    """The checked-in synthetic timetable is usable end to end: all 24
-    trains convert, nothing is rejected, and every window is derived."""
+    """The checked-in synthetic timetable is usable end to end: all 48
+    trains (24 per service date, Slice 4 Step 7) convert, nothing is
+    rejected, and every window is derived. Conversion is horizon-length
+    independent, so the day-2 trains convert even at this one-day
+    horizon; derivation clips them outside [0, 1440)."""
 
     dataset = load_corridor_dataset()
 
     inputs = service_with(dataset, tmp_path).possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     assert inputs.derivation == POSSESSION_DERIVATION_CANONICAL_TIMETABLE
-    assert len(inputs.snapshot.trains) == 24
+    assert len(inputs.snapshot.trains) == 48
     assert inputs.rejections == ()
     assert inputs.windows
     assert all(window.window_type == "TRAIN_GAP" for window in inputs.windows)
@@ -263,7 +283,7 @@ def test_synthetic_timetable_stays_synthetic_through_the_adapter(
 
     inputs = service_with(dataset, tmp_path).possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     assert inputs.timetable_provenance is ProvenanceLevel.SYNTHETIC
@@ -303,6 +323,16 @@ def test_horizon_start_reaches_the_canonical_conversion(tmp_path: Path):
     with the shipped dataset alone it would be invisible, because its
     service_date coincides with the default horizon's own date and the
     offsets happen to equal minutes-from-midnight.
+
+    Slice 4 Step 4: a 1440-minute horizon starting at 06:00 (not
+    midnight) genuinely touches TWO calendar dates (2026-09-10 from
+    06:00 onward, 2026-09-11 up to 06:00) - see
+    backend.app.data.timetable_coverage.horizon_calendar_dates. The
+    timetable coverage gate now correctly requires both to be covered,
+    so a second train dated 2026-09-11 is added purely to satisfy that
+    gate; it does not participate in either assertion below, both of
+    which read only T1's own traversal (index 0, since T1 is listed
+    first).
     """
 
     dataset = make_dataset(
@@ -311,7 +341,13 @@ def test_horizon_start_reaches_the_canonical_conversion(tmp_path: Path):
                 "T1",
                 "UP-1",
                 [stop("AAA", "08:00"), stop("BBB", "08:30")],
-            )
+            ),
+            train(
+                "T2-COVERAGE-ONLY",
+                "UP-1",
+                [stop("AAA", "10:00"), stop("BBB", "10:30")],
+                service_date="2026-09-11",
+            ),
         ]
     )
 
@@ -319,11 +355,11 @@ def test_horizon_start_reaches_the_canonical_conversion(tmp_path: Path):
 
     midnight = service.possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
     six_am = service.possession_inputs(
         "2026-09-10T06:00:00+05:30",
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     midnight_traversal = midnight.snapshot.trains[0].traversals[0]
@@ -340,7 +376,58 @@ def test_horizon_start_reaches_the_canonical_conversion(tmp_path: Path):
 def test_missing_service_date_is_rejected_not_invented(tmp_path: Path):
     """Step 8's explicit service_date contract survives the wiring: a
     record without one is rejected individually, never given a date
-    derived from horizon_start or today."""
+    derived from horizon_start or today.
+
+    Slice 4 Step 4: a corridor whose ENTIRE timetable has no dated
+    record at all now fails at the (earlier, more informative)
+    TimetableCoverageGapError gate - see
+    test_missing_service_date_with_no_coverage_at_all_fails_the_coverage_gate
+    below, which is the direct regression test for that case. This test
+    keeps proving the ORIGINAL, lower-level claim - a dateless record is
+    rejected INDIVIDUALLY rather than given an invented date - by adding
+    a second, properly-dated train that satisfies the coverage gate, so
+    NO_DATE's own per-train rejection (not the coverage gate) is what
+    this test now observes.
+    """
+
+    dataset = make_dataset(
+        [
+            train(
+                "NO_DATE",
+                "UP-1",
+                [stop("AAA", "08:00"), stop("BBB", "08:30")],
+                service_date=None,
+            ),
+            train(
+                "HAS_DATE",
+                "UP-1",
+                [stop("AAA", "09:00"), stop("BBB", "09:30")],
+            ),
+        ]
+    )
+
+    inputs = service_with(dataset, tmp_path).possession_inputs(
+        HORIZON_START,
+        ONE_DAY_MINUTES,
+    )
+
+    assert [t.train_number for t in inputs.snapshot.trains] == ["HAS_DATE"]
+    assert [r.train_number for r in inputs.rejections] == ["NO_DATE"]
+    assert "service_date" in inputs.rejections[0].reason
+
+
+def test_missing_service_date_with_no_coverage_at_all_fails_the_coverage_gate(
+    tmp_path: Path,
+):
+    """The Slice 4 Step 4 regression for the scenario the test above USED
+    to cover directly: a corridor whose entire timetable has no dated
+    record fails the coverage gate outright (TimetableCoverageGapError),
+    before convert_timetable's own per-train rejection is ever reached -
+    a record with no service_date contributes to covered_service_dates
+    not at all (see backend.app.data.timetable_coverage.
+    covered_service_dates), so the horizon's one required date has zero
+    coverage.
+    """
 
     dataset = make_dataset(
         [
@@ -353,14 +440,13 @@ def test_missing_service_date_is_rejected_not_invented(tmp_path: Path):
         ]
     )
 
-    inputs = service_with(dataset, tmp_path).possession_inputs(
-        HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
-    )
+    service = service_with(dataset, tmp_path)
 
-    assert inputs.snapshot.trains == ()
-    assert len(inputs.rejections) == 1
-    assert "service_date" in inputs.rejections[0].reason
+    with pytest.raises(TimetableCoverageGapError) as excinfo:
+        service.possession_inputs(HORIZON_START, ONE_DAY_MINUTES)
+
+    assert excinfo.value.uncovered_dates == (date(2026, 9, 10),)
+    assert excinfo.value.covered_dates == ()
 
 
 def test_shipped_dataset_carries_explicit_service_dates():
@@ -370,10 +456,11 @@ def test_shipped_dataset_carries_explicit_service_dates():
 
     dataset = load_corridor_dataset()
 
-    assert all(
-        record["service_date"] == SERVICE_DATE
-        for record in dataset.timetable_records
-    )
+    # Every record states its date, and exactly the two synthetic
+    # service dates the Slice 4 Step 7 demo dataset carries are present.
+    assert {
+        record["service_date"] for record in dataset.timetable_records
+    } == {SERVICE_DATE, "2026-09-11"}
 
 
 # ----------------------------------------------------------------------
@@ -398,7 +485,7 @@ def test_overnight_train_produces_monotonic_horizon_relative_traversal(
 
     inputs = service_with(dataset, tmp_path).possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     traversal = inputs.snapshot.trains[0].traversals[0]
@@ -430,7 +517,7 @@ def test_reverse_direction_train_is_attributed_to_the_right_section(
 
     inputs = service_with(dataset, tmp_path).possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     traversals = inputs.snapshot.trains[0].traversals
@@ -463,7 +550,7 @@ def test_train_entirely_before_horizon_does_not_corrupt_windows(
 
     inputs = service_with(dataset, tmp_path).possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     yesterday = next(
@@ -475,14 +562,68 @@ def test_train_entirely_before_horizon_does_not_corrupt_windows(
 
     for window in inputs.windows:
         assert 0 <= window.start_minute < window.end_minute
-        assert window.end_minute <= OPTIMIZATION_HORIZON_MINUTES
+        assert window.end_minute <= ONE_DAY_MINUTES
 
 
 def test_traversal_beyond_one_day_produces_valid_possession(
     tmp_path: Path,
 ):
     """A train on the NEXT service date resolves past 1440. The horizon
-    is one day, so it must clip cleanly rather than wrap."""
+    is one day, so it must clip cleanly rather than wrap.
+
+    Slice 4 Step 4: the horizon's one required date (2026-09-10) must
+    itself be covered by at least one dated record, or the coverage gate
+    refuses the whole request before any traversal is even resolved -
+    see test_traversal_beyond_one_day_with_no_same_day_coverage_fails_
+    closed below for that direct regression. A same-day train is added
+    here purely to satisfy the gate; the TOMORROW train (looked up by
+    name, not index, since it is no longer the only train) is still what
+    both assertions below exercise, unchanged.
+    """
+
+    dataset = make_dataset(
+        [
+            train(
+                "TODAY",
+                "UP-1",
+                [stop("AAA", "06:00"), stop("BBB", "06:30")],
+            ),
+            train(
+                "TOMORROW",
+                "UP-1",
+                [stop("AAA", "08:00"), stop("BBB", "08:30")],
+                service_date="2026-09-11",
+            ),
+        ]
+    )
+
+    inputs = service_with(dataset, tmp_path).possession_inputs(
+        HORIZON_START,
+        ONE_DAY_MINUTES,
+    )
+
+    tomorrow_train = next(
+        t for t in inputs.snapshot.trains if t.train_number == "TOMORROW"
+    )
+    traversal = tomorrow_train.traversals[0]
+
+    assert traversal.enter_minute == 1440 + 8 * 60
+    assert inputs.windows
+
+    for window in inputs.windows:
+        assert 0 <= window.start_minute < window.end_minute
+        assert window.end_minute <= ONE_DAY_MINUTES
+
+
+def test_traversal_beyond_one_day_with_no_same_day_coverage_fails_closed(
+    tmp_path: Path,
+):
+    """The Slice 4 Step 4 regression for the scenario the test above USED
+    to exercise directly: a corridor whose ONLY timetable record is
+    dated for the day AFTER the horizon's required date must fail the
+    coverage gate - the horizon's own required date (2026-09-10) has
+    zero coverage, regardless of what a later-dated record describes.
+    """
 
     dataset = make_dataset(
         [
@@ -495,19 +636,13 @@ def test_traversal_beyond_one_day_produces_valid_possession(
         ]
     )
 
-    inputs = service_with(dataset, tmp_path).possession_inputs(
-        HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
-    )
+    service = service_with(dataset, tmp_path)
 
-    traversal = inputs.snapshot.trains[0].traversals[0]
+    with pytest.raises(TimetableCoverageGapError) as excinfo:
+        service.possession_inputs(HORIZON_START, ONE_DAY_MINUTES)
 
-    assert traversal.enter_minute == 1440 + 8 * 60
-    assert inputs.windows
-
-    for window in inputs.windows:
-        assert 0 <= window.start_minute < window.end_minute
-        assert window.end_minute <= OPTIMIZATION_HORIZON_MINUTES
+    assert excinfo.value.uncovered_dates == (date(2026, 9, 10),)
+    assert excinfo.value.covered_dates == (date(2026, 9, 11),)
 
 
 # ----------------------------------------------------------------------
@@ -522,7 +657,7 @@ def test_every_derived_window_resolves_in_the_section_registry(
 
     inputs = service_with(dataset, tmp_path).possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     for window in inputs.windows:
@@ -542,7 +677,7 @@ def test_window_track_id_is_a_running_line_of_its_section(tmp_path: Path):
 
     inputs = service_with(dataset, tmp_path).possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     for window in inputs.windows:
@@ -616,11 +751,17 @@ def test_unknown_station_fails_closed_all_the_way_to_the_request(
         ]
     )
 
-    service = service_with(dataset, tmp_path)
+    # horizon_minutes pinned to 1440: this fixture's one train is
+    # single-day (SERVICE_DATE) - see ONE_DAY_MINUTES's own module-level
+    # comment. This test is about rejection/withholding propagation, not
+    # horizon width, and optimize_corridor below reads the SERVICE's own
+    # self.horizon_minutes (not the explicit ONE_DAY_MINUTES passed to
+    # possession_inputs above), so it must be pinned too.
+    service = service_with(dataset, tmp_path, horizon_minutes=1440)
 
     inputs = service.possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     assert inputs.windows == []
@@ -666,7 +807,7 @@ def test_malformed_record_does_not_corrupt_the_valid_trains(
 
     inputs = service_with(dataset, tmp_path).possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     assert [t.train_number for t in inputs.snapshot.trains] == ["GOOD"]
@@ -684,9 +825,17 @@ def test_malformed_record_does_not_corrupt_the_valid_trains(
 
 
 def _dataset_service(tmp_path: Path) -> JobService:
+    # horizon_minutes pinned to 1440: these tests exercise the canonical
+    # path's lifecycle/audit wiring over the real checked-in dataset,
+    # not horizon width, so they are pinned to a fixed single-day
+    # horizon independent of OPTIMIZATION_HORIZON_MINUTES (the
+    # production default, widened to 2880 by Slice 4 Step 5) - a change
+    # to that production default must not change what this suite
+    # exercises.
     return JobService(
         repository=JobRepository(tmp_path / "jobs.db"),
         dataset=load_corridor_dataset(),
+        horizon_minutes=1440,
     )
 
 
@@ -803,9 +952,12 @@ def test_audit_record_captures_provenance_and_derivation(tmp_path: Path):
 
     db_path = tmp_path / "jobs.db"
 
+    # horizon_minutes pinned to 1440 - see _dataset_service's comment
+    # above; this test is about audit-record content, not horizon width.
     service = JobService(
         repository=JobRepository(db_path),
         dataset=load_corridor_dataset(),
+        horizon_minutes=1440,
     )
 
     _report(service)
@@ -836,7 +988,7 @@ def test_audit_record_captures_provenance_and_derivation(tmp_path: Path):
     assert snapshot["possession_window_count"] == len(
         service.possession_inputs(
             OPTIMIZATION_HORIZON_START,
-            OPTIMIZATION_HORIZON_MINUTES,
+            ONE_DAY_MINUTES,
         ).windows
     )
 
@@ -867,9 +1019,12 @@ def test_audit_rejection_summary_is_bounded_and_omits_timetable_content(
         ]
     )
 
+    # horizon_minutes pinned to 1440: this fixture's trains are single-day
+    # (SERVICE_DATE) - see ONE_DAY_MINUTES's own module-level comment.
     service = JobService(
         repository=JobRepository(db_path),
         dataset=dataset,
+        horizon_minutes=1440,
     )
 
     service.create_job(
@@ -960,7 +1115,7 @@ def test_generator_slots_are_not_the_source_when_a_timetable_exists(
     inputs = service_with(
         load_corridor_dataset(),
         tmp_path,
-    ).possession_inputs(HORIZON_START, OPTIMIZATION_HORIZON_MINUTES)
+    ).possession_inputs(HORIZON_START, ONE_DAY_MINUTES)
 
     assert inputs.derivation == POSSESSION_DERIVATION_CANONICAL_TIMETABLE
     assert inputs.windows
@@ -989,7 +1144,7 @@ def test_corridor_without_a_timetable_keeps_the_compatibility_source(
 
     inputs = service.possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     assert inputs.derivation == POSSESSION_DERIVATION_GENERATED_SLOTS
@@ -1029,7 +1184,7 @@ def test_canonical_windows_are_section_scoped_per_track(tmp_path: Path):
 
     inputs = service_with(dataset, tmp_path).possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     resources = {
@@ -1076,7 +1231,7 @@ def test_job_blocks_are_now_section_scoped_not_track_wide(
 
     inputs = service.possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     covering = [
@@ -1113,7 +1268,7 @@ def test_multiple_trains_on_one_section_merge_into_gaps(tmp_path: Path):
 
     inputs = service_with(dataset, tmp_path).possession_inputs(
         HORIZON_START,
-        OPTIMIZATION_HORIZON_MINUTES,
+        ONE_DAY_MINUTES,
     )
 
     gaps = sorted(

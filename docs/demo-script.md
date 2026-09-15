@@ -32,7 +32,7 @@ badge — the whole script depends on live mode, not fixture fallback.
 
 Point at the **Schedule Timeline** section.
 
-> "This is a real railway corridor model: two tracks, UP-1 and DOWN-1,
+> "This is a synthetic railway corridor model: two tracks, UP-1 and DOWN-1,
 > over a 24-hour planning horizon. Each colored block is a maintenance
 > job — Track Renewal, Ballast Tamping, OHE Overhead work, Signalling
 > & S&T, Routine Inspection, Emergency Repair — tied to a specific
@@ -137,7 +137,7 @@ Click **Return to Original Plan**.
 
 ## 10. Closing impact statement (20s)
 
-> "End to end: real domain data, a real deterministic ML scorer, a
+> "End to end: synthetic-by-design domain data, a real deterministic ML scorer, a
 > real constraint solver enforcing real railway safety rules, and a
 > real live recovery pipeline — verified by 84 automated backend
 > tests, including tests that check every score on screen against the

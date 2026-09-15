@@ -456,8 +456,16 @@ class JobOptimizationService:
             # and the OptimizationRequest cannot drift onto different
             # anchors - which is why it is not left to two independent
             # defaults.
+            #
+            # horizon_minutes is read from self.service.horizon_minutes
+            # (Slice 4 Step 2), not from the OPTIMIZATION_HORIZON_MINUTES
+            # module constant directly - that constant remains only the
+            # DEFAULT a plain JobService() starts with. Reading the
+            # instance attribute here is what makes
+            # JobService(horizon_minutes=...) actually take effect for
+            # optimization, not just for possession_inputs/create_job.
             horizon_start = OPTIMIZATION_HORIZON_START
-            horizon_minutes = OPTIMIZATION_HORIZON_MINUTES
+            horizon_minutes = self.service.horizon_minutes
 
             attempt = OptimizationAttempt(
                 corridor_id=target,

@@ -139,7 +139,11 @@ def test_real_project_dataset_generates_possession_windows():
     with REAL_DATASET.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
-    trains = data["trains"]
+    # This legacy adapter predates service_date anchoring and reads every
+    # record as minutes-from-midnight of ONE day, so it is fed exactly one
+    # service date. The dataset itself carries two (Slice 4 Step 7).
+    assert len(data["trains"]) == 48
+    trains = [t for t in data["trains"] if t["service_date"] == "2026-09-10"]
 
     assert len(trains) == 24
 

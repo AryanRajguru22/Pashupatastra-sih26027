@@ -957,6 +957,7 @@ def plan_postpone(
     reason: str,
     selected_date: str,
     not_before_minute: int,
+    horizon_minutes: int,
     expected_proposal_run_id: str,
     proposal_digest: Optional[str] = None,
 ) -> Plan:
@@ -970,13 +971,40 @@ def plan_postpone(
     horizon contract, and selected_date is recorded here only as
     traceability metadata, never re-parsed.
 
+    horizon_minutes (Slice 4 Step 3) is the caller's DEPLOYMENT horizon -
+    JobService.postpone_proposal passes its own self.horizon_minutes -
+    not the job's own stored block.latest_end_minute. Before Step 3
+    those two values always happened to agree (every job's
+    latest_end_minute was set to the same 1440 constant at creation), so
+    reading the stored field looked like reading the deployment horizon
+    but was not actually doing so: a job whose stored latest_end_minute
+    had drifted from the CURRENT deployment horizon - the exact
+    situation Step 3's own widening below creates - would otherwise be
+    checked against its own stale value instead of what this call is
+    actually authorized to offer.
+
     Fails closed (InvalidTransitionError) if not_before_minute falls
-    outside [0, latest_end_minute) of the job's own stored block: a
-    postponement can never silently create schedulable availability
-    beyond what this deployment's optimization horizon supports, and a
-    "postpone into the past" is rejected the same way a "postpone
-    beyond the horizon" is - both are an invalid target, not a stale
-    proposal.
+    outside [0, horizon_minutes): a postponement can never silently
+    create schedulable availability beyond what this deployment's
+    optimization horizon supports, and a "postpone into the past" is
+    rejected the same way a "postpone beyond the horizon" is - both are
+    an invalid target, not a stale proposal.
+
+    WINDOW WIDENING (Slice 4 Step 3). A valid postponement raises
+    earliest_start_minute to not_before_minute AND widens
+    latest_end_minute to max(current latest_end_minute, horizon_minutes).
+    Without this, a job postponed close to (or past) its OLD
+    latest_end_minute would satisfy the admissibility check above yet
+    still have latest_start = latest_end - duration < earliest_start
+    once the widened horizon is in effect, so the solver's own
+    _clamp_window (backend.app.optimizer.solver) would mark it
+    window_infeasible on the very next optimization - a postponed job
+    silently and permanently unschedulable, which is exactly the defect
+    this step exists to close (SLICE4_MULTIDAY_SCHEDULING_DESIGN.md
+    Sec.8.2). The widening only ever RAISES latest_end_minute (max, never
+    a plain assignment): a job whose stored window is already wider than
+    the current deployment horizon - e.g. from an earlier postponement
+    made under a wider horizon - must not be narrowed by a later one.
 
     proposal_digest is audit traceability only (see
     backend.app.jobs.proposal.BlockProposal.digest) - expected_proposal_
@@ -1011,15 +1039,12 @@ def plan_postpone(
                 "being postponed is not the one that was reviewed"
             )
 
-        block = job["block_candidate"]
-        latest_end = int(block.get("latest_end_minute", 1440))
-
-        if not_before_minute < 0 or not_before_minute >= latest_end:
+        if not_before_minute < 0 or not_before_minute >= horizon_minutes:
             raise InvalidTransitionError(
                 f"Job '{job_id}' cannot be postponed to {selected_date!r}: "
                 f"it resolves to minute {not_before_minute} relative to "
                 "this deployment's optimization horizon, which only "
-                f"covers [0, {latest_end}); choose a date inside the "
+                f"covers [0, {horizon_minutes}); choose a date inside the "
                 "supported horizon"
             )
 
@@ -1032,6 +1057,12 @@ def plan_postpone(
         )
         postponed_block = copy.deepcopy(withdrawn.block_candidate)
         postponed_block["earliest_start_minute"] = int(not_before_minute)
+
+        # Widen, never shrink - see the WINDOW WIDENING note above.
+        original_latest_end = int(postponed_block.get("latest_end_minute", 1440))
+        widened_latest_end = max(original_latest_end, int(horizon_minutes))
+        postponed_block["latest_end_minute"] = widened_latest_end
+
         mutation = replace(withdrawn, block_candidate=postponed_block)
 
         event = make_event(
@@ -1052,6 +1083,8 @@ def plan_postpone(
                 "original_end_minute": original_end,
                 "expected_proposal_run_id": expected_proposal_run_id,
                 "proposal_digest": proposal_digest,
+                "original_latest_end_minute": original_latest_end,
+                "widened_latest_end_minute": widened_latest_end,
             },
         )
 

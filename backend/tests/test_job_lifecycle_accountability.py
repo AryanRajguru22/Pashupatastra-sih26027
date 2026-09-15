@@ -1377,9 +1377,16 @@ def test_stored_actor_kind_contradicting_role_is_rejected(service):
 
 
 def test_canonical_timetable_corridor_records_section_aware_history(db_path):
+    # horizon_minutes pinned to 1440: this test is about section-aware
+    # history bookkeeping, not horizon width, so it is pinned to a fixed
+    # single-day horizon independent of OPTIMIZATION_HORIZON_MINUTES
+    # (the production default, widened to 2880 by Slice 4 Step 5) -
+    # a change to that production default must not change what this
+    # test exercises.
     service = JobService(
         repository=JobRepository(db_path),
         dataset=load_corridor_dataset(),
+        horizon_minutes=1440,
     )
     optimizer = JobOptimizationService(service)
 

@@ -415,16 +415,25 @@ def test_postpone_to_horizon_start_date_can_still_be_scheduled(service, optimize
 
 
 def test_postpone_beyond_horizon_fails_closed(service, optimizer):
+    """Repointed at the deployment horizon's NEW boundary (Slice 4 Step 5
+    widened OPTIMIZATION_HORIZON_MINUTES/the `service` fixture's default
+    from 1440 to 2880 minutes - two calendar days, not one) - an
+    intentional, explicitly-called-out test update per
+    SLICE4_MULTIDAY_SCHEDULING_DESIGN.md Sec.11, not a silently patched
+    assertion. selected_date="2026-09-12" resolves to minute 2880, the
+    first minute OUTSIDE the current [0, 2880) horizon.
+    """
+
     job, run_id = schedule_job(service, optimizer)
     before = service.repository.get(job["job_id"])
 
-    with pytest.raises(InvalidTransitionError, match=r"minute 1440"):
+    with pytest.raises(InvalidTransitionError, match=r"minute 2880"):
         service.postpone_proposal(
             job["job_id"],
             actor=AUTHORITY,
             expected_proposal_run_id=run_id,
             reason="Try to postpone past the supported horizon",
-            selected_date="2026-09-11",  # the day AFTER OPTIMIZATION_HORIZON_START
+            selected_date="2026-09-12",  # the day AFTER the 2-day horizon ends
         )
 
     after = service.repository.get(job["job_id"])

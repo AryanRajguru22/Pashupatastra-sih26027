@@ -36,6 +36,12 @@ from backend.app.data.provenance import (
 
 from backend.app.data.section_registry import SectionRegistry
 
+from backend.app.data.timetable_coverage import (
+    TimetableCoverage,
+    horizon_calendar_dates,
+    uncovered_horizon_days,
+)
+
 from backend.app.data.train_provider import (
     StaticTimetableProvider,
     possession_windows_from_provider,
@@ -179,13 +185,72 @@ DEFAULT_POSSESSION_COMPATIBILITY = (
 # Defined once in backend.app.jobs.lifecycle and imported above.
 
 # The corridor generator, the shipped fixtures and BlockCandidate's own
-# default latest_end_minute all use a 1440-minute (24h) planning day.
-# horizon_start/OPTIMIZATION_HORIZON_MINUTES are coupled: both define
-# the same single-day jobs-pipeline horizon and must move together if
-# this pipeline ever adopts a longer planning window.
+# CONTRACT-LEVEL default latest_end_minute all use a 1440-minute (24h)
+# planning day - see contracts/schemas.py's own pinned-fixture warning
+# on that default, which this module never touches.
+#
+# Slice 4 Step 2: OPTIMIZATION_HORIZON_MINUTES is the DEFAULT deployment
+# horizon width - it is still what a plain JobService() gets, and it is
+# still imported directly by callers that want "the default value"
+# without constructing a service (e.g. build_jobs_optimization_request's
+# own default parameter). The actual per-deployment horizon width lives
+# on JobService.horizon_minutes (set from this constant unless a caller
+# overrides it explicitly), which is what every jobs-pipeline
+# computation that used to read this module constant directly now reads
+# instead - see JobService.__init__. This is deliberately the ONE knob:
+# nothing here introduces a second, independent horizon configuration.
+#
+# Slice 4 Step 5: this value is now 2880 (two calendar days), not 1440.
+# It moved from a coincidental single-day value to a deliberately chosen
+# multi-day production default - see SLICE4_MULTIDAY_SCHEDULING_DESIGN.md
+# Sec.4.3/15 and the Step 5 load-test evidence recorded in the Step 5
+# PR/report. This is safe for a corridor on the CANONICAL timetable-
+# backed possession path (a corridor with timetable_records) ONLY
+# because Slice 4 Step 4's timetable coverage gate
+# (JobService._canonical_possession_inputs) already fails closed on any
+# calendar date this horizon touches that the canonical timetable does
+# not assert data for - any horizon wider than a timetable's covered
+# service_dates fails closed (TimetableCoverageGapError), by design,
+# rather than silently deriving possession for a day nobody described.
+# (Since Slice 4 Step 7 the checked-in synthetic dataset covers
+# 2026-09-10 and 2026-09-11, so it passes at this default and fails
+# closed at 4320.) The DEFAULT deployment corridor (CORRIDOR_A, unless
+# PASHUPAT_CORRIDOR_ID selects the checked-in CORR-NDLS-AGC dataset) has
+# no timetable_records at all, so it never reaches this gate: it takes
+# the GENERATED synthetic-slots path instead
+# (JobService._generated_possession_inputs), which is safe for a
+# different reason - repeat_daily_slots invents its slots outright, so
+# there is no absent timetable data to misread as free track time in
+# the first place. Widening the horizon default is therefore safe on
+# BOTH paths, for two different, module-documented reasons - not because
+# this one gate is universal. 4320 and 10080 (3/7 days) were
+# both measured and rejected for this default: CP-SAT solve time grows
+# steeply with (horizon days x active job count) on this solver's fixed
+# 10-second budget (solver.py's _SOLVE_TIME_LIMIT_SECONDS, unchanged),
+# and both already produced FEASIBLE-not-OPTIMAL (timed-out) solves at
+# job counts only ~2x the checked-in "realistic" fixture's own 15
+# concurrent jobs. 2880 stayed OPTIMAL well past that same margin. See
+# the Step 5 report for the exact measurements. BlockCandidate's
+# contract-level default (1440) and the corridor generator/fixture
+# constant referenced above are UNCHANGED and are not read from here.
 OPTIMIZATION_HORIZON_START = DEFAULT_HORIZON_START
-OPTIMIZATION_HORIZON_MINUTES = 1440
+OPTIMIZATION_HORIZON_MINUTES = 2880
 DEFAULT_MIN_HEADWAY_MINUTES = 15
+
+
+class InvalidHorizonMinutesError(ValueError):
+    """A JobService was asked to use a deployment horizon that is not a
+    positive whole number of calendar days.
+
+    Jobs-pipeline policy only (SLICE4_MULTIDAY_SCHEDULING_DESIGN.md
+    Sec.4.3), not a contract-level rule: contracts.OptimizationRequest.
+    horizon_minutes itself accepts any positive int (see
+    test_horizon_midnight_crossing.py's 2880-minute cases). This
+    deployment chooses to keep "postpone to local midnight of a date"
+    meaningful by only ever running whole calendar days, so the
+    JobService construction site - not the solver or the contract -
+    is where that choice is enforced.
+    """
 
 
 def derived_possession_provenance(
@@ -222,6 +287,82 @@ def derived_possession_provenance(
         "to the realness of its inputs. Settle that rule before "
         "connecting a non-synthetic timetable."
     )
+
+
+class TimetableCoverageGapError(RuntimeError):
+    """The canonical timetable does not cover every calendar date the
+    configured optimization horizon requires (Slice 4 Step 4).
+
+    Distinct from PossessionDataUnavailableError (backend.app.jobs.
+    optimization), which means NO possession data exists at all: this
+    means the canonical timetable DOES carry some data, but not for
+    every day the horizon spans. Reused verbatim from Step 1's isolated
+    capability (backend.app.data.timetable_coverage) - this class is the
+    only new code the wiring needed; covered_service_dates,
+    horizon_calendar_dates and uncovered_horizon_days are unchanged.
+
+    WHY THE WHOLE ATTEMPT IS REFUSED, NOT JUST THE UNCOVERED DAYS
+        Missing timetable data must never be interpreted as an absence
+        of trains - see the timetable_coverage module docstring for why
+        "covered" only ever asserts presence, never completeness. This
+        error is therefore raised BEFORE any possession window is
+        derived from this timetable at all (backend.app.data.
+        train_provider.possession_windows_from_provider is never
+        called), so no window - not even one for an already-covered
+        day - is derived from a request that, as a whole, cannot be
+        trusted. This mirrors PossessionDataUnavailableError's own
+        existing all-or-nothing refusal for the "no possession data at
+        all" case; a per-day partial derivation is a different, larger
+        design decision this step does not make.
+
+    Caught by JobOptimizationService.optimize_corridor's existing
+    `except Exception` around the possession_inputs() call - the exact
+    same generic catch that already handles PossessionDataUnavailableError
+    today, so this failure gets the SAME existing lifecycle treatment
+    with no new code in optimization.py: no solver run, no
+    optimization_runs audit row, any job that was 'scheduled' has its
+    stale proposal withdrawn (OPTIMIZATION_FAILED / PROPOSAL_INVALIDATED),
+    and a job with no current proposal (e.g. one just postponed) is left
+    exactly as it was.
+    """
+
+    def __init__(
+        self,
+        corridor_id: str,
+        horizon_start: str,
+        horizon_minutes: int,
+        required_dates,
+        covered_dates,
+        uncovered_dates,
+    ):
+        self.corridor_id = corridor_id
+        self.horizon_start = horizon_start
+        self.horizon_minutes = horizon_minutes
+        self.required_dates = tuple(required_dates)
+        self.covered_dates = tuple(covered_dates)
+        self.uncovered_dates = tuple(uncovered_dates)
+
+        required_str = ", ".join(d.isoformat() for d in self.required_dates)
+        covered_str = (
+            ", ".join(d.isoformat() for d in self.covered_dates)
+            if self.covered_dates
+            else "none"
+        )
+        uncovered_str = ", ".join(d.isoformat() for d in self.uncovered_dates)
+
+        message = (
+            f"Timetable coverage for corridor {corridor_id!r} does not "
+            "include every calendar date the configured optimization "
+            f"horizon requires (horizon_start={horizon_start!r}, "
+            f"horizon_minutes={horizon_minutes}). Required dates: "
+            f"[{required_str}]. Covered dates: [{covered_str}]. "
+            f"Uncovered dates: [{uncovered_str}]. Refusing to optimize: "
+            "missing timetable data must never be interpreted as free "
+            "track capacity, so no possession window was derived for "
+            "any date in this request."
+        )
+
+        super().__init__(message)
 
 
 @dataclass(frozen=True)
@@ -281,6 +422,38 @@ class JobService:
         fails closed with ConcurrentJobModificationError. Report intake
         (create_job) does not take the lock: a new job cannot conflict
         with a transition on an existing one.
+
+    DEPLOYMENT HORIZON (Slice 4 Step 2, widened Slice 4 Step 5)
+        self.horizon_minutes is the ONE source of "how many minutes wide
+        is this deployment's planning horizon" for everything the jobs
+        pipeline does - defaults to OPTIMIZATION_HORIZON_MINUTES (2880,
+        i.e. two calendar days as of Slice 4 Step 5; see that constant's
+        own comment for why). It governs both a NEW job's admissible
+        window (create_job's BlockCandidate.latest_end_minute) and the
+        possession window boundary (possession_inputs/possession_windows'
+        own horizon_minutes default) - the same two hardcoded values the
+        Slice 4 design audit found independently agreeing by coincidence
+        are now the same one instance attribute. Constructing
+        JobService(horizon_minutes=4320) widens both at once; nothing
+        else needs to change to stay consistent. This is deliberately
+        the only horizon-width knob - JobOptimizationService reads this
+        same attribute (via its own JobService) rather than keeping a
+        second value.
+
+        Safe only in combination with the Step 4 timetable coverage gate
+        (_canonical_possession_inputs): a wider horizon over a timetable
+        that does not describe every day it now touches fails closed
+        (TimetableCoverageGapError) rather than silently manufacturing
+        possession from missing data. The checked-in synthetic dataset
+        covers two service_dates (Slice 4 Step 7), so it passes at the
+        2880 default and fails closed at 4320 - see
+        test_slice4_step7_two_day_demo_dataset.py.
+
+        Still jobs-pipeline policy only: contracts.OptimizationRequest.
+        horizon_minutes (the solver-facing contract) is unconstrained,
+        and BlockCandidate.latest_end_minute's contract-level DEFAULT
+        stays 1440 exactly as pinned by contracts/schemas.py - this
+        attribute never touches either.
     """
 
     def __init__(
@@ -290,7 +463,18 @@ class JobService:
         dataset: CorridorDataset | None = None,
         registry: SectionRegistry | None = None,
         authorization: AuthorizationPolicy | None = None,
+        horizon_minutes: int = OPTIMIZATION_HORIZON_MINUTES,
     ):
+        if horizon_minutes <= 0 or horizon_minutes % 1440 != 0:
+            raise InvalidHorizonMinutesError(
+                "JobService.horizon_minutes must be a positive whole "
+                f"number of calendar days (a positive multiple of 1440); "
+                f"got {horizon_minutes}. See SLICE4_MULTIDAY_SCHEDULING_"
+                "DESIGN.md Sec.4.3."
+            )
+
+        self.horizon_minutes = horizon_minutes
+
         self.repository = (
             repository or JobRepository()
         )
@@ -573,7 +757,7 @@ class JobService:
 
             earliest_start_minute=0,
 
-            latest_end_minute=1440,
+            latest_end_minute=self.horizon_minutes,
 
             priority_score=0.0,
 
@@ -984,9 +1168,17 @@ class JobService:
 
         Fails closed (InvalidTransitionError, from
         backend.app.jobs.lifecycle.plan_postpone) if the converted
-        minute falls outside this job's own supported horizon - past or
-        beyond - rather than silently creating availability the
-        optimizer was never meant to offer.
+        minute falls outside [0, self.horizon_minutes) - THIS instance's
+        own deployment horizon (Slice 4 Step 3), not the job's own
+        stored latest_end_minute - past or beyond - rather than silently
+        creating availability the optimizer was never meant to offer.
+
+        WIDENING (Slice 4 Step 3): a valid postponement also raises the
+        job's stored latest_end_minute to
+        max(current latest_end_minute, self.horizon_minutes) - see
+        plan_postpone's own docstring for why. This is what keeps a
+        postponed job genuinely schedulable by the next optimization
+        run instead of silently becoming window_infeasible.
         """
 
         postponer = self._resolve_actor(actor)
@@ -1017,6 +1209,7 @@ class JobService:
                 reason=reason,
                 selected_date=selected_date,
                 not_before_minute=not_before_minute,
+                horizon_minutes=self.horizon_minutes,
                 expected_proposal_run_id=expected_proposal_run_id,
                 proposal_digest=digest,
             ),
@@ -1183,7 +1376,7 @@ class JobService:
     def possession_inputs(
         self,
         horizon_start: str = OPTIMIZATION_HORIZON_START,
-        horizon_minutes: int = OPTIMIZATION_HORIZON_MINUTES,
+        horizon_minutes: Optional[int] = None,
     ) -> PossessionInputs:
         """Resolve this corridor's possession windows through ONE boundary.
 
@@ -1204,7 +1397,19 @@ class JobService:
         backend.app.jobs.optimization.JobOptimizationService.optimize_corridor,
         which resolves both horizon values once and passes them to this
         method and to the request builder alike.
+
+        horizon_minutes defaults to this SERVICE INSTANCE's own
+        self.horizon_minutes (Slice 4 Step 2) rather than to the module
+        constant OPTIMIZATION_HORIZON_MINUTES directly - a default
+        parameter value is bound at class-definition time and cannot
+        read self, so None is the sentinel meaning "use this instance's
+        deployment horizon." An explicit caller-supplied value (several
+        tests do this deliberately) still overrides it exactly as
+        before.
         """
+
+        if horizon_minutes is None:
+            horizon_minutes = self.horizon_minutes
 
         if self.dataset is not None and self.dataset.timetable_records:
             return self._canonical_possession_inputs(
@@ -1233,9 +1438,42 @@ class JobService:
         continues, while possession derivation withholds every section
         that train might have occupied. A rejection can therefore only
         cost maintenance opportunity, never create it.
+
+        TIMETABLE COVERAGE GATE (Slice 4 Step 4). Before any possession
+        window is derived, every calendar date the horizon touches must
+        be asserted by at least one timetable record's service_date -
+        see backend.app.data.timetable_coverage, reused here unchanged.
+        This is checked here, ahead of possession_windows_from_provider,
+        because THAT function's own derivation reads missing occupation
+        as a train-free gap - correct for a day the timetable actually
+        describes, wrong for a day it never mentioned at all. A single
+        uncovered date raises TimetableCoverageGapError and refuses this
+        call outright: no window is derived for ANY date in the request,
+        matching PossessionDataUnavailableError's own existing
+        all-or-nothing refusal shape rather than silently offering
+        possession for the covered days alone.
         """
 
         dataset = self.dataset
+
+        coverage = TimetableCoverage.from_timetable_records(
+            dataset.timetable_records
+        )
+        uncovered_dates = uncovered_horizon_days(
+            coverage, horizon_start, horizon_minutes
+        )
+
+        if uncovered_dates:
+            raise TimetableCoverageGapError(
+                corridor_id=self.corridor.corridor_id,
+                horizon_start=str(horizon_start),
+                horizon_minutes=horizon_minutes,
+                required_dates=horizon_calendar_dates(
+                    horizon_start, horizon_minutes
+                ),
+                covered_dates=sorted(coverage.covered_service_dates),
+                uncovered_dates=uncovered_dates,
+            )
 
         provider = StaticTimetableProvider(
             dataset.timetable_records,
@@ -1312,7 +1550,7 @@ class JobService:
     def possession_windows(
         self,
         horizon_start: str = OPTIMIZATION_HORIZON_START,
-        horizon_minutes: int = OPTIMIZATION_HORIZON_MINUTES,
+        horizon_minutes: Optional[int] = None,
     ) -> list[PossessionWindow]:
         """Just the windows, for callers that need nothing else.
 
@@ -1320,6 +1558,9 @@ class JobService:
         working unchanged. Production code should prefer
         possession_inputs, which also carries the provenance axes and
         the train rejections that explain a missing window.
+
+        horizon_minutes: see possession_inputs - None (the default)
+        defers to this instance's own self.horizon_minutes.
         """
 
         return self.possession_inputs(

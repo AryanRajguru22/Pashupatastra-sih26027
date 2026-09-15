@@ -1,7 +1,7 @@
 {
-  "dataset_version": "1.0",
+  "dataset_version": "1.1",
   "synthetic": true,
-  "note": "Operationally realistic synthetic demo dataset aligned to the Pashupatastra NDLS-AGC domain schema; station/trains are illustrative, not an official timetable.",
+  "note": "Operationally realistic synthetic demo dataset aligned to the Pashupatastra NDLS-AGC domain schema; station/trains are illustrative, not an official timetable. Two synthetic service dates (2026-09-10, 2026-09-11): the 2026-09-11 train records are a deterministic repeat of the 2026-09-10 records with only service_date changed (same local clock times, platforms and illustrative delays). The possession_windows, maintenance_jobs, conflict_pairs, disruption_scenarios and validation sections are day-1 legacy fixture sections and are not read by the canonical jobs pipeline, which derives possession from train occupation.",
   "corridor": {
     "corridor_id": "CORR-NDLS-AGC",
     "name": "New Delhi - Agra Cantt High Speed Trunk Corridor",
@@ -2367,6 +2367,2094 @@
     {
       "train_number": "12048",
       "service_date": "2026-09-10",
+      "train_name": "Braj Superfast Express",
+      "train_type": "SUPERFAST_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "20:20",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "20:20",
+          "scheduled_departure": "20:23",
+          "actual_arrival": "20:20",
+          "actual_departure": "20:23"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 3,
+          "scheduled_arrival": "20:29",
+          "scheduled_departure": "20:30",
+          "actual_arrival": "20:29",
+          "actual_departure": "20:30"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 7,
+          "scheduled_arrival": "21:10",
+          "scheduled_departure": "21:12",
+          "actual_arrival": "21:10",
+          "actual_departure": "21:12"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 3,
+          "scheduled_arrival": "21:59",
+          "scheduled_departure": "22:00",
+          "actual_arrival": "21:59",
+          "actual_departure": "22:00"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 3,
+          "scheduled_arrival": "22:25",
+          "scheduled_departure": "22:26",
+          "actual_arrival": "22:25",
+          "actual_departure": "22:26"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 6,
+          "scheduled_arrival": "22:45",
+          "scheduled_departure": "22:47",
+          "actual_arrival": "22:45",
+          "actual_departure": "22:47"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 12,
+          "scheduled_arrival": "22:55",
+          "scheduled_departure": "22:58",
+          "actual_arrival": "22:55",
+          "actual_departure": "22:58"
+        }
+      ]
+    },
+    {
+      "train_number": "12049",
+      "service_date": "2026-09-11",
+      "train_name": "Gatimaan Express",
+      "train_type": "GATIMAAN_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "00:20",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 4,
+          "scheduled_arrival": "00:20",
+          "scheduled_departure": "00:23",
+          "actual_arrival": "00:20",
+          "actual_departure": "00:23"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 2,
+          "scheduled_arrival": "00:30",
+          "scheduled_departure": "00:32",
+          "actual_arrival": "00:30",
+          "actual_departure": "00:32"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 2,
+          "scheduled_arrival": "00:49",
+          "scheduled_departure": "00:50",
+          "actual_arrival": "00:49",
+          "actual_departure": "00:50"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 2,
+          "scheduled_arrival": "01:12",
+          "scheduled_departure": "01:13",
+          "actual_arrival": "01:12",
+          "actual_departure": "01:13"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 2,
+          "scheduled_arrival": "01:54",
+          "scheduled_departure": "01:56",
+          "actual_arrival": "01:54",
+          "actual_departure": "01:56"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 2,
+          "scheduled_arrival": "02:32",
+          "scheduled_departure": "02:33",
+          "actual_arrival": "02:32",
+          "actual_departure": "02:33"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 2,
+          "scheduled_arrival": "02:39",
+          "scheduled_departure": "02:42",
+          "actual_arrival": "02:39",
+          "actual_departure": "02:42"
+        }
+      ]
+    },
+    {
+      "train_number": "12001",
+      "service_date": "2026-09-11",
+      "train_name": "Shatabdi Express",
+      "train_type": "SHATABDI_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "02:05",
+      "delay_minutes": 4,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 6,
+          "scheduled_arrival": "02:05",
+          "scheduled_departure": "02:08",
+          "actual_arrival": "02:09",
+          "actual_departure": "02:12"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 4,
+          "scheduled_arrival": "02:15",
+          "scheduled_departure": "02:17",
+          "actual_arrival": "02:19",
+          "actual_departure": "02:21"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 4,
+          "scheduled_arrival": "02:35",
+          "scheduled_departure": "02:36",
+          "actual_arrival": "02:39",
+          "actual_departure": "02:40"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 4,
+          "scheduled_arrival": "02:59",
+          "scheduled_departure": "03:00",
+          "actual_arrival": "03:03",
+          "actual_departure": "03:04"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 4,
+          "scheduled_arrival": "03:43",
+          "scheduled_departure": "03:45",
+          "actual_arrival": "03:47",
+          "actual_departure": "03:49"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 4,
+          "scheduled_arrival": "04:22",
+          "scheduled_departure": "04:23",
+          "actual_arrival": "04:26",
+          "actual_departure": "04:27"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 4,
+          "scheduled_arrival": "04:29",
+          "scheduled_departure": "04:32",
+          "actual_arrival": "04:33",
+          "actual_departure": "04:36"
+        }
+      ]
+    },
+    {
+      "train_number": "12279",
+      "service_date": "2026-09-11",
+      "train_name": "Taj Express",
+      "train_type": "TAJ_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "03:50",
+      "delay_minutes": 11,
+      "status": "DELAYED",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 8,
+          "scheduled_arrival": "03:50",
+          "scheduled_departure": "03:53",
+          "actual_arrival": "04:01",
+          "actual_departure": "04:04"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 5,
+          "scheduled_arrival": "04:01",
+          "scheduled_departure": "04:03",
+          "actual_arrival": "04:12",
+          "actual_departure": "04:14"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 2,
+          "scheduled_arrival": "04:24",
+          "scheduled_departure": "04:25",
+          "actual_arrival": "04:35",
+          "actual_departure": "04:36"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 2,
+          "scheduled_arrival": "04:52",
+          "scheduled_departure": "04:53",
+          "actual_arrival": "05:03",
+          "actual_departure": "05:04"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 6,
+          "scheduled_arrival": "05:43",
+          "scheduled_departure": "05:45",
+          "actual_arrival": "05:54",
+          "actual_departure": "05:56"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 2,
+          "scheduled_arrival": "06:28",
+          "scheduled_departure": "06:29",
+          "actual_arrival": "06:39",
+          "actual_departure": "06:40"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "06:36",
+          "scheduled_departure": "06:39",
+          "actual_arrival": "06:47",
+          "actual_departure": "06:50"
+        }
+      ]
+    },
+    {
+      "train_number": "14211",
+      "service_date": "2026-09-11",
+      "train_name": "Delhi–Agra Intercity",
+      "train_type": "INTERCITY_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "05:35",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 10,
+          "scheduled_arrival": "05:35",
+          "scheduled_departure": "05:38",
+          "actual_arrival": "05:35",
+          "actual_departure": "05:38"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 6,
+          "scheduled_arrival": "05:46",
+          "scheduled_departure": "05:48",
+          "actual_arrival": "05:46",
+          "actual_departure": "05:48"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 4,
+          "scheduled_arrival": "06:09",
+          "scheduled_departure": "06:10",
+          "actual_arrival": "06:09",
+          "actual_departure": "06:10"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 4,
+          "scheduled_arrival": "06:38",
+          "scheduled_departure": "06:39",
+          "actual_arrival": "06:38",
+          "actual_departure": "06:39"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 7,
+          "scheduled_arrival": "07:31",
+          "scheduled_departure": "07:33",
+          "actual_arrival": "07:31",
+          "actual_departure": "07:33"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 4,
+          "scheduled_arrival": "08:18",
+          "scheduled_departure": "08:19",
+          "actual_arrival": "08:18",
+          "actual_departure": "08:19"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 2,
+          "scheduled_arrival": "08:26",
+          "scheduled_departure": "08:29",
+          "actual_arrival": "08:26",
+          "actual_departure": "08:29"
+        }
+      ]
+    },
+    {
+      "train_number": "12057",
+      "service_date": "2026-09-11",
+      "train_name": "Yamuna Jan Shatabdi",
+      "train_type": "JAN_SHATABDI",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "07:20",
+      "delay_minutes": 7,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 11,
+          "scheduled_arrival": "07:20",
+          "scheduled_departure": "07:23",
+          "actual_arrival": "07:27",
+          "actual_departure": "07:30"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 2,
+          "scheduled_arrival": "07:31",
+          "scheduled_departure": "07:33",
+          "actual_arrival": "07:38",
+          "actual_departure": "07:40"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 2,
+          "scheduled_arrival": "07:53",
+          "scheduled_departure": "07:54",
+          "actual_arrival": "08:00",
+          "actual_departure": "08:01"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 2,
+          "scheduled_arrival": "08:20",
+          "scheduled_departure": "08:21",
+          "actual_arrival": "08:27",
+          "actual_departure": "08:28"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 8,
+          "scheduled_arrival": "09:09",
+          "scheduled_departure": "09:11",
+          "actual_arrival": "09:16",
+          "actual_departure": "09:18"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 2,
+          "scheduled_arrival": "09:52",
+          "scheduled_departure": "09:53",
+          "actual_arrival": "09:59",
+          "actual_departure": "10:00"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 4,
+          "scheduled_arrival": "09:59",
+          "scheduled_departure": "10:02",
+          "actual_arrival": "10:06",
+          "actual_departure": "10:09"
+        }
+      ]
+    },
+    {
+      "train_number": "12919",
+      "service_date": "2026-09-11",
+      "train_name": "Braj Superfast Express",
+      "train_type": "SUPERFAST_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "09:05",
+      "delay_minutes": 18,
+      "status": "DELAYED",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 12,
+          "scheduled_arrival": "09:05",
+          "scheduled_departure": "09:08",
+          "actual_arrival": "09:23",
+          "actual_departure": "09:26"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 4,
+          "scheduled_arrival": "09:16",
+          "scheduled_departure": "09:18",
+          "actual_arrival": "09:34",
+          "actual_departure": "09:36"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 4,
+          "scheduled_arrival": "09:37",
+          "scheduled_departure": "09:38",
+          "actual_arrival": "09:55",
+          "actual_departure": "09:56"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 4,
+          "scheduled_arrival": "10:03",
+          "scheduled_departure": "10:04",
+          "actual_arrival": "10:21",
+          "actual_departure": "10:22"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 2,
+          "scheduled_arrival": "10:51",
+          "scheduled_departure": "10:53",
+          "actual_arrival": "11:09",
+          "actual_departure": "11:11"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 4,
+          "scheduled_arrival": "11:33",
+          "scheduled_departure": "11:34",
+          "actual_arrival": "11:51",
+          "actual_departure": "11:52"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "11:40",
+          "scheduled_departure": "11:43",
+          "actual_arrival": "11:58",
+          "actual_departure": "12:01"
+        }
+      ]
+    },
+    {
+      "train_number": "12192",
+      "service_date": "2026-09-11",
+      "train_name": "Gatimaan Express",
+      "train_type": "GATIMAAN_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "10:50",
+      "delay_minutes": 3,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 4,
+          "scheduled_arrival": "10:50",
+          "scheduled_departure": "10:53",
+          "actual_arrival": "10:53",
+          "actual_departure": "10:56"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 5,
+          "scheduled_arrival": "11:00",
+          "scheduled_departure": "11:02",
+          "actual_arrival": "11:03",
+          "actual_departure": "11:05"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 2,
+          "scheduled_arrival": "11:19",
+          "scheduled_departure": "11:20",
+          "actual_arrival": "11:22",
+          "actual_departure": "11:23"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 2,
+          "scheduled_arrival": "11:42",
+          "scheduled_departure": "11:43",
+          "actual_arrival": "11:45",
+          "actual_departure": "11:46"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 4,
+          "scheduled_arrival": "12:24",
+          "scheduled_departure": "12:26",
+          "actual_arrival": "12:27",
+          "actual_departure": "12:29"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 2,
+          "scheduled_arrival": "13:02",
+          "scheduled_departure": "13:03",
+          "actual_arrival": "13:05",
+          "actual_departure": "13:06"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 2,
+          "scheduled_arrival": "13:09",
+          "scheduled_departure": "13:12",
+          "actual_arrival": "13:12",
+          "actual_departure": "13:15"
+        }
+      ]
+    },
+    {
+      "train_number": "12415",
+      "service_date": "2026-09-11",
+      "train_name": "Shatabdi Express",
+      "train_type": "SHATABDI_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "12:35",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 6,
+          "scheduled_arrival": "12:35",
+          "scheduled_departure": "12:38",
+          "actual_arrival": "12:35",
+          "actual_departure": "12:38"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 6,
+          "scheduled_arrival": "12:45",
+          "scheduled_departure": "12:47",
+          "actual_arrival": "12:45",
+          "actual_departure": "12:47"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 4,
+          "scheduled_arrival": "13:05",
+          "scheduled_departure": "13:06",
+          "actual_arrival": "13:05",
+          "actual_departure": "13:06"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 4,
+          "scheduled_arrival": "13:29",
+          "scheduled_departure": "13:30",
+          "actual_arrival": "13:29",
+          "actual_departure": "13:30"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 6,
+          "scheduled_arrival": "14:13",
+          "scheduled_departure": "14:15",
+          "actual_arrival": "14:13",
+          "actual_departure": "14:15"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 4,
+          "scheduled_arrival": "14:52",
+          "scheduled_departure": "14:53",
+          "actual_arrival": "14:52",
+          "actual_departure": "14:53"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 4,
+          "scheduled_arrival": "14:59",
+          "scheduled_departure": "15:02",
+          "actual_arrival": "14:59",
+          "actual_departure": "15:02"
+        }
+      ]
+    },
+    {
+      "train_number": "12625",
+      "service_date": "2026-09-11",
+      "train_name": "Taj Express",
+      "train_type": "TAJ_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "14:20",
+      "delay_minutes": 26,
+      "status": "DELAYED",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 8,
+          "scheduled_arrival": "14:20",
+          "scheduled_departure": "14:23",
+          "actual_arrival": "14:46",
+          "actual_departure": "14:49"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 2,
+          "scheduled_arrival": "14:31",
+          "scheduled_departure": "14:33",
+          "actual_arrival": "14:57",
+          "actual_departure": "14:59"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 2,
+          "scheduled_arrival": "14:54",
+          "scheduled_departure": "14:55",
+          "actual_arrival": "15:20",
+          "actual_departure": "15:21"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 2,
+          "scheduled_arrival": "15:22",
+          "scheduled_departure": "15:23",
+          "actual_arrival": "15:48",
+          "actual_departure": "15:49"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 7,
+          "scheduled_arrival": "16:13",
+          "scheduled_departure": "16:15",
+          "actual_arrival": "16:39",
+          "actual_departure": "16:41"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 2,
+          "scheduled_arrival": "16:58",
+          "scheduled_departure": "16:59",
+          "actual_arrival": "17:24",
+          "actual_departure": "17:25"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "17:06",
+          "scheduled_departure": "17:09",
+          "actual_arrival": "17:32",
+          "actual_departure": "17:35"
+        }
+      ]
+    },
+    {
+      "train_number": "12925",
+      "service_date": "2026-09-11",
+      "train_name": "Delhi–Agra Intercity",
+      "train_type": "INTERCITY_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "16:05",
+      "delay_minutes": 6,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 10,
+          "scheduled_arrival": "16:05",
+          "scheduled_departure": "16:08",
+          "actual_arrival": "16:11",
+          "actual_departure": "16:14"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 4,
+          "scheduled_arrival": "16:16",
+          "scheduled_departure": "16:18",
+          "actual_arrival": "16:22",
+          "actual_departure": "16:24"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 4,
+          "scheduled_arrival": "16:39",
+          "scheduled_departure": "16:40",
+          "actual_arrival": "16:45",
+          "actual_departure": "16:46"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 4,
+          "scheduled_arrival": "17:08",
+          "scheduled_departure": "17:09",
+          "actual_arrival": "17:14",
+          "actual_departure": "17:15"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 8,
+          "scheduled_arrival": "18:01",
+          "scheduled_departure": "18:03",
+          "actual_arrival": "18:07",
+          "actual_departure": "18:09"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 4,
+          "scheduled_arrival": "18:48",
+          "scheduled_departure": "18:49",
+          "actual_arrival": "18:54",
+          "actual_departure": "18:55"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 2,
+          "scheduled_arrival": "18:56",
+          "scheduled_departure": "18:59",
+          "actual_arrival": "19:02",
+          "actual_departure": "19:05"
+        }
+      ]
+    },
+    {
+      "train_number": "12431",
+      "service_date": "2026-09-11",
+      "train_name": "Yamuna Jan Shatabdi",
+      "train_type": "JAN_SHATABDI",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "17:50",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 11,
+          "scheduled_arrival": "17:50",
+          "scheduled_departure": "17:53",
+          "actual_arrival": "17:50",
+          "actual_departure": "17:53"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 5,
+          "scheduled_arrival": "18:01",
+          "scheduled_departure": "18:03",
+          "actual_arrival": "18:01",
+          "actual_departure": "18:03"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 2,
+          "scheduled_arrival": "18:23",
+          "scheduled_departure": "18:24",
+          "actual_arrival": "18:23",
+          "actual_departure": "18:24"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 2,
+          "scheduled_arrival": "18:50",
+          "scheduled_departure": "18:51",
+          "actual_arrival": "18:50",
+          "actual_departure": "18:51"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 2,
+          "scheduled_arrival": "19:39",
+          "scheduled_departure": "19:41",
+          "actual_arrival": "19:39",
+          "actual_departure": "19:41"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 2,
+          "scheduled_arrival": "20:22",
+          "scheduled_departure": "20:23",
+          "actual_arrival": "20:22",
+          "actual_departure": "20:23"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 4,
+          "scheduled_arrival": "20:29",
+          "scheduled_departure": "20:32",
+          "actual_arrival": "20:29",
+          "actual_departure": "20:32"
+        }
+      ]
+    },
+    {
+      "train_number": "12047",
+      "service_date": "2026-09-11",
+      "train_name": "Braj Superfast Express",
+      "train_type": "SUPERFAST_EXPRESS",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "scheduled_origin_departure": "19:35",
+      "delay_minutes": 12,
+      "status": "DELAYED",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 12,
+          "scheduled_arrival": "19:35",
+          "scheduled_departure": "19:38",
+          "actual_arrival": "19:47",
+          "actual_departure": "19:50"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 6,
+          "scheduled_arrival": "19:46",
+          "scheduled_departure": "19:48",
+          "actual_arrival": "19:58",
+          "actual_departure": "20:00"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 4,
+          "scheduled_arrival": "20:07",
+          "scheduled_departure": "20:08",
+          "actual_arrival": "20:19",
+          "actual_departure": "20:20"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 4,
+          "scheduled_arrival": "20:33",
+          "scheduled_departure": "20:34",
+          "actual_arrival": "20:45",
+          "actual_departure": "20:46"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 4,
+          "scheduled_arrival": "21:21",
+          "scheduled_departure": "21:23",
+          "actual_arrival": "21:33",
+          "actual_departure": "21:35"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 4,
+          "scheduled_arrival": "22:03",
+          "scheduled_departure": "22:04",
+          "actual_arrival": "22:15",
+          "actual_departure": "22:16"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "22:10",
+          "scheduled_departure": "22:13",
+          "actual_arrival": "22:22",
+          "actual_departure": "22:25"
+        }
+      ]
+    },
+    {
+      "train_number": "12050",
+      "service_date": "2026-09-11",
+      "train_name": "Gatimaan Express",
+      "train_type": "GATIMAAN_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "01:05",
+      "delay_minutes": 5,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 1,
+          "scheduled_arrival": "01:05",
+          "scheduled_departure": "01:08",
+          "actual_arrival": "01:10",
+          "actual_departure": "01:13"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 1,
+          "scheduled_arrival": "01:14",
+          "scheduled_departure": "01:15",
+          "actual_arrival": "01:19",
+          "actual_departure": "01:20"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 5,
+          "scheduled_arrival": "01:51",
+          "scheduled_departure": "01:53",
+          "actual_arrival": "01:56",
+          "actual_departure": "01:58"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 1,
+          "scheduled_arrival": "02:34",
+          "scheduled_departure": "02:35",
+          "actual_arrival": "02:39",
+          "actual_departure": "02:40"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 1,
+          "scheduled_arrival": "02:57",
+          "scheduled_departure": "02:58",
+          "actual_arrival": "03:02",
+          "actual_departure": "03:03"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 1,
+          "scheduled_arrival": "03:15",
+          "scheduled_departure": "03:17",
+          "actual_arrival": "03:20",
+          "actual_departure": "03:22"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 3,
+          "scheduled_arrival": "03:24",
+          "scheduled_departure": "03:27",
+          "actual_arrival": "03:29",
+          "actual_departure": "03:32"
+        }
+      ]
+    },
+    {
+      "train_number": "12002",
+      "service_date": "2026-09-11",
+      "train_name": "Shatabdi Express",
+      "train_type": "SHATABDI_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "02:50",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 3,
+          "scheduled_arrival": "02:50",
+          "scheduled_departure": "02:53",
+          "actual_arrival": "02:50",
+          "actual_departure": "02:53"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 3,
+          "scheduled_arrival": "02:59",
+          "scheduled_departure": "03:00",
+          "actual_arrival": "02:59",
+          "actual_departure": "03:00"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 7,
+          "scheduled_arrival": "03:37",
+          "scheduled_departure": "03:39",
+          "actual_arrival": "03:37",
+          "actual_departure": "03:39"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 3,
+          "scheduled_arrival": "04:22",
+          "scheduled_departure": "04:23",
+          "actual_arrival": "04:22",
+          "actual_departure": "04:23"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 3,
+          "scheduled_arrival": "04:46",
+          "scheduled_departure": "04:47",
+          "actual_arrival": "04:46",
+          "actual_departure": "04:47"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 3,
+          "scheduled_arrival": "05:05",
+          "scheduled_departure": "05:07",
+          "actual_arrival": "05:05",
+          "actual_departure": "05:07"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 5,
+          "scheduled_arrival": "05:14",
+          "scheduled_departure": "05:17",
+          "actual_arrival": "05:14",
+          "actual_departure": "05:17"
+        }
+      ]
+    },
+    {
+      "train_number": "12280",
+      "service_date": "2026-09-11",
+      "train_name": "Taj Express",
+      "train_type": "TAJ_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "04:35",
+      "delay_minutes": 8,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "04:35",
+          "scheduled_departure": "04:38",
+          "actual_arrival": "04:43",
+          "actual_departure": "04:46"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 1,
+          "scheduled_arrival": "04:45",
+          "scheduled_departure": "04:46",
+          "actual_arrival": "04:53",
+          "actual_departure": "04:54"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 8,
+          "scheduled_arrival": "05:29",
+          "scheduled_departure": "05:31",
+          "actual_arrival": "05:37",
+          "actual_departure": "05:39"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 1,
+          "scheduled_arrival": "06:21",
+          "scheduled_departure": "06:22",
+          "actual_arrival": "06:29",
+          "actual_departure": "06:30"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 1,
+          "scheduled_arrival": "06:49",
+          "scheduled_departure": "06:50",
+          "actual_arrival": "06:57",
+          "actual_departure": "06:58"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 5,
+          "scheduled_arrival": "07:11",
+          "scheduled_departure": "07:13",
+          "actual_arrival": "07:19",
+          "actual_departure": "07:21"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 7,
+          "scheduled_arrival": "07:21",
+          "scheduled_departure": "07:24",
+          "actual_arrival": "07:29",
+          "actual_departure": "07:32"
+        }
+      ]
+    },
+    {
+      "train_number": "14212",
+      "service_date": "2026-09-11",
+      "train_name": "Delhi–Agra Intercity",
+      "train_type": "INTERCITY_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "06:20",
+      "delay_minutes": 14,
+      "status": "DELAYED",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 1,
+          "scheduled_arrival": "06:20",
+          "scheduled_departure": "06:23",
+          "actual_arrival": "06:34",
+          "actual_departure": "06:37"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 3,
+          "scheduled_arrival": "06:30",
+          "scheduled_departure": "06:31",
+          "actual_arrival": "06:44",
+          "actual_departure": "06:45"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 1,
+          "scheduled_arrival": "07:16",
+          "scheduled_departure": "07:18",
+          "actual_arrival": "07:30",
+          "actual_departure": "07:32"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 3,
+          "scheduled_arrival": "08:10",
+          "scheduled_departure": "08:11",
+          "actual_arrival": "08:24",
+          "actual_departure": "08:25"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 3,
+          "scheduled_arrival": "08:39",
+          "scheduled_departure": "08:40",
+          "actual_arrival": "08:53",
+          "actual_departure": "08:54"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 6,
+          "scheduled_arrival": "09:01",
+          "scheduled_departure": "09:03",
+          "actual_arrival": "09:15",
+          "actual_departure": "09:17"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 9,
+          "scheduled_arrival": "09:11",
+          "scheduled_departure": "09:14",
+          "actual_arrival": "09:25",
+          "actual_departure": "09:28"
+        }
+      ]
+    },
+    {
+      "train_number": "12058",
+      "service_date": "2026-09-11",
+      "train_name": "Yamuna Jan Shatabdi",
+      "train_type": "JAN_SHATABDI",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "08:05",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 3,
+          "scheduled_arrival": "08:05",
+          "scheduled_departure": "08:08",
+          "actual_arrival": "08:05",
+          "actual_departure": "08:08"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 1,
+          "scheduled_arrival": "08:14",
+          "scheduled_departure": "08:15",
+          "actual_arrival": "08:14",
+          "actual_departure": "08:15"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 3,
+          "scheduled_arrival": "08:56",
+          "scheduled_departure": "08:58",
+          "actual_arrival": "08:56",
+          "actual_departure": "08:58"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 1,
+          "scheduled_arrival": "09:46",
+          "scheduled_departure": "09:47",
+          "actual_arrival": "09:46",
+          "actual_departure": "09:47"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 1,
+          "scheduled_arrival": "10:13",
+          "scheduled_departure": "10:14",
+          "actual_arrival": "10:13",
+          "actual_departure": "10:14"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 1,
+          "scheduled_arrival": "10:34",
+          "scheduled_departure": "10:36",
+          "actual_arrival": "10:34",
+          "actual_departure": "10:36"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 11,
+          "scheduled_arrival": "10:44",
+          "scheduled_departure": "10:47",
+          "actual_arrival": "10:44",
+          "actual_departure": "10:47"
+        }
+      ]
+    },
+    {
+      "train_number": "12920",
+      "service_date": "2026-09-11",
+      "train_name": "Braj Superfast Express",
+      "train_type": "SUPERFAST_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "09:50",
+      "delay_minutes": 21,
+      "status": "DELAYED",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "09:50",
+          "scheduled_departure": "09:53",
+          "actual_arrival": "10:11",
+          "actual_departure": "10:14"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 3,
+          "scheduled_arrival": "09:59",
+          "scheduled_departure": "10:00",
+          "actual_arrival": "10:20",
+          "actual_departure": "10:21"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 5,
+          "scheduled_arrival": "10:40",
+          "scheduled_departure": "10:42",
+          "actual_arrival": "11:01",
+          "actual_departure": "11:03"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 3,
+          "scheduled_arrival": "11:29",
+          "scheduled_departure": "11:30",
+          "actual_arrival": "11:50",
+          "actual_departure": "11:51"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 3,
+          "scheduled_arrival": "11:55",
+          "scheduled_departure": "11:56",
+          "actual_arrival": "12:16",
+          "actual_departure": "12:17"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 3,
+          "scheduled_arrival": "12:15",
+          "scheduled_departure": "12:17",
+          "actual_arrival": "12:36",
+          "actual_departure": "12:38"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 12,
+          "scheduled_arrival": "12:25",
+          "scheduled_departure": "12:28",
+          "actual_arrival": "12:46",
+          "actual_departure": "12:49"
+        }
+      ]
+    },
+    {
+      "train_number": "12191",
+      "service_date": "2026-09-11",
+      "train_name": "Gatimaan Express",
+      "train_type": "GATIMAAN_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "11:35",
+      "delay_minutes": 4,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 1,
+          "scheduled_arrival": "11:35",
+          "scheduled_departure": "11:38",
+          "actual_arrival": "11:39",
+          "actual_departure": "11:42"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 1,
+          "scheduled_arrival": "11:44",
+          "scheduled_departure": "11:45",
+          "actual_arrival": "11:48",
+          "actual_departure": "11:49"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 7,
+          "scheduled_arrival": "12:21",
+          "scheduled_departure": "12:23",
+          "actual_arrival": "12:25",
+          "actual_departure": "12:27"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 1,
+          "scheduled_arrival": "13:04",
+          "scheduled_departure": "13:05",
+          "actual_arrival": "13:08",
+          "actual_departure": "13:09"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 1,
+          "scheduled_arrival": "13:27",
+          "scheduled_departure": "13:28",
+          "actual_arrival": "13:31",
+          "actual_departure": "13:32"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 5,
+          "scheduled_arrival": "13:45",
+          "scheduled_departure": "13:47",
+          "actual_arrival": "13:49",
+          "actual_departure": "13:51"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 3,
+          "scheduled_arrival": "13:54",
+          "scheduled_departure": "13:57",
+          "actual_arrival": "13:58",
+          "actual_departure": "14:01"
+        }
+      ]
+    },
+    {
+      "train_number": "12416",
+      "service_date": "2026-09-11",
+      "train_name": "Shatabdi Express",
+      "train_type": "SHATABDI_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "13:20",
+      "delay_minutes": 0,
+      "status": "ON_TIME",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 3,
+          "scheduled_arrival": "13:20",
+          "scheduled_departure": "13:23",
+          "actual_arrival": "13:20",
+          "actual_departure": "13:23"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 3,
+          "scheduled_arrival": "13:29",
+          "scheduled_departure": "13:30",
+          "actual_arrival": "13:29",
+          "actual_departure": "13:30"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 8,
+          "scheduled_arrival": "14:07",
+          "scheduled_departure": "14:09",
+          "actual_arrival": "14:07",
+          "actual_departure": "14:09"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 3,
+          "scheduled_arrival": "14:52",
+          "scheduled_departure": "14:53",
+          "actual_arrival": "14:52",
+          "actual_departure": "14:53"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 3,
+          "scheduled_arrival": "15:16",
+          "scheduled_departure": "15:17",
+          "actual_arrival": "15:16",
+          "actual_departure": "15:17"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 6,
+          "scheduled_arrival": "15:35",
+          "scheduled_departure": "15:37",
+          "actual_arrival": "15:35",
+          "actual_departure": "15:37"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 5,
+          "scheduled_arrival": "15:44",
+          "scheduled_departure": "15:47",
+          "actual_arrival": "15:44",
+          "actual_departure": "15:47"
+        }
+      ]
+    },
+    {
+      "train_number": "12626",
+      "service_date": "2026-09-11",
+      "train_name": "Taj Express",
+      "train_type": "TAJ_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "15:05",
+      "delay_minutes": 9,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 5,
+          "scheduled_arrival": "15:05",
+          "scheduled_departure": "15:08",
+          "actual_arrival": "15:14",
+          "actual_departure": "15:17"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 1,
+          "scheduled_arrival": "15:15",
+          "scheduled_departure": "15:16",
+          "actual_arrival": "15:24",
+          "actual_departure": "15:25"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 1,
+          "scheduled_arrival": "15:59",
+          "scheduled_departure": "16:01",
+          "actual_arrival": "16:08",
+          "actual_departure": "16:10"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 1,
+          "scheduled_arrival": "16:51",
+          "scheduled_departure": "16:52",
+          "actual_arrival": "17:00",
+          "actual_departure": "17:01"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 1,
+          "scheduled_arrival": "17:19",
+          "scheduled_departure": "17:20",
+          "actual_arrival": "17:28",
+          "actual_departure": "17:29"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 1,
+          "scheduled_arrival": "17:41",
+          "scheduled_departure": "17:43",
+          "actual_arrival": "17:50",
+          "actual_departure": "17:52"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 7,
+          "scheduled_arrival": "17:51",
+          "scheduled_departure": "17:54",
+          "actual_arrival": "18:00",
+          "actual_departure": "18:03"
+        }
+      ]
+    },
+    {
+      "train_number": "12926",
+      "service_date": "2026-09-11",
+      "train_name": "Delhi–Agra Intercity",
+      "train_type": "INTERCITY_EXPRESS",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "16:50",
+      "delay_minutes": 3,
+      "status": "SLIGHT_DELAY",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 1,
+          "scheduled_arrival": "16:50",
+          "scheduled_departure": "16:53",
+          "actual_arrival": "16:53",
+          "actual_departure": "16:56"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 3,
+          "scheduled_arrival": "17:00",
+          "scheduled_departure": "17:01",
+          "actual_arrival": "17:03",
+          "actual_departure": "17:04"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 3,
+          "scheduled_arrival": "17:46",
+          "scheduled_departure": "17:48",
+          "actual_arrival": "17:49",
+          "actual_departure": "17:51"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 3,
+          "scheduled_arrival": "18:40",
+          "scheduled_departure": "18:41",
+          "actual_arrival": "18:43",
+          "actual_departure": "18:44"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 3,
+          "scheduled_arrival": "19:09",
+          "scheduled_departure": "19:10",
+          "actual_arrival": "19:12",
+          "actual_departure": "19:13"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 3,
+          "scheduled_arrival": "19:31",
+          "scheduled_departure": "19:33",
+          "actual_arrival": "19:34",
+          "actual_departure": "19:36"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 9,
+          "scheduled_arrival": "19:41",
+          "scheduled_departure": "19:44",
+          "actual_arrival": "19:44",
+          "actual_departure": "19:47"
+        }
+      ]
+    },
+    {
+      "train_number": "12432",
+      "service_date": "2026-09-11",
+      "train_name": "Yamuna Jan Shatabdi",
+      "train_type": "JAN_SHATABDI",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "scheduled_origin_departure": "18:35",
+      "delay_minutes": 17,
+      "status": "DELAYED",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt",
+          "platform": 3,
+          "scheduled_arrival": "18:35",
+          "scheduled_departure": "18:38",
+          "actual_arrival": "18:52",
+          "actual_departure": "18:55"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "platform": 1,
+          "scheduled_arrival": "18:44",
+          "scheduled_departure": "18:45",
+          "actual_arrival": "19:01",
+          "actual_departure": "19:02"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "platform": 5,
+          "scheduled_arrival": "19:26",
+          "scheduled_departure": "19:28",
+          "actual_arrival": "19:43",
+          "actual_departure": "19:45"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "platform": 1,
+          "scheduled_arrival": "20:16",
+          "scheduled_departure": "20:17",
+          "actual_arrival": "20:33",
+          "actual_departure": "20:34"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "platform": 1,
+          "scheduled_arrival": "20:43",
+          "scheduled_departure": "20:44",
+          "actual_arrival": "21:00",
+          "actual_departure": "21:01"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "platform": 5,
+          "scheduled_arrival": "21:04",
+          "scheduled_departure": "21:06",
+          "actual_arrival": "21:21",
+          "actual_departure": "21:23"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "platform": 11,
+          "scheduled_arrival": "21:14",
+          "scheduled_departure": "21:17",
+          "actual_arrival": "21:31",
+          "actual_departure": "21:34"
+        }
+      ]
+    },
+    {
+      "train_number": "12048",
+      "service_date": "2026-09-11",
       "train_name": "Braj Superfast Express",
       "train_type": "SUPERFAST_EXPRESS",
       "direction": "UP",

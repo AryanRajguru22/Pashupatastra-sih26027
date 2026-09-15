@@ -55,6 +55,7 @@ from backend.app.jobs.repository import (
 
 from backend.app.jobs.service import (
     JobService,
+    TimetableCoverageGapError,
     as_public_job,
 )
 
@@ -302,6 +303,17 @@ def optimize_corridor_jobs(
 
     except PossessionDataUnavailableError as exc:
         # Fail closed: nothing was solved and nothing was scheduled.
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    except TimetableCoverageGapError as exc:
+        # Fail closed (Slice 4 Step 4): the canonical timetable does not
+        # cover every date the configured horizon requires. Nothing was
+        # solved and no possession window was derived for any date in
+        # this request - see TimetableCoverageGapError's own docstring.
+        # str(exc) carries the required/covered/uncovered dates.
         raise HTTPException(
             status_code=409,
             detail=str(exc),
