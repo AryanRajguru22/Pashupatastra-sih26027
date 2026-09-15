@@ -418,6 +418,15 @@ def solve(request: OptimizationRequest) -> OptimizationResult:
         for block_id in block_ids:
             block = by_id[block_id]
 
+            # A window-infeasible block already has presence forced to 0
+            # and a placeholder start fixed at its own earliest_start_minute,
+            # so it can occupy no resource. Skipped exactly as the
+            # possession loop skips it: past the horizon, the unconditional
+            # buffered_end equality below cannot hold for that placeholder
+            # and would make the whole model INFEASIBLE.
+            if block_id in window_infeasible:
+                continue
+
             buffered_size = (
                 int(block.duration_minutes) + headway
             )

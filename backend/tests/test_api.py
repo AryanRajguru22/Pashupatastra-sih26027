@@ -118,3 +118,57 @@ def test_optimize_invalid_request_returns_422():
     )
 
     assert response.status_code == 422
+
+
+def test_optimize_window_infeasible_block_is_refused_not_infeasible():
+    """Regression for the Slice 5 Step 2 solver defect: a candidate whose
+    earliest_start_minute lands past horizon_minutes must be refused
+    individually through rejection_reasons, not take the whole solve down
+    to INFEASIBLE. See backend/tests/
+    test_solver_window_infeasible_regression.py for the solver-level pins.
+    """
+
+    payload = {
+        "corridor_id": "TEST_WINDOW_INFEASIBLE",
+        "horizon_minutes": 2880,
+        "tracks": ["UP-1"],
+        "min_headway_minutes": 15,
+        "candidates": [
+            {
+                "block_id": "FEASIBLE-1",
+                "asset_id": "ASSET-1",
+                "track_id": "UP-1",
+                "work_type": "BALLAST_TAMPING",
+                "duration_minutes": 60,
+                "earliest_start_minute": 0,
+                "latest_end_minute": 200,
+            },
+            {
+                "block_id": "IMPOSSIBLE-1",
+                "asset_id": "ASSET-2",
+                "track_id": "UP-1",
+                "work_type": "BALLAST_TAMPING",
+                "duration_minutes": 60,
+                "earliest_start_minute": 2911,
+                "latest_end_minute": 5000,
+            },
+        ],
+    }
+
+    response = client.post("/optimize", json=payload)
+
+    assert response.status_code == 200
+    body = response.json()
+
+    assert body["status"] in (
+        SolverStatus.OPTIMAL.value,
+        SolverStatus.FEASIBLE.value,
+    )
+
+    scheduled_ids = {block["block_id"] for block in body["scheduled_blocks"]}
+    assert "FEASIBLE-1" in scheduled_ids
+    assert "IMPOSSIBLE-1" not in scheduled_ids
+    assert (
+        "duration does not fit within"
+        in body["rejection_reasons"]["IMPOSSIBLE-1"]
+    )
