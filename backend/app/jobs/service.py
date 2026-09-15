@@ -4,7 +4,8 @@ import os
 import threading
 import uuid
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from datetime import datetime, timezone
+from typing import Any, Callable, Mapping, Optional, Sequence
 
 from contracts import DEFAULT_HORIZON_START, BlockCandidate, BlockStatus
 
@@ -65,6 +66,14 @@ from backend.app.identity.authorization import (
 
 from backend.app.jobs.events import event_timestamp
 
+from backend.app.jobs.execution import (
+    EvidenceItem,
+    ExecutionIntegrityError,
+    ExecutionRecord,
+    build_execution_records,
+    new_execution_id,
+)
+
 from backend.app.jobs.history import (
     JobHistoryRepository,
     StoredJobEvent,
@@ -76,10 +85,14 @@ from backend.app.jobs.lifecycle import (
     CommittedStateIntegrityError,
     InvalidTransitionError,
     Plan,
+    StaleExecutionError,
     StaleProposalError,
     creation_events,
     plan_commit,
     plan_completion,
+    plan_execution_complete,
+    plan_execution_not_completed,
+    plan_execution_start,
     plan_postpone,
     plan_reject,
     assert_committed_state_consistent,
@@ -464,6 +477,7 @@ class JobService:
         registry: SectionRegistry | None = None,
         authorization: AuthorizationPolicy | None = None,
         horizon_minutes: int = OPTIMIZATION_HORIZON_MINUTES,
+        clock: Callable[[], datetime] | None = None,
     ):
         if horizon_minutes <= 0 or horizon_minutes % 1440 != 0:
             raise InvalidHorizonMinutesError(
@@ -474,6 +488,15 @@ class JobService:
             )
 
         self.horizon_minutes = horizon_minutes
+
+        # Sprint 3 Slice 5: the one source of "now" for field-execution
+        # observation-time rules (recording moment for EXECUTION_* events;
+        # see plan_execution_start/_complete/_not_completed's own future-
+        # skew checks). Injectable so tests are clock-independent; every
+        # other JobService construction site keeps working unchanged.
+        self.clock: Callable[[], datetime] = clock or (
+            lambda: datetime.now(timezone.utc)
+        )
 
         self.repository = (
             repository or JobRepository()
@@ -1235,6 +1258,274 @@ class JobService:
             plan_completion(job_id, actor=completer, at=event_timestamp()),
         )
 
+    # -----------------------------------------
+    # Field execution (Sprint 3 Slice 5 Step 3)
+    #
+    # Each method is a thin wrapper: authorize, pre-read the job's own
+    # execution history under lifecycle_lock (build_execution_records -
+    # I/O, so it cannot happen inside mutate_jobs' transaction), then
+    # delegate the transition itself to the already-reviewed lifecycle
+    # plan via _transition. The plan is the only place that decides
+    # whether a transition is allowed; nothing here duplicates that
+    # logic. The pre-read and the write share one lifecycle_lock
+    # acquisition (RLock, so _transition's own acquisition nests) so the
+    # execution record returned alongside the job is never stale against
+    # a transition that landed in between.
+    # -----------------------------------------
+
+    def _reconstructed_execution(
+        self,
+        records: Sequence[ExecutionRecord],
+        job_id: str,
+        execution_id: str,
+    ) -> ExecutionRecord:
+        """The just-committed execution, or a fail-closed integrity error.
+
+        The transition immediately before this call committed
+        execution_id; if it cannot be found among the freshly rebuilt
+        records, the write and the reconstruction disagree with each
+        other, which is an ExecutionIntegrityError, not a StopIteration
+        leaking out of a bare next().
+        """
+
+        for record in records:
+            if record.execution_id == execution_id:
+                return record
+
+        raise ExecutionIntegrityError(
+            f"Job '{job_id}' committed a transition for execution "
+            f"{execution_id!r}, but that execution could not be found in "
+            "the history immediately reconstructed afterward",
+            job_id,
+        )
+
+    def _evidence_items(self, raw: Sequence[Mapping[str, Any]]) -> list[EvidenceItem]:
+        """Construct+validate EvidenceItem values from plain evidence dicts.
+
+        Raises EvidenceItem's own EvidenceValidationError (a ValueError)
+        for a structurally invalid item - the router's generic ValueError
+        handler maps that to 400, exactly as every other domain
+        validation failure in this service already does.
+        """
+
+        return [EvidenceItem(**dict(item)) for item in raw]
+
+    def start_execution(
+        self,
+        job_id: str,
+        actor: Actor | None = None,
+        *,
+        expected_proposal_run_id: str,
+        actual_start_at: str,
+        before_work_evidence: Sequence[Mapping[str, Any]],
+    ) -> tuple[dict[str, Any], ExecutionRecord]:
+        """notified -> in_progress: field work on the approved block has started.
+
+        Returns (job, execution) so the caller can hand the minted
+        execution_id back to the field crew - it is never guessable, and
+        Slice 5 has no idempotency key to recover it otherwise.
+        """
+
+        starter = self._resolve_actor(actor)
+        self.authorization.authorize(starter, JobAction.START_EXECUTION)
+
+        evidence = self._evidence_items(before_work_evidence)
+
+        with self.lifecycle_lock:
+            job = self.repository.get(job_id)
+
+            if job is None:
+                raise KeyError(f"Job '{job_id}' not found")
+
+            previous = tuple(
+                build_execution_records(job, self.history.list_for_job(job_id))
+            )
+            execution_id = new_execution_id()
+
+            updated = self._transition(
+                job_id,
+                starter,
+                "start_execution",
+                plan_execution_start(
+                    job_id,
+                    actor=starter,
+                    at=event_timestamp(self.clock()),
+                    execution_id=execution_id,
+                    expected_proposal_run_id=expected_proposal_run_id,
+                    actual_start_at=actual_start_at,
+                    before_work_evidence=evidence,
+                    corridor_id=self.corridor.corridor_id,
+                    previous_executions=previous,
+                    horizon_start=OPTIMIZATION_HORIZON_START,
+                ),
+            )
+
+            records = build_execution_records(
+                updated, self.history.list_for_job(job_id)
+            )
+            execution = self._reconstructed_execution(records, job_id, execution_id)
+
+        return updated, execution
+
+    def _current_open_execution(
+        self, job: Mapping[str, Any], job_id: str
+    ) -> Optional[ExecutionRecord]:
+        """The job's currently open execution, or None.
+
+        None here means either "not in_progress" or "no open execution",
+        which the plan itself distinguishes and refuses appropriately -
+        see plan_execution_complete/_not_completed's shared
+        _open_execution_checks. It is never reached with job.status ==
+        in_progress and no matching open record: build_execution_records
+        already refuses that as ExecutionIntegrityError while reading.
+        """
+
+        records = build_execution_records(job, self.history.list_for_job(job_id))
+        open_records = [record for record in records if record.is_open]
+        return open_records[0] if open_records else None
+
+    def complete_execution(
+        self,
+        job_id: str,
+        actor: Actor | None = None,
+        *,
+        execution_id: str,
+        actual_end_at: str,
+        after_work_evidence: Sequence[Mapping[str, Any]],
+    ) -> tuple[dict[str, Any], ExecutionRecord]:
+        """in_progress -> completed: field work finished, with after-work evidence.
+
+        Terminal: the job never returns to optimization after this.
+        """
+
+        completer = self._resolve_actor(actor)
+        self.authorization.authorize(completer, JobAction.COMPLETE_JOB)
+
+        evidence = self._evidence_items(after_work_evidence)
+
+        with self.lifecycle_lock:
+            job = self.repository.get(job_id)
+
+            if job is None:
+                raise KeyError(f"Job '{job_id}' not found")
+
+            open_execution = self._current_open_execution(job, job_id)
+
+            updated = self._transition(
+                job_id,
+                completer,
+                "complete_execution",
+                plan_execution_complete(
+                    job_id,
+                    actor=completer,
+                    at=event_timestamp(self.clock()),
+                    execution_id=execution_id,
+                    actual_end_at=actual_end_at,
+                    after_work_evidence=evidence,
+                    execution=open_execution,
+                    corridor_id=self.corridor.corridor_id,
+                    horizon_start=OPTIMIZATION_HORIZON_START,
+                ),
+            )
+
+            records = build_execution_records(
+                updated, self.history.list_for_job(job_id)
+            )
+            execution = self._reconstructed_execution(records, job_id, execution_id)
+
+        return updated, execution
+
+    def report_execution_not_completed(
+        self,
+        job_id: str,
+        actor: Actor | None = None,
+        *,
+        execution_id: str,
+        actual_end_at: str,
+        reason: str,
+        failure_evidence: Sequence[Mapping[str, Any]] = (),
+    ) -> tuple[dict[str, Any], ExecutionRecord]:
+        """in_progress -> reported: work not completed; release for replanning.
+
+        The committed block is released, never rewritten into a new
+        proposal - see plan_execution_not_completed. The job becomes
+        eligible for the next optimization attempt to produce a
+        genuinely new proposal.
+        """
+
+        reporter = self._resolve_actor(actor)
+        self.authorization.authorize(reporter, JobAction.REPORT_EXECUTION_NOT_COMPLETED)
+
+        evidence = self._evidence_items(failure_evidence)
+
+        with self.lifecycle_lock:
+            job = self.repository.get(job_id)
+
+            if job is None:
+                raise KeyError(f"Job '{job_id}' not found")
+
+            open_execution = self._current_open_execution(job, job_id)
+
+            updated = self._transition(
+                job_id,
+                reporter,
+                "execution_not_completed",
+                plan_execution_not_completed(
+                    job_id,
+                    actor=reporter,
+                    at=event_timestamp(self.clock()),
+                    execution_id=execution_id,
+                    actual_end_at=actual_end_at,
+                    reason=reason,
+                    execution=open_execution,
+                    corridor_id=self.corridor.corridor_id,
+                    horizon_minutes=self.horizon_minutes,
+                    failure_evidence=evidence,
+                    horizon_start=OPTIMIZATION_HORIZON_START,
+                ),
+            )
+
+            records = build_execution_records(
+                updated, self.history.list_for_job(job_id)
+            )
+            execution = self._reconstructed_execution(records, job_id, execution_id)
+
+        return updated, execution
+
+    def get_execution(
+        self,
+        job_id: str,
+        actor: Actor | None = None,
+    ) -> list[ExecutionRecord]:
+        """Every execution of this job, oldest first, derived from history.
+
+        KeyError if the job does not exist. An existing job that has
+        never had a field execution returns an empty list - never a 404
+        - since there is nothing wrong with that job, only an absence of
+        executions to report.
+
+        Reads the job row and its history together under lifecycle_lock.
+        build_execution_records cross-checks the two (the row's own
+        execution_id metadata against the EXECUTION_* event history), so
+        without the lock a concurrent start/complete/not-completed could
+        be observed mid-transition - e.g. the row already updated but
+        the new event not yet visible - and be misread as a genuinely
+        inconsistent history. Holding the lock guarantees this read
+        observes either the state strictly before or strictly after any
+        single transition, never a mix.
+        """
+
+        reader = self._resolve_actor(actor)
+        self.authorization.authorize(reader, JobAction.READ_JOB_EXECUTION)
+
+        with self.lifecycle_lock:
+            job = self.repository.get(job_id)
+
+            if job is None:
+                raise KeyError(f"Job '{job_id}' not found")
+
+            return build_execution_records(job, self.history.list_for_job(job_id))
+
     def _transition(
         self,
         job_id: str,
@@ -1261,8 +1552,10 @@ class JobService:
             except (
                 InvalidTransitionError,
                 StaleProposalError,
+                StaleExecutionError,
                 CommittedJobError,
                 CommittedStateIntegrityError,
+                ExecutionIntegrityError,
                 TerminalJobError,
             ) as exc:
                 self.record_rejected_transition([job_id], actor, attempted, exc)
@@ -1675,6 +1968,9 @@ def _no_proposal_reason(job: Mapping[str, Any]) -> str:
 
     if status == JobStatus.NOTIFIED.value:
         return "job's proposal was already committed via notify; it is no longer a pending proposal"
+
+    if status == JobStatus.IN_PROGRESS.value:
+        return "job's committed block is being executed; it is no longer a pending proposal"
 
     if status == JobStatus.COMPLETED.value:
         return "job is completed"

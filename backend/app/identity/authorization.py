@@ -51,6 +51,16 @@ class JobAction(str, Enum):
     REJECT_PROPOSAL = "REJECT_PROPOSAL"
     POSTPONE_PROPOSAL = "POSTPONE_PROPOSAL"
 
+    # Sprint 3 Slice 5: field execution of an approved (committed) block.
+    # COMPLETE_JOB above is reused for in_progress -> completed - it is
+    # already the terminal completion transition's action, and Slice 5
+    # gives it evidence rather than a second permission. WORKER starts,
+    # completes and reports not-completed; READ_JOB_EXECUTION follows
+    # the READ_BLOCK_PROPOSAL precedent for a derived read.
+    START_EXECUTION = "START_EXECUTION"
+    REPORT_EXECUTION_NOT_COMPLETED = "REPORT_EXECUTION_NOT_COMPLETED"
+    READ_JOB_EXECUTION = "READ_JOB_EXECUTION"
+
 
 class AuthorizationDenied(Exception):
     """A policy refused an action. Raised before any state is touched.

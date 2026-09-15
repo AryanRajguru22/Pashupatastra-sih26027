@@ -115,6 +115,13 @@ class JobEventType(str, Enum):
                                with earliest_start_minute raised
       TRANSITION_REJECTED      a requested transition was refused; the
                                attempt is recorded, state is unchanged
+      EXECUTION_STARTED        field work on the committed block started
+                               (Sprint 3 Slice 5): notified -> in_progress
+      EXECUTION_COMPLETED      field work finished with evidence:
+                               in_progress -> completed
+      EXECUTION_NOT_COMPLETED  field work could not be completed; the
+                               commitment is released for replanning:
+                               in_progress -> reported
 
     System decisions
       JOB_SCORED               priority/risk computed (SYSTEM:SCORER)
@@ -149,6 +156,9 @@ class JobEventType(str, Enum):
     PROPOSAL_REJECTED = "PROPOSAL_REJECTED"
     PROPOSAL_POSTPONED = "PROPOSAL_POSTPONED"
     TRANSITION_REJECTED = "TRANSITION_REJECTED"
+    EXECUTION_STARTED = "EXECUTION_STARTED"
+    EXECUTION_COMPLETED = "EXECUTION_COMPLETED"
+    EXECUTION_NOT_COMPLETED = "EXECUTION_NOT_COMPLETED"
 
 
 @dataclass(frozen=True)

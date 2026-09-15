@@ -7,11 +7,30 @@ with the events in the same transaction as the state change. The split
 is what lets a later authorization or hash-chain slice wrap the write
 path without re-deriving the rules.
 
-STATES (unchanged - no new status was added)
-    reported   -> no current proposal; eligible for optimization
-    scheduled  -> has a CURRENT, uncommitted proposal
-    notified   -> committed/pinned; the placement is protected
-    completed  -> terminal
+STATES
+    reported     -> no current proposal; eligible for optimization
+    scheduled    -> has a CURRENT, uncommitted proposal
+    notified     -> committed/pinned; the placement is protected
+    in_progress  -> committed/pinned; field work on it has started
+                    (Sprint 3 Slice 5)
+    completed    -> terminal
+
+EXECUTION TOKENS (Sprint 3 Slice 5)
+    Entering in_progress, completing an in_progress job, and releasing an
+    in_progress job back to reported are permitted ONLY for a JobMutation
+    carrying the matching ExecutionTransition, and JobRepository.mutate_jobs
+    additionally requires that token to be accompanied by exactly one
+    matching EXECUTION_* event (validate_execution_events). The permission
+    lives on the mutation, never on a status pair: the history-less
+    repository primitives (update_status, update_schedule) build no
+    JobMutation, so they structurally cannot start, complete or release
+    execution. The legacy notified -> completed move stays ungated until
+    it is retired in a later Slice 5 step.
+
+    The only plans that set a token are plan_execution_start,
+    plan_execution_complete and plan_execution_not_completed; the evidence
+    they record and the execution history derived from their events live
+    in backend.app.jobs.execution.
 
 THE TWO STEP 16 DEFECTS THIS FIXES
     Stale proposal (P0). A scheduled job that a later optimization
@@ -53,16 +72,35 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass, replace
+from enum import Enum
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from contracts import BlockStatus
+from contracts import DEFAULT_HORIZON_START, BlockStatus
 
-from backend.app.identity.actor import OPTIMIZER, Actor
+from backend.app.identity.actor import OPTIMIZER, Actor, ActorKind, ActorRole
 from backend.app.jobs.events import (
     JobEvent,
     JobEventType,
     JobStateSnapshot,
     make_event,
+)
+from backend.app.jobs.execution import (
+    EXECUTION_ID_KEY,
+    EvidenceItem,
+    EvidencePhase,
+    EvidenceValidationError,
+    ExecutionIntegrityError,
+    ExecutionRecord,
+    ExecutionStatus,
+    canonical_observed_at,
+    committed_block_digest,
+    is_execution_id,
+    observed_minute,
+    parse_observed_at,
+    proposal_id_for,
+    record_evidence,
+    require_not_in_future,
+    validate_evidence_set,
 )
 from backend.app.jobs.models import JobStatus
 
@@ -70,26 +108,45 @@ from backend.app.jobs.models import JobStatus
 REPORTED = JobStatus.REPORTED.value
 SCHEDULED = JobStatus.SCHEDULED.value
 NOTIFIED = JobStatus.NOTIFIED.value
+IN_PROGRESS = JobStatus.IN_PROGRESS.value
 COMPLETED = JobStatus.COMPLETED.value
 
 # Statuses from which a job can never return. See
 # backend.app.jobs.repository, which re-exports this for existing callers.
 TERMINAL_STATUSES = (COMPLETED,)
 
-# Job statuses whose work is committed and must be pinned.
-COMMITTED_STATUSES = (NOTIFIED,)
+# Job statuses whose work is committed and must be pinned. in_progress
+# work is physically on the track, so it is pinned exactly like notified
+# work by every consumer of this tuple (optimization snapshot, solver
+# outcome planning, proposal derivation).
+COMMITTED_STATUSES = (NOTIFIED, IN_PROGRESS)
 
 # The only lifecycle moves a job may make through the service path.
+#
+# notified -> completed is the LEGACY direct completion, retained only
+# until a later Slice 5 step retires it in favour of
+# in_progress -> completed with a COMPLETE execution token.
 ALLOWED_TRANSITIONS: Dict[str, frozenset] = {
     REPORTED: frozenset({REPORTED, SCHEDULED}),
     SCHEDULED: frozenset({SCHEDULED, REPORTED, NOTIFIED}),
-    NOTIFIED: frozenset({NOTIFIED, COMPLETED}),
+    NOTIFIED: frozenset({NOTIFIED, IN_PROGRESS, COMPLETED}),
+    IN_PROGRESS: frozenset({IN_PROGRESS, COMPLETED, REPORTED}),
     COMPLETED: frozenset(),
+}
+
+# Target statuses a COMMITTED job may move to, as far as the protected
+# state guard is concerned. Every entry except in_progress -> reported
+# keeps the commitment (block COMMITTED, exact placement); that one is
+# the execution-token-gated release.
+_COMMITTED_TARGETS: Dict[str, Tuple[str, ...]] = {
+    NOTIFIED: (NOTIFIED, IN_PROGRESS, COMPLETED),
+    IN_PROGRESS: (IN_PROGRESS, COMPLETED, REPORTED),
 }
 
 PROPOSAL_RUN_ID_KEY = "proposal_run_id"
 COMMITTED_START_KEY = "committed_start_minute"
 COMMITTED_END_KEY = "committed_end_minute"
+# EXECUTION_ID_KEY is defined in backend.app.jobs.execution and re-exported.
 
 # last_solver_status values for attempts that produced no solver status.
 # ERROR matches backend.app.audit.models.ERROR_STATUS (solve() raised);
@@ -142,6 +199,56 @@ class ConcurrentJobModificationError(RuntimeError):
     """
 
 
+class StaleExecutionError(RuntimeError):
+    """The caller acted on an execution that is no longer the job's current one.
+
+    The execution-level counterpart of StaleProposalError: a late outcome
+    for an execution that was superseded by a later one.
+    """
+
+
+class ExecutionTokenError(CommittedJobError):
+    """An execution-gated transition lacks, misuses or mismatches its token.
+
+    A CommittedJobError subclass so every existing refusal path (409 over
+    HTTP, TRANSITION_REJECTED in JobService._transition) treats it as a
+    refusal to weaken committed work without new handling.
+    """
+
+
+class ExecutionTransitionKind(str, Enum):
+    START = "START"
+    COMPLETE = "COMPLETE"
+    NOT_COMPLETED = "NOT_COMPLETED"
+
+
+@dataclass(frozen=True)
+class ExecutionTransition:
+    """Permission, carried on a JobMutation, for one execution-gated move.
+
+    START          notified    -> in_progress
+    COMPLETE       in_progress -> completed
+    NOT_COMPLETED  in_progress -> reported (commitment released)
+    """
+
+    kind: ExecutionTransitionKind
+    execution_id: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "kind", ExecutionTransitionKind(self.kind))
+
+        if not isinstance(self.execution_id, str) or not self.execution_id.strip():
+            raise ValueError("ExecutionTransition requires a non-blank execution_id")
+
+
+# The one event type that must accompany each token kind.
+EXECUTION_EVENT_TYPES: Dict[ExecutionTransitionKind, JobEventType] = {
+    ExecutionTransitionKind.START: JobEventType.EXECUTION_STARTED,
+    ExecutionTransitionKind.COMPLETE: JobEventType.EXECUTION_COMPLETED,
+    ExecutionTransitionKind.NOT_COMPLETED: JobEventType.EXECUTION_NOT_COMPLETED,
+}
+
+
 @dataclass(frozen=True)
 class JobMutation:
     """The complete new value of every mutable job column.
@@ -158,6 +265,11 @@ class JobMutation:
     last_solver_status: Optional[str]
     last_refusal_reason: Optional[str]
     block_candidate: Dict[str, Any]
+
+    # Sprint 3 Slice 5. Not a column: the permission for an
+    # execution-gated transition. Only execution plans set it; every
+    # other construction (including unchanged()) leaves it None.
+    execution: Optional[ExecutionTransition] = None
 
     @classmethod
     def unchanged(cls, job: Mapping[str, Any]) -> "JobMutation":
@@ -220,12 +332,26 @@ def committed_state_problems(
 
     Empty for any non-committed status, and for a consistent committed
     job: block status COMMITTED, is_committed True, and a real placement.
+    An in_progress job must also name its open execution, and a notified
+    job (whose work has not started) must not name one.
     """
 
     if status not in COMMITTED_STATUSES:
         return []
 
     problems = []
+    metadata = block.get("metadata") or {}
+
+    if status == IN_PROGRESS and not metadata.get(EXECUTION_ID_KEY):
+        problems.append(
+            f"block metadata carries no {EXECUTION_ID_KEY!r} for its open execution"
+        )
+
+    if status == NOTIFIED and EXECUTION_ID_KEY in metadata:
+        problems.append(
+            f"block metadata carries {EXECUTION_ID_KEY!r} "
+            f"{metadata.get(EXECUTION_ID_KEY)!r} although no execution has started"
+        )
 
     if block.get("status") != BlockStatus.COMMITTED.value:
         problems.append(
@@ -278,29 +404,47 @@ def protect_committed_and_terminal_state(
     new_status: str,
     new_block: Mapping[str, Any],
     new_schedule: Tuple[Optional[int], Optional[int]],
+    *,
+    execution: Optional[ExecutionTransition] = None,
 ) -> None:
     """Invariants EVERY write path must respect, including low-level ones.
 
-    - A terminal job is never written.
-    - A committed job whose STORED state is already inconsistent is never
-      written (CommittedStateIntegrityError) - detected, not repaired.
-    - A committed (notified) job may only stay committed or complete; it
-      keeps a COMMITTED, is_committed block and its exact placement.
-    - No write may PRODUCE an inconsistent committed job, so a future
-      application bug cannot create the state the check above refuses.
+    The order of the checks below is load-bearing:
+
+    1. A terminal job is never written - checked before any execution
+       token is looked at, so a token can release commitment but never
+       terminal state.
+    2. A committed job whose STORED state is already inconsistent is never
+       written (CommittedStateIntegrityError) - detected, not repaired.
+    3. No write may PRODUCE an inconsistent committed job, so a future
+       application bug cannot create the state check 2 refuses.
+    4. Execution gate (Sprint 3 Slice 5): entering in_progress, completing
+       an in_progress job and releasing in_progress -> reported each
+       require the matching ExecutionTransition token; a token on any
+       other move is misuse. The history-less repository primitives never
+       pass a token, so they can do none of these.
+    5. A non-committed job has nothing further to protect.
+    6. A committed job may only move to the targets in _COMMITTED_TARGETS.
+       Every move except the token-gated release keeps a COMMITTED,
+       is_committed block, its exact placement, its placement metadata and
+       its proposal run (and, once started, its execution). The release
+       must fully un-commit the block.
     """
 
     job_id = current["job_id"]
     status = current["status"]
 
+    # 1. Terminal.
     if status in TERMINAL_STATUSES:
         raise TerminalJobError(
             f"Job '{job_id}' is in terminal status '{status}' and cannot "
             "be modified"
         )
 
+    # 2. Stored committed-state integrity.
     assert_committed_state_consistent([current])
 
+    # 3. Resulting committed-state integrity.
     resulting = committed_state_problems(new_status, new_block, tuple(new_schedule))
 
     if resulting:
@@ -309,14 +453,53 @@ def protect_committed_and_terminal_state(
             f"committed state: {', '.join(resulting)}"
         )
 
+    # 4. Execution gate.
+    _gate_execution_transition(current, new_status, new_block, execution)
+
+    # 5. Non-committed current state.
     if status not in COMMITTED_STATUSES:
         return
 
-    if new_status not in (NOTIFIED, COMPLETED):
+    # 6. Committed current state.
+    if new_status not in _COMMITTED_TARGETS[status]:
         raise CommittedJobError(
             f"Job '{job_id}' is committed ('{status}') and cannot be moved "
             f"back to '{new_status}'"
         )
+
+    current_metadata = (current.get("block_candidate") or {}).get("metadata") or {}
+    new_metadata = new_block.get("metadata") or {}
+
+    if status == IN_PROGRESS and new_status == REPORTED:
+        # The execution-token-gated release (token verified in step 4).
+        # The commitment is withdrawn completely, exactly as _withdrawn()
+        # withdraws an uncommitted proposal.
+        leftovers = [
+            key
+            for key in (
+                COMMITTED_START_KEY,
+                COMMITTED_END_KEY,
+                PROPOSAL_RUN_ID_KEY,
+                EXECUTION_ID_KEY,
+            )
+            if key in new_metadata
+        ]
+
+        if (
+            new_block.get("status") != BlockStatus.PLANNED.value
+            or new_block.get("is_committed") is not False
+            or tuple(new_schedule) != (None, None)
+            or leftovers
+        ):
+            raise CommittedJobError(
+                f"Job '{job_id}' releasing its commitment must become an "
+                "uncommitted PLANNED block with no placement; got block "
+                f"status {new_block.get('status')!r}, is_committed "
+                f"{new_block.get('is_committed')!r}, placement "
+                f"{tuple(new_schedule)}, leftover placement metadata {leftovers}"
+            )
+
+        return
 
     if (
         new_block.get("status") != BlockStatus.COMMITTED.value
@@ -338,6 +521,82 @@ def protect_committed_and_terminal_state(
             f"placement cannot be changed to {tuple(new_schedule)}"
         )
 
+    preserved_keys = [COMMITTED_START_KEY, COMMITTED_END_KEY, PROPOSAL_RUN_ID_KEY]
+
+    if status == IN_PROGRESS:
+        preserved_keys.append(EXECUTION_ID_KEY)
+
+    for key in preserved_keys:
+        if current_metadata.get(key) != new_metadata.get(key):
+            raise CommittedJobError(
+                f"Job '{job_id}' is committed; its block metadata {key!r} "
+                f"cannot change from {current_metadata.get(key)!r} to "
+                f"{new_metadata.get(key)!r}"
+            )
+
+
+def _gate_execution_transition(
+    current: Mapping[str, Any],
+    new_status: str,
+    new_block: Mapping[str, Any],
+    execution: Optional[ExecutionTransition],
+) -> None:
+    """Step 4 of protect_committed_and_terminal_state. See its docstring."""
+
+    job_id = current["job_id"]
+    status = current["status"]
+
+    if new_status == IN_PROGRESS and status != IN_PROGRESS:
+        required = ExecutionTransitionKind.START
+        described = f"'{status}' -> 'in_progress'"
+    elif new_status == COMPLETED and status == IN_PROGRESS:
+        required = ExecutionTransitionKind.COMPLETE
+        described = "'in_progress' -> 'completed'"
+    elif new_status == REPORTED and status == IN_PROGRESS:
+        required = ExecutionTransitionKind.NOT_COMPLETED
+        described = "'in_progress' -> 'reported'"
+    else:
+        # Not execution-gated - including, until a later Slice 5 step
+        # retires it, the legacy notified -> completed completion.
+        if execution is not None:
+            raise ExecutionTokenError(
+                f"Job '{job_id}' move '{status}' -> '{new_status}' is not an "
+                f"execution transition, but carries a {execution.kind.value} "
+                "execution token"
+            )
+        return
+
+    if execution is None:
+        raise ExecutionTokenError(
+            f"Job '{job_id}' move {described} requires a "
+            f"{required.value} execution token; none was supplied"
+        )
+
+    if execution.kind is not required:
+        raise ExecutionTokenError(
+            f"Job '{job_id}' move {described} requires a {required.value} "
+            f"execution token, not {execution.kind.value}"
+        )
+
+    if required is ExecutionTransitionKind.START:
+        if status != NOTIFIED:
+            raise ExecutionTokenError(
+                f"Job '{job_id}' can only start execution from 'notified', "
+                f"not '{status}'"
+            )
+
+        named = (new_block.get("metadata") or {}).get(EXECUTION_ID_KEY)
+    else:
+        named = ((current.get("block_candidate") or {}).get("metadata") or {}).get(
+            EXECUTION_ID_KEY
+        )
+
+    if named != execution.execution_id:
+        raise ExecutionTokenError(
+            f"Job '{job_id}' execution token names execution "
+            f"{execution.execution_id!r}, but the block names {named!r}"
+        )
+
 
 def validate_mutation(current: Mapping[str, Any], mutation: JobMutation) -> None:
     """Full service-path validation: protected state plus the transition graph."""
@@ -347,6 +606,7 @@ def validate_mutation(current: Mapping[str, Any], mutation: JobMutation) -> None
         mutation.status,
         mutation.block_candidate,
         (mutation.schedule_start_minute, mutation.schedule_end_minute),
+        execution=mutation.execution,
     )
 
     allowed = ALLOWED_TRANSITIONS.get(current["status"])
@@ -366,13 +626,75 @@ def validate_mutation(current: Mapping[str, Any], mutation: JobMutation) -> None
             "carrying a proposed window"
         )
 
-    if mutation.status in (SCHEDULED, NOTIFIED) and (
+    if mutation.status in (SCHEDULED,) + COMMITTED_STATUSES and (
         start is None or end is None or end <= start
     ):
         raise InvalidTransitionError(
             f"Job '{current['job_id']}' would be '{mutation.status}' "
             "without a valid placement"
         )
+
+
+def validate_execution_events(
+    mutations: Sequence[JobMutation],
+    events: Sequence[JobEvent],
+) -> None:
+    """Every execution token is backed by exactly one matching event, and vice versa.
+
+    Pure. Defence in depth against a buggy planner (Sprint 3 Slice 5):
+
+    - a mutation carrying an ExecutionTransition must be accompanied, in
+      the SAME plan, by exactly one event for that job whose type is the
+      token kind's EXECUTION_* type and whose metadata.execution_id is the
+      token's execution_id;
+    - an EXECUTION_* event may only be written alongside the token-carrying
+      mutation it describes, so history can never claim an execution
+      transition the job row did not make.
+
+    Raises ExecutionTokenError; JobRepository.mutate_jobs calls this
+    inside its transaction, so a refusal writes neither rows nor events.
+    """
+
+    execution_types = frozenset(EXECUTION_EVENT_TYPES.values())
+    tokens = {
+        mutation.job_id: mutation.execution
+        for mutation in mutations
+        if mutation.execution is not None
+    }
+
+    for job_id, token in tokens.items():
+        expected_type = EXECUTION_EVENT_TYPES[token.kind]
+        matching = [
+            event
+            for event in events
+            if event.job_id == job_id
+            and event.event_type is expected_type
+            and event.metadata.get(EXECUTION_ID_KEY) == token.execution_id
+        ]
+
+        if len(matching) != 1:
+            raise ExecutionTokenError(
+                f"Job '{job_id}' carries a {token.kind.value} execution token "
+                f"for execution {token.execution_id!r}, which requires exactly "
+                f"one {expected_type.value} event naming it; found {len(matching)}"
+            )
+
+    for event in events:
+        if event.event_type not in execution_types:
+            continue
+
+        token = tokens.get(event.job_id)
+
+        if (
+            token is None
+            or EXECUTION_EVENT_TYPES[token.kind] is not event.event_type
+            or event.metadata.get(EXECUTION_ID_KEY) != token.execution_id
+        ):
+            raise ExecutionTokenError(
+                f"{event.event_type.value} event {event.event_id!r} for job "
+                f"'{event.job_id}' is not backed by a matching execution "
+                "token on that job's mutation"
+            )
 
 
 # ----------------------------------------------------------------------
@@ -406,7 +728,16 @@ def _without_placement(block: Mapping[str, Any]) -> Dict[str, Any]:
     updated = copy.deepcopy(dict(block))
     metadata = dict(updated.get("metadata") or {})
 
-    for key in (COMMITTED_START_KEY, COMMITTED_END_KEY, PROPOSAL_RUN_ID_KEY):
+    # execution_id is only ever present on an in_progress block, so this
+    # changes nothing for the scheduled-job withdrawals (reject, postpone,
+    # solver refusal, optimization failure); it completes the release of
+    # a not-completed execution.
+    for key in (
+        COMMITTED_START_KEY,
+        COMMITTED_END_KEY,
+        PROPOSAL_RUN_ID_KEY,
+        EXECUTION_ID_KEY,
+    ):
         metadata.pop(key, None)
 
     updated["metadata"] = metadata
@@ -862,6 +1193,49 @@ def plan_commit(
     return plan
 
 
+def _raise_not_before(
+    block: Mapping[str, Any],
+    not_before_minute: int,
+    horizon_minutes: int,
+    *,
+    never_lower: bool,
+) -> Tuple[Dict[str, Any], int, int, int]:
+    """A replanning window: a not-before and a widened latest end.
+
+    Shared by plan_postpone and plan_execution_not_completed. Returns
+    (new_block, earliest_start_minute, original_latest_end_minute,
+    widened_latest_end_minute); the given block is not modified.
+
+    never_lower=False ASSIGNS earliest_start_minute = not_before_minute
+    (postpone: the authority chose the date). never_lower=True takes
+    max(stored earliest_start_minute, not_before_minute) (execution not
+    completed: a prior postponement's not-before is never lowered).
+
+    latest_end_minute always becomes max(current, horizon_minutes) - the
+    Slice 4 Step 3 widening, see plan_postpone's WINDOW WIDENING note.
+
+    No admissibility check lives here: plan_postpone refuses a not-before
+    outside the horizon itself, while a not-completed release is never
+    refused or clamped because of the horizon.
+    """
+
+    updated = copy.deepcopy(dict(block))
+
+    if never_lower:
+        earliest = max(int(updated.get("earliest_start_minute", 0)), int(not_before_minute))
+    else:
+        earliest = int(not_before_minute)
+
+    updated["earliest_start_minute"] = earliest
+
+    # Widen, never shrink - see plan_postpone's WINDOW WIDENING note.
+    original_latest_end = int(updated.get("latest_end_minute", 1440))
+    widened_latest_end = max(original_latest_end, int(horizon_minutes))
+    updated["latest_end_minute"] = widened_latest_end
+
+    return updated, earliest, original_latest_end, widened_latest_end
+
+
 def _require_nonblank(value: Optional[str], what: str) -> None:
     if not value or not str(value).strip():
         raise InvalidTransitionError(f"{what} is required")
@@ -1055,13 +1429,12 @@ def plan_postpone(
         withdrawn = _withdrawn(
             replace(JobMutation.unchanged(job), updated_at=at), job, reason
         )
-        postponed_block = copy.deepcopy(withdrawn.block_candidate)
-        postponed_block["earliest_start_minute"] = int(not_before_minute)
-
-        # Widen, never shrink - see the WINDOW WIDENING note above.
-        original_latest_end = int(postponed_block.get("latest_end_minute", 1440))
-        widened_latest_end = max(original_latest_end, int(horizon_minutes))
-        postponed_block["latest_end_minute"] = widened_latest_end
+        postponed_block, _, original_latest_end, widened_latest_end = _raise_not_before(
+            withdrawn.block_candidate,
+            not_before_minute,
+            horizon_minutes,
+            never_lower=False,
+        )
 
         mutation = replace(withdrawn, block_candidate=postponed_block)
 
@@ -1114,6 +1487,492 @@ def plan_completion(job_id: str, *, actor: Actor, at: str) -> Plan:
             occurred_at=at,
             before_state=_snapshot(job),
             after_state=_snapshot(mutation.as_job(job)),
+        )
+
+        return [mutation], [event]
+
+    return plan
+
+
+# ----------------------------------------------------------------------
+# Field execution (Sprint 3 Slice 5)
+# ----------------------------------------------------------------------
+
+
+def _require_identified_human(actor: Actor, job_id: str) -> None:
+    """Accountability, not RBAC: an execution transition needs a named person."""
+
+    if (
+        not isinstance(actor, Actor)
+        or actor.kind is not ActorKind.HUMAN
+        or actor.role is ActorRole.UNIDENTIFIED
+    ):
+        raise InvalidTransitionError(
+            f"Job '{job_id}' execution transitions require an identified "
+            f"human actor; got {getattr(actor, 'actor_id', actor)!r}"
+        )
+
+
+def _recording_moment(at: str):
+    """The recording time `at` (canonical event timestamp) as an aware datetime.
+
+    This is the domain "now" for the future-skew rule: an observation may
+    not claim to lie more than MAX_OBSERVATION_FUTURE_SKEW after the moment
+    it is recorded. The service derives `at` from its injectable clock.
+    """
+
+    return parse_observed_at(at, "at")
+
+
+def _observations(check: Callable[[], Any]) -> Any:
+    """Run observation/evidence validation, refusing as InvalidTransitionError."""
+
+    try:
+        return check()
+    except EvidenceValidationError as exc:
+        raise InvalidTransitionError(str(exc)) from exc
+
+
+def _execution_id_of(job: Mapping[str, Any]) -> Optional[str]:
+    block = job.get("block_candidate") or {}
+    return (block.get("metadata") or {}).get(EXECUTION_ID_KEY)
+
+
+def _open_execution_checks(
+    job: Mapping[str, Any],
+    execution_id: str,
+    execution: ExecutionRecord,
+    corridor_id: str,
+    transition: str,
+) -> str:
+    """Shared stale / identity / digest checks for an execution outcome.
+
+    Returns the digest recomputed from the current committed block.
+    Order: integrity of the stored row, status, the caller's execution is
+    still the row's current one (stale), the supplied record really is
+    that open execution, and the committed block is unchanged since start.
+    """
+
+    job_id = job["job_id"]
+
+    assert_committed_state_consistent([job])
+
+    if job["status"] != IN_PROGRESS:
+        raise InvalidTransitionError(
+            f"Job '{job_id}' cannot {transition} from status '{job['status']}'; "
+            "execution has not started"
+        )
+
+    current_execution = _execution_id_of(job)
+
+    if execution_id != current_execution:
+        raise StaleExecutionError(
+            f"Job '{job_id}' is executing {current_execution!r}, not "
+            f"{execution_id!r}; the execution being reported is not the "
+            "current one"
+        )
+
+    run_id = proposal_run_id_of(job)
+
+    if (
+        not isinstance(execution, ExecutionRecord)
+        or execution.job_id != job_id
+        or execution.execution_id != execution_id
+        or execution.status is not ExecutionStatus.STARTED
+        or execution.optimization_run_id != run_id
+        or execution.proposal_id != proposal_id_for(run_id, job_id)
+        or (execution.planned_start_minute, execution.planned_end_minute)
+        != (job["schedule_start_minute"], job["schedule_end_minute"])
+    ):
+        raise ExecutionIntegrityError(
+            f"Job '{job_id}' open execution {execution_id!r} on run {run_id!r} "
+            "does not match the execution record derived from its history",
+            job_id,
+        )
+
+    digest = committed_block_digest(
+        job, corridor_id=corridor_id, optimization_run_id=run_id
+    )
+
+    if digest != execution.committed_block_digest:
+        raise CommittedStateIntegrityError(
+            f"Job '{job_id}' committed block digest {digest} differs from the "
+            f"digest {execution.committed_block_digest} captured when execution "
+            f"{execution_id!r} started; the approved block changed during "
+            "execution and was not modified. Explicit reconciliation is required.",
+            [job_id],
+        )
+
+    return digest
+
+
+def plan_execution_start(
+    job_id: str,
+    *,
+    actor: Actor,
+    at: str,
+    execution_id: str,
+    expected_proposal_run_id: str,
+    actual_start_at: str,
+    before_work_evidence: Sequence[EvidenceItem],
+    corridor_id: str,
+    previous_executions: Sequence[ExecutionRecord] = (),
+    horizon_start: str = DEFAULT_HORIZON_START,
+) -> Plan:
+    """notified -> in_progress: field work on the approved block has started.
+
+    execution_id is minted by the caller (backend.app.jobs.execution.
+    new_execution_id), never inside the plan. previous_executions is the
+    job's execution history (build_execution_records); attempt_number is
+    1 + its length. corridor_id is part of the committed block digest.
+
+    The approved block is not touched: status, placement, track, section,
+    proposal_run_id and committed_start/end are copied unchanged; the only
+    row change is block metadata execution_id. The actual start and the
+    before-work evidence are recorded on EXECUTION_STARTED only. Starting
+    outside the planned window is recorded as a deviation, not refused.
+    """
+
+    def plan(rows):
+        job = rows[job_id]
+
+        assert_committed_state_consistent([job])
+
+        if job["status"] != NOTIFIED:
+            raise InvalidTransitionError(
+                f"Job '{job_id}' cannot start execution from status "
+                f"'{job['status']}'; only an approved ('notified') block can "
+                "be executed"
+            )
+
+        _require_identified_human(actor, job_id)
+        _require_nonblank(expected_proposal_run_id, "expected_proposal_run_id")
+
+        current_run = proposal_run_id_of(job)
+
+        if expected_proposal_run_id != current_run:
+            raise StaleProposalError(
+                f"Job '{job_id}' approved block is from run {current_run!r}, "
+                f"not the expected {expected_proposal_run_id!r}; the block "
+                "being executed is not the one that was approved"
+            )
+
+        if not is_execution_id(execution_id):
+            raise InvalidTransitionError(
+                f"execution_id {execution_id!r} is not of the form EXE-<32 hex>"
+            )
+
+        previous = tuple(previous_executions)
+
+        if any(
+            record.job_id != job_id
+            or record.is_open
+            or record.execution_id == execution_id
+            or record.optimization_run_id == current_run
+            for record in previous
+        ):
+            raise ExecutionIntegrityError(
+                f"Job '{job_id}' is 'notified' on run {current_run!r}, but its "
+                "execution history already has an open execution, an execution "
+                f"of this run, or execution {execution_id!r}",
+                job_id,
+            )
+
+        now = _recording_moment(at)
+
+        def observe():
+            started = parse_observed_at(actual_start_at, "actual_start_at")
+            require_not_in_future(started, now, "actual_start_at")
+            evidence = validate_evidence_set(
+                before_work_evidence,
+                phase=EvidencePhase.BEFORE_WORK,
+                now=now,
+                minimum=1,
+                captured_not_after=started,
+            )
+            return started, evidence
+
+        started, evidence = _observations(observe)
+
+        planned_start = job["schedule_start_minute"]
+        planned_end = job["schedule_end_minute"]
+        actual_start_minute = _observations(
+            lambda: observed_minute(started, horizon_start, ceil=False)
+        )
+
+        block = copy.deepcopy(job["block_candidate"])
+        block["metadata"] = {**(block.get("metadata") or {}), EXECUTION_ID_KEY: execution_id}
+
+        mutation = replace(
+            JobMutation.unchanged(job),
+            status=IN_PROGRESS,
+            updated_at=at,
+            block_candidate=block,
+            execution=ExecutionTransition(ExecutionTransitionKind.START, execution_id),
+        )
+
+        event = make_event(
+            job_id,
+            JobEventType.EXECUTION_STARTED,
+            actor,
+            occurred_at=at,
+            optimization_run_id=current_run,
+            before_state=_snapshot(job),
+            after_state=_snapshot(mutation.as_job(job)),
+            metadata={
+                "transition": "execution_start",
+                EXECUTION_ID_KEY: execution_id,
+                "attempt_number": len(previous) + 1,
+                "optimization_run_id": current_run,
+                "proposal_id": proposal_id_for(current_run, job_id),
+                "expected_proposal_run_id": expected_proposal_run_id,
+                "corridor_id": corridor_id,
+                "track_id": job["track_id"],
+                "section_id": (job.get("block_candidate") or {}).get("section_id"),
+                "planned_start_minute": planned_start,
+                "planned_end_minute": planned_end,
+                "committed_block_digest": committed_block_digest(
+                    job, corridor_id=corridor_id, optimization_run_id=current_run
+                ),
+                "horizon_start": horizon_start,
+                "actual_start_at": canonical_observed_at(started),
+                "actual_start_minute": actual_start_minute,
+                "before_work_evidence": record_evidence(
+                    evidence, EvidencePhase.BEFORE_WORK
+                ),
+                "deviations": {
+                    "started_before_planned_start": actual_start_minute < planned_start,
+                },
+            },
+        )
+
+        return [mutation], [event]
+
+    return plan
+
+
+def _observe_end(actual_end_at, execution: ExecutionRecord, now, horizon_start):
+    ended = parse_observed_at(actual_end_at, "actual_end_at")
+    require_not_in_future(ended, now, "actual_end_at")
+
+    if ended < execution.actual_start_moment:
+        raise EvidenceValidationError(
+            f"actual_end_at {canonical_observed_at(ended)} precedes "
+            f"actual_start_at {execution.actual_start_at}"
+        )
+
+    return ended, observed_minute(ended, horizon_start, ceil=True)
+
+
+def plan_execution_complete(
+    job_id: str,
+    *,
+    actor: Actor,
+    at: str,
+    execution_id: str,
+    actual_end_at: str,
+    after_work_evidence: Sequence[EvidenceItem],
+    execution: ExecutionRecord,
+    corridor_id: str,
+    horizon_start: str = DEFAULT_HORIZON_START,
+) -> Plan:
+    """in_progress -> completed: field work finished, with after-work evidence.
+
+    execution is the job's open ExecutionRecord (build_execution_records),
+    which supplies the start facts the row does not carry: actual start,
+    before-work references and the digest captured at start. The committed
+    block digest is recomputed from the row and must equal it.
+
+    The block stays COMMITTED, keeps its placement, run and execution_id.
+    """
+
+    def plan(rows):
+        job = rows[job_id]
+        digest = _open_execution_checks(
+            job, execution_id, execution, corridor_id, "complete execution"
+        )
+        _require_identified_human(actor, job_id)
+
+        now = _recording_moment(at)
+
+        def observe():
+            ended, minute = _observe_end(actual_end_at, execution, now, horizon_start)
+            evidence = validate_evidence_set(
+                after_work_evidence,
+                phase=EvidencePhase.AFTER_WORK,
+                now=now,
+                minimum=1,
+                captured_not_before=execution.actual_start_moment,
+                forbidden_references=[
+                    item.evidence_reference for item in execution.before_work_evidence
+                ],
+            )
+            return ended, minute, evidence
+
+        ended, actual_end_minute, evidence = _observations(observe)
+        run_id = execution.optimization_run_id
+
+        mutation = replace(
+            JobMutation.unchanged(job),
+            status=COMPLETED,
+            updated_at=at,
+            execution=ExecutionTransition(ExecutionTransitionKind.COMPLETE, execution_id),
+        )
+
+        event = make_event(
+            job_id,
+            JobEventType.EXECUTION_COMPLETED,
+            actor,
+            occurred_at=at,
+            optimization_run_id=run_id,
+            before_state=_snapshot(job),
+            after_state=_snapshot(mutation.as_job(job)),
+            metadata={
+                "transition": "execution_complete",
+                EXECUTION_ID_KEY: execution_id,
+                "optimization_run_id": run_id,
+                "proposal_id": execution.proposal_id,
+                "committed_block_digest": digest,
+                "actual_end_at": canonical_observed_at(ended),
+                "actual_end_minute": actual_end_minute,
+                "after_work_evidence": record_evidence(
+                    evidence, EvidencePhase.AFTER_WORK
+                ),
+                "deviations": {
+                    "started_before_planned_start": (
+                        execution.deviations.started_before_planned_start
+                    ),
+                    "ended_after_planned_end": (
+                        actual_end_minute > execution.planned_end_minute
+                    ),
+                },
+            },
+        )
+
+        return [mutation], [event]
+
+    return plan
+
+
+def plan_execution_not_completed(
+    job_id: str,
+    *,
+    actor: Actor,
+    at: str,
+    execution_id: str,
+    actual_end_at: str,
+    reason: str,
+    execution: ExecutionRecord,
+    corridor_id: str,
+    horizon_minutes: int,
+    failure_evidence: Sequence[EvidenceItem] = (),
+    horizon_start: str = DEFAULT_HORIZON_START,
+) -> Plan:
+    """in_progress -> reported: the work was not completed; release for replanning.
+
+    The committed block is RELEASED, never rewritten into a new proposal:
+    through _withdrawn() the job becomes 'reported' with no placement, the
+    block PLANNED / is_committed False, and committed_start/end,
+    proposal_run_id and execution_id are removed. The approved placement
+    survives only in history - BLOCK_PROPOSED, BLOCK_COMMITTED,
+    EXECUTION_STARTED, this EXECUTION_NOT_COMPLETED event and the run's
+    optimization_runs row.
+
+    REPLANNING WINDOW
+        earliest_start_minute = max(stored earliest_start_minute,
+                                    planned_end_minute, actual_end_minute)
+        so the released window is never simply offered again and a prior
+        postponement is never lowered. It is NOT clamped: at or beyond
+        horizon_minutes, the next optimization honestly refuses the job as
+        window-infeasible.
+        latest_end_minute = max(current, horizon_minutes) - the Slice 4
+        widening shared with plan_postpone (_raise_not_before).
+    """
+
+    _require_nonblank(reason, "reason")
+
+    def plan(rows):
+        job = rows[job_id]
+        digest = _open_execution_checks(
+            job, execution_id, execution, corridor_id, "report execution not completed"
+        )
+        _require_identified_human(actor, job_id)
+
+        now = _recording_moment(at)
+
+        def observe():
+            ended, minute = _observe_end(actual_end_at, execution, now, horizon_start)
+            evidence = validate_evidence_set(
+                failure_evidence,
+                phase=EvidencePhase.NOT_COMPLETED,
+                now=now,
+                minimum=0,
+            )
+            return ended, minute, evidence
+
+        ended, actual_end_minute, evidence = _observations(observe)
+
+        run_id = proposal_run_id_of(job)
+        released_start = job["schedule_start_minute"]
+        released_end = job["schedule_end_minute"]
+        previous_earliest = int(
+            (job.get("block_candidate") or {}).get("earliest_start_minute", 0)
+        )
+
+        withdrawn = _withdrawn(
+            replace(JobMutation.unchanged(job), updated_at=at), job, reason
+        )
+        block, not_before, original_latest_end, widened_latest_end = _raise_not_before(
+            withdrawn.block_candidate,
+            max(int(released_end), actual_end_minute),
+            horizon_minutes,
+            never_lower=True,
+        )
+
+        mutation = replace(
+            withdrawn,
+            block_candidate=block,
+            execution=ExecutionTransition(
+                ExecutionTransitionKind.NOT_COMPLETED, execution_id
+            ),
+        )
+
+        event = make_event(
+            job_id,
+            JobEventType.EXECUTION_NOT_COMPLETED,
+            actor,
+            occurred_at=at,
+            reason=reason,
+            optimization_run_id=run_id,
+            before_state=_snapshot(job),
+            after_state=_snapshot(mutation.as_job(job)),
+            metadata={
+                "transition": "execution_not_completed",
+                EXECUTION_ID_KEY: execution_id,
+                "optimization_run_id": run_id,
+                "proposal_id": execution.proposal_id,
+                "committed_block_digest": digest,
+                "actual_end_at": canonical_observed_at(ended),
+                "actual_end_minute": actual_end_minute,
+                "failure_evidence": record_evidence(
+                    evidence, EvidencePhase.NOT_COMPLETED
+                ),
+                "released_start_minute": released_start,
+                "released_end_minute": released_end,
+                "released_proposal_run_id": run_id,
+                "previous_earliest_start_minute": previous_earliest,
+                "not_before_minute": not_before,
+                "original_latest_end_minute": original_latest_end,
+                "widened_latest_end_minute": widened_latest_end,
+                "deviations": {
+                    "started_before_planned_start": (
+                        execution.deviations.started_before_planned_start
+                    ),
+                    "ended_after_planned_end": (
+                        actual_end_minute > execution.planned_end_minute
+                    ),
+                },
+            },
         )
 
         return [mutation], [event]
@@ -1277,6 +2136,12 @@ __all__ = [
     "CommittedJobError",
     "CommittedStateIntegrityError",
     "ConcurrentJobModificationError",
+    "EXECUTION_EVENT_TYPES",
+    "EXECUTION_ID_KEY",
+    "ExecutionTokenError",
+    "ExecutionTransition",
+    "ExecutionTransitionKind",
+    "IN_PROGRESS",
     "InvalidTransitionError",
     "JobMutation",
     "OUTCOME_ERROR",
@@ -1284,6 +2149,7 @@ __all__ = [
     "OptimizationAttempt",
     "PROPOSAL_RUN_ID_KEY",
     "Plan",
+    "StaleExecutionError",
     "StaleProposalError",
     "TERMINAL_STATUSES",
     "TerminalJobError",
@@ -1292,6 +2158,9 @@ __all__ = [
     "creation_events",
     "plan_commit",
     "plan_completion",
+    "plan_execution_complete",
+    "plan_execution_not_completed",
+    "plan_execution_start",
     "plan_optimization_failure",
     "plan_optimization_outcome",
     "plan_postpone",
@@ -1300,5 +2169,6 @@ __all__ = [
     "proposal_run_id_of",
     "protect_committed_and_terminal_state",
     "rejected_transition_event",
+    "validate_execution_events",
     "validate_mutation",
 ]

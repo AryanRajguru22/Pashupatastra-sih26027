@@ -16,12 +16,15 @@ from backend.app.identity.actor import Actor
 
 from backend.app.identity.authorization import AuthorizationDenied
 
+from backend.app.jobs.execution import ExecutionIntegrityError, ExecutionRecord
+
 from backend.app.jobs.history import StoredJobEvent
 
 from backend.app.jobs.lifecycle import (
     CommittedJobError,
     CommittedStateIntegrityError,
     ConcurrentJobModificationError,
+    StaleExecutionError,
     StaleProposalError,
 )
 
@@ -29,9 +32,14 @@ from backend.app.jobs.models import (
     ApproveProposalRequest,
     BlockProposalResponse,
     CommitBlockRequest,
+    CompleteExecutionRequest,
+    ExecutionActionResponse,
+    ExecutionNotCompletedRequest,
+    ExecutionResponse,
     JobActionResponse,
     JobCreateRequest,
     JobEventResponse,
+    JobExecutionsResponse,
     JobHistoryResponse,
     JobOptimizationResponse,
     JobResponse,
@@ -39,6 +47,7 @@ from backend.app.jobs.models import (
     PostponeProposalRequest,
     ProposalExplanationItem,
     RejectProposalRequest,
+    StartExecutionRequest,
 )
 
 from backend.app.jobs.optimization import (
@@ -80,6 +89,8 @@ _CONFLICTS = (
     CommittedJobError,
     CommittedStateIntegrityError,
     StaleProposalError,
+    StaleExecutionError,
+    ExecutionIntegrityError,
     ConcurrentJobModificationError,
 )
 
@@ -591,4 +602,226 @@ def complete_job(
             **as_public_job(job)
         ),
         message="Job completed",
+    )
+
+
+# ----------------------------------------------------------------------
+# Field execution (Sprint 3 Slice 5 Step 3)
+# ----------------------------------------------------------------------
+
+
+def _execution_response(execution: ExecutionRecord) -> ExecutionResponse:
+    return ExecutionResponse(**execution.to_dict())
+
+
+def _execution_action_response(
+    job: dict, execution: ExecutionRecord, message: str
+) -> ExecutionActionResponse:
+    return ExecutionActionResponse(
+        job=JobResponse(**as_public_job(job)),
+        execution=_execution_response(execution),
+        message=message,
+    )
+
+
+@router.post(
+    "/jobs/{job_id}/execution/start",
+    response_model=ExecutionActionResponse,
+)
+def start_execution(
+    job_id: str,
+    body: StartExecutionRequest,
+    actor: Actor = Depends(request_actor),
+) -> ExecutionActionResponse:
+    """notified -> in_progress: field work on the approved block has started.
+
+    Approval is permission to execute, not completion - see
+    JobService.start_execution. Requires 1-10 before-work evidence items
+    and the expected_proposal_run_id of the block being executed.
+    """
+
+    try:
+        job, execution = service.start_execution(
+            job_id,
+            actor=actor,
+            expected_proposal_run_id=body.expected_proposal_run_id,
+            actual_start_at=body.actual_start_at,
+            before_work_evidence=[
+                item.model_dump() for item in body.before_work_evidence
+            ],
+        )
+
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    except _CONFLICTS as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return _execution_action_response(job, execution, "Execution started")
+
+
+@router.post(
+    "/jobs/{job_id}/execution/complete",
+    response_model=ExecutionActionResponse,
+)
+def complete_execution(
+    job_id: str,
+    body: CompleteExecutionRequest,
+    actor: Actor = Depends(request_actor),
+) -> ExecutionActionResponse:
+    """in_progress -> completed: field work finished, with after-work evidence.
+
+    Terminal - see JobService.complete_execution. Requires 1-10
+    after-work evidence items; none may reuse a before-work reference of
+    the same execution.
+    """
+
+    try:
+        job, execution = service.complete_execution(
+            job_id,
+            actor=actor,
+            execution_id=body.execution_id,
+            actual_end_at=body.actual_end_at,
+            after_work_evidence=[
+                item.model_dump() for item in body.after_work_evidence
+            ],
+        )
+
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    except _CONFLICTS as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return _execution_action_response(job, execution, "Execution completed")
+
+
+@router.post(
+    "/jobs/{job_id}/execution/not-completed",
+    response_model=ExecutionActionResponse,
+)
+def report_execution_not_completed(
+    job_id: str,
+    body: ExecutionNotCompletedRequest,
+    actor: Actor = Depends(request_actor),
+) -> ExecutionActionResponse:
+    """in_progress -> reported: work not completed; released for replanning.
+
+    The committed block is released, never rewritten into a new
+    proposal - see JobService.report_execution_not_completed. Evidence is
+    optional (0-10 items); reason is mandatory.
+    """
+
+    try:
+        job, execution = service.report_execution_not_completed(
+            job_id,
+            actor=actor,
+            execution_id=body.execution_id,
+            actual_end_at=body.actual_end_at,
+            reason=body.reason,
+            failure_evidence=[item.model_dump() for item in body.evidence],
+        )
+
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    except _CONFLICTS as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return _execution_action_response(job, execution, "Execution not completed")
+
+
+@router.get(
+    "/jobs/{job_id}/execution",
+    response_model=JobExecutionsResponse,
+)
+def get_job_execution(
+    job_id: str,
+    actor: Actor = Depends(request_actor),
+) -> JobExecutionsResponse:
+    """Every execution of this job, oldest first, derived from history.
+
+    200 with an empty executions list when the job exists but has never
+    had a field execution - never a 404 - see JobService.get_execution.
+    404 only when the job itself does not exist.
+    """
+
+    try:
+        executions = service.get_execution(job_id, actor=actor)
+
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    except ExecutionIntegrityError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    return JobExecutionsResponse(
+        job_id=job_id,
+        executions=[_execution_response(item) for item in executions],
     )

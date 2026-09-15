@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date as _date
 from enum import Enum
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -22,6 +22,9 @@ class JobStatus(str, Enum):
     REPORTED = "reported"
     SCHEDULED = "scheduled"
     NOTIFIED = "notified"
+    # Sprint 3 Slice 5: field work on an approved (committed) block has
+    # started. Committed like NOTIFIED - see backend.app.jobs.lifecycle.
+    IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
 
 
@@ -405,3 +408,150 @@ class JobOptimizationResponse(BaseModel):
     scheduled: list[ScheduledJobOutcome]
     unscheduled: list[UnscheduledJobOutcome]
     infeasibility_reasons: list[str]
+
+
+# ----------------------------------------------------------------------
+# Field execution and evidence (Sprint 3 Slice 5 Step 3)
+# ----------------------------------------------------------------------
+
+
+class EvidenceInput(BaseModel):
+    """One piece of caller-supplied execution evidence.
+
+    Shape-level validation only (length, coordinate pairing). The
+    deeper observation-time rules - explicit UTC offset, not in the
+    future, ordering against actual_start_at/actual_end_at, no before-
+    reference reused as after - are enforced once, by
+    backend.app.jobs.execution.EvidenceItem, which JobService
+    constructs from this model's dict rather than reimplementing the
+    same checks here (a doubly-validated model, not a second one).
+    Field names mirror EvidenceItem's own so that conversion needs no
+    renaming layer.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    evidence_reference: str = Field(min_length=1, max_length=200)
+    evidence_kind: Literal["PHOTO", "VIDEO", "DOCUMENT", "MEASUREMENT"]
+    captured_at: str = Field(min_length=1)
+    latitude: Optional[float] = Field(default=None, ge=-90.0, le=90.0)
+    longitude: Optional[float] = Field(default=None, ge=-180.0, le=180.0)
+    note: Optional[str] = Field(default=None, max_length=500)
+
+    @field_validator("longitude")
+    @classmethod
+    def validate_coordinate_pair(cls, value: Optional[float], info):
+        latitude = info.data.get("latitude")
+
+        if (latitude is None) != (value is None):
+            raise ValueError(
+                "latitude and longitude must be given together or not at all"
+            )
+
+        return value
+
+
+class StartExecutionRequest(BaseModel):
+    """Body for POST /jobs/{job_id}/execution/start.
+
+    expected_proposal_run_id pins the start to the block the caller
+    reviewed, exactly as CommitBlockRequest/ApproveProposalRequest pin a
+    commit - see JobService.start_execution.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_proposal_run_id: str = Field(min_length=1, max_length=128)
+    actual_start_at: str = Field(min_length=1)
+    before_work_evidence: list[EvidenceInput] = Field(min_length=1, max_length=10)
+
+
+class CompleteExecutionRequest(BaseModel):
+    """Body for POST /jobs/{job_id}/execution/complete."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    execution_id: str = Field(min_length=1)
+    actual_end_at: str = Field(min_length=1)
+    after_work_evidence: list[EvidenceInput] = Field(min_length=1, max_length=10)
+
+
+class ExecutionNotCompletedRequest(BaseModel):
+    """Body for POST /jobs/{job_id}/execution/not-completed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    execution_id: str = Field(min_length=1)
+    actual_end_at: str = Field(min_length=1)
+    reason: str = Field(min_length=1, max_length=2000)
+    evidence: list[EvidenceInput] = Field(default_factory=list, max_length=10)
+
+
+class RecordedEvidenceResponse(BaseModel):
+    evidence_id: str
+    phase: str
+    evidence_reference: str
+    evidence_kind: str
+    captured_at: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    note: Optional[str] = None
+
+
+class ExecutionDeviationsResponse(BaseModel):
+    started_before_planned_start: bool
+    ended_after_planned_end: Optional[bool] = None
+
+
+class ExecutionResponse(BaseModel):
+    """One execution attempt of one approved block (Sprint 3 Slice 5).
+
+    Derived, not separately persisted - built straight from
+    backend.app.jobs.execution.ExecutionRecord.to_dict(), the job's own
+    append-only history, exactly as BlockProposalResponse is built from
+    BlockProposal.
+    """
+
+    execution_id: str
+    job_id: str
+    attempt_number: int
+    optimization_run_id: str
+    proposal_id: str
+
+    track_id: str
+    section_id: Optional[str] = None
+
+    planned_start_minute: int
+    planned_end_minute: int
+    committed_block_digest: str
+
+    status: str
+
+    started_by: ActorResponse
+    started_recorded_at: str
+    actual_start_at: str
+    actual_start_minute: int
+    before_work_evidence: list[RecordedEvidenceResponse]
+
+    ended_by: Optional[ActorResponse] = None
+    ended_recorded_at: Optional[str] = None
+    actual_end_at: Optional[str] = None
+    actual_end_minute: Optional[int] = None
+    after_work_evidence: list[RecordedEvidenceResponse] = Field(default_factory=list)
+    not_completed_reason: Optional[str] = None
+    failure_evidence: list[RecordedEvidenceResponse] = Field(default_factory=list)
+
+    deviations: ExecutionDeviationsResponse
+
+
+class ExecutionActionResponse(BaseModel):
+    job: JobResponse
+    execution: ExecutionResponse
+    message: str
+
+
+class JobExecutionsResponse(BaseModel):
+    """GET /jobs/{job_id}/execution - every execution of this job, oldest first."""
+
+    job_id: str
+    executions: list[ExecutionResponse]

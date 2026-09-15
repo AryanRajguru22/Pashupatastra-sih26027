@@ -1778,6 +1778,11 @@ def test_every_state_changing_route_is_a_reviewed_history_recording_path():
         ("POST", "/jobs/{job_id}/proposal/reject"),
         ("POST", "/jobs/{job_id}/proposal/postpone"),
         ("POST", "/jobs/{job_id}/complete"),
+        # Sprint 3 Slice 5 Step 3: field execution of an approved block.
+        # GET /jobs/{job_id}/execution is a read and is excluded above.
+        ("POST", "/jobs/{job_id}/execution/start"),
+        ("POST", "/jobs/{job_id}/execution/complete"),
+        ("POST", "/jobs/{job_id}/execution/not-completed"),
         ("POST", "/optimize"),
         ("POST", "/recover"),
     }
@@ -1837,6 +1842,35 @@ _PROPOSAL_REVIEW_BODY = {
     "selected_date": "2026-09-10",
 }
 
+# Sprint 3 Slice 5 Step 3: a syntactically valid evidence item and
+# execution bodies, so these routes' 422 body validation never masks
+# the 403/400 actor rejection these tests exist to prove. The run id
+# and execution id are bogus - these requests must never reach a point
+# where that matters.
+_EVIDENCE_ITEM = {
+    "evidence_reference": "EVIDENCE-IMPERSONATION-CHECK",
+    "evidence_kind": "PHOTO",
+    "captured_at": "2026-09-10T00:05:00+05:30",
+}
+
+_EXECUTION_START_BODY = {
+    "expected_proposal_run_id": "RUN-DOES-NOT-EXIST",
+    "actual_start_at": "2026-09-10T00:05:00+05:30",
+    "before_work_evidence": [_EVIDENCE_ITEM],
+}
+
+_EXECUTION_COMPLETE_BODY = {
+    "execution_id": f"EXE-{'0' * 32}",
+    "actual_end_at": "2026-09-10T00:10:00+05:30",
+    "after_work_evidence": [_EVIDENCE_ITEM],
+}
+
+_EXECUTION_NOT_COMPLETED_BODY = {
+    "execution_id": f"EXE-{'0' * 32}",
+    "actual_end_at": "2026-09-10T00:10:00+05:30",
+    "reason": "Impersonation check",
+}
+
 
 def _proposal_review_body(path: str) -> dict | None:
     """A syntactically valid body for whichever route `path` is.
@@ -1853,6 +1887,15 @@ def _proposal_review_body(path: str) -> dict | None:
 
     if path.endswith("/proposal/reject") or path.endswith("/proposal/postpone"):
         return dict(_PROPOSAL_REVIEW_BODY)
+
+    if path.endswith("/execution/start"):
+        return dict(_EXECUTION_START_BODY)
+
+    if path.endswith("/execution/complete"):
+        return dict(_EXECUTION_COMPLETE_BODY)
+
+    if path.endswith("/execution/not-completed"):
+        return dict(_EXECUTION_NOT_COMPLETED_BODY)
 
     return None
 
@@ -1876,6 +1919,9 @@ def test_no_state_changing_route_accepts_a_system_role(client, role):
         f"/jobs/{job_id}/proposal/reject",
         f"/jobs/{job_id}/proposal/postpone",
         f"/jobs/{job_id}/complete",
+        f"/jobs/{job_id}/execution/start",
+        f"/jobs/{job_id}/execution/complete",
+        f"/jobs/{job_id}/execution/not-completed",
     ):
         body = _REPORT_BODY if path == "/jobs" else _proposal_review_body(path)
         response = client.post(path, json=body, headers=headers)
@@ -1897,6 +1943,9 @@ def test_system_looking_id_with_a_human_role_is_rejected_on_every_route(client):
         f"/jobs/{job['job_id']}/proposal/reject",
         f"/jobs/{job['job_id']}/proposal/postpone",
         f"/jobs/{job['job_id']}/complete",
+        f"/jobs/{job['job_id']}/execution/start",
+        f"/jobs/{job['job_id']}/execution/complete",
+        f"/jobs/{job['job_id']}/execution/not-completed",
     ):
         body = _proposal_review_body(path)
         assert client.post(path, json=body, headers=headers).status_code == 400, path

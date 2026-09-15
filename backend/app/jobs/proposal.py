@@ -36,7 +36,6 @@ WHAT A PROPOSAL IS NOT
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional, Sequence
 
@@ -44,7 +43,8 @@ from contracts import BlockStatus
 
 from backend.app.audit.models import OptimizationRunRecord
 from backend.app.data.provenance import ProvenanceProfile
-from backend.app.jobs.events import JobEvent, JobEventType, canonical_json
+from backend.app.jobs.events import JobEvent, JobEventType
+from backend.app.jobs.execution import block_identity_digest, proposal_id_for
 from backend.app.jobs.history import StoredJobEvent
 from backend.app.jobs.lifecycle import COMMITTED_STATUSES, proposal_run_id_of
 
@@ -133,22 +133,24 @@ class BlockProposal:
 
         Uses the SAME canonical JSON form as JobEvent.canonical_bytes()
         (backend.app.jobs.events.canonical_json), so this codebase has
-        exactly one spelling of "canonical JSON", not two.
+        exactly one spelling of "canonical JSON", not two. The hashing
+        itself is backend.app.jobs.execution.block_identity_digest,
+        shared with the committed-block digest an execution captures
+        (Sprint 3 Slice 5), so the two can never drift apart.
         """
 
-        payload = {
-            "proposal_id": self.proposal_id,
-            "job_id": self.job_id,
-            "optimization_run_id": self.optimization_run_id,
-            "corridor_id": self.corridor_id,
-            "track_id": self.track_id,
-            "section_id": self.section_id,
-            "start_minute": self.start_minute,
-            "end_minute": self.end_minute,
-            "duration_minutes": self.duration_minutes,
-            "work_type": self.work_type,
-        }
-        return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+        return block_identity_digest(
+            proposal_id=self.proposal_id,
+            job_id=self.job_id,
+            optimization_run_id=self.optimization_run_id,
+            corridor_id=self.corridor_id,
+            track_id=self.track_id,
+            section_id=self.section_id,
+            start_minute=self.start_minute,
+            end_minute=self.end_minute,
+            duration_minutes=self.duration_minutes,
+            work_type=self.work_type,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -356,7 +358,7 @@ def build_block_proposal(
     end = int(job["schedule_end_minute"])
 
     return BlockProposal(
-        proposal_id=f"PROP-{run_id}-{job_id}",
+        proposal_id=proposal_id_for(run_id, job_id),
         job_id=job_id,
         optimization_run_id=run_id,
         corridor_id=corridor_id,

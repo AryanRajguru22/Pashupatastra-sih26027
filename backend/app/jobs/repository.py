@@ -19,6 +19,7 @@ from backend.app.jobs.lifecycle import (
     TerminalJobError,
     plan_optimization_outcome,
     protect_committed_and_terminal_state,
+    validate_execution_events,
     validate_mutation,
 )
 
@@ -250,7 +251,10 @@ class JobRepository:
           2. optionally refuse the whole call if any job is terminal;
           3. call plan(rows) -> (mutations, events);
           4. validate every mutation against the lifecycle rules;
-          5. write the mutations and append the events.
+          5. write the mutations;
+          6. check execution tokens against their events
+             (lifecycle.validate_execution_events);
+          7. append the events.
 
         Any exception - from the plan, a validation, or SQLite - rolls
         the whole transaction back: no row changes and no event is kept.
@@ -314,6 +318,12 @@ class JobRepository:
                         mutation.job_id,
                     ),
                 )
+
+            # Sprint 3 Slice 5: an execution token must be backed by its
+            # accountable event (and an execution event by its token).
+            # Still inside the transaction, so a refusal rolls back every
+            # row written above and appends no event.
+            validate_execution_events(mutations, events)
 
             append_events(conn, events)
 
