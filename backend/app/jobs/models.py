@@ -28,6 +28,36 @@ class JobStatus(str, Enum):
     COMPLETED = "completed"
 
 
+class FieldLocation(BaseModel):
+    """A location in the terms a field worker actually has (Slice 8).
+
+    Offsets are metres from `from_station_id` toward `toward_station_id`
+    along the one section joining those two stations. Converted to
+    corridor-absolute metres by backend.app.jobs.field_location through
+    the existing SectionRegistry - never stored as a second location
+    model. See JobCreateRequest.field_location for how it is used.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    from_station_id: str = Field(min_length=1, max_length=64)
+    toward_station_id: str = Field(min_length=1, max_length=64)
+    offset_start_m: float = Field(ge=0, allow_inf_nan=False)
+    offset_end_m: float = Field(gt=0, allow_inf_nan=False)
+
+    @field_validator("offset_end_m")
+    @classmethod
+    def validate_offset_range(cls, value: float, info):
+        start = info.data.get("offset_start_m")
+
+        if start is not None and value <= start:
+            raise ValueError(
+                "offset_end_m must be greater than offset_start_m"
+            )
+
+        return value
+
+
 class JobCreateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -70,6 +100,32 @@ class JobCreateRequest(BaseModel):
     # caller that names the wrong corridor fails closed rather than
     # having its job silently filed against a corridor it did not name.
     corridor_id: Optional[str] = Field(default=None, min_length=1)
+
+    # Sprint 3 Slice 8. BOTH new fields are optional, so every request
+    # valid before Slice 8 is still valid and behaves identically, and
+    # JobCreateRequest.required (which the frozen v1 contract guard
+    # compares) is unchanged.
+    #
+    # field_location: the span in human terms. distance_start/
+    # distance_end stay REQUIRED (relaxing them would change `required`,
+    # a v1 contract change), so this is a CROSS-CHECK: it is converted
+    # through SectionRegistry and must describe exactly the declared
+    # span, else the request is refused (LOCATION_INPUT_CONFLICT). It is
+    # never a second source of location truth.
+    field_location: Optional[FieldLocation] = None
+
+    # idempotency_key: makes a retried submission safe. The same key from
+    # the same actor with the same request returns the job the first
+    # submission created (no second job); the same key with a different
+    # request is refused (409 IDEMPOTENCY_KEY_CONFLICT). Scoped to the
+    # declared actor_id, so it requires actor headers. See
+    # JobService.create_job_with_outcome for the guarantee and its limits.
+    idempotency_key: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9._:\-]+$",
+    )
 
     @field_validator("distance_end")
     @classmethod

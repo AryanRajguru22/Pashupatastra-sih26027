@@ -848,4 +848,11 @@ def test_error_code_vocabulary_is_frozen():
         "TIMETABLE_COVERAGE_GAP",
         "COMMITTED_STATE_INCONSISTENT",
         "EXECUTION_HISTORY_INCONSISTENT",
+        # Slice 8 (field intake) - additive, added deliberately. No
+        # existing code was renamed or removed.
+        "ASSET_ASSOCIATION_FAILED",
+        "FIELD_LOCATION_INVALID",
+        "LOCATION_INPUT_CONFLICT",
+        "IDEMPOTENCY_KEY_CONFLICT",
+        "ASSET_REFERENCE_INVALID",
     }

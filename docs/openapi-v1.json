@@ -697,6 +697,42 @@
         "title": "ExecutionResponse",
         "type": "object"
       },
+      "FieldLocation": {
+        "additionalProperties": false,
+        "description": "A location in the terms a field worker actually has (Slice 8).\n\nOffsets are metres from `from_station_id` toward `toward_station_id`\nalong the one section joining those two stations. Converted to\ncorridor-absolute metres by backend.app.jobs.field_location through\nthe existing SectionRegistry - never stored as a second location\nmodel. See JobCreateRequest.field_location for how it is used.",
+        "properties": {
+          "from_station_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "From Station Id",
+            "type": "string"
+          },
+          "offset_end_m": {
+            "exclusiveMinimum": 0.0,
+            "title": "Offset End M",
+            "type": "number"
+          },
+          "offset_start_m": {
+            "minimum": 0.0,
+            "title": "Offset Start M",
+            "type": "number"
+          },
+          "toward_station_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Toward Station Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from_station_id",
+          "toward_station_id",
+          "offset_start_m",
+          "offset_end_m"
+        ],
+        "title": "FieldLocation",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -770,6 +806,30 @@
               }
             ],
             "title": "Evidence Reference"
+          },
+          "field_location": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FieldLocation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9._:\\-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           },
           "job_type": {
             "$ref": "#/components/schemas/JobType"
@@ -2186,6 +2246,7 @@
         ]
       },
       "post": {
+        "description": "Report a maintenance job.\n\nA retried submission (same actor, same idempotency_key, same request)\nreturns the job the first one created - 201 with the same body and an\n`Idempotent-Replayed: true` header - instead of creating a second.\nThe status is deliberately not changed for a replay: that keeps the\nfrozen v1 contract's response set exactly as it was.",
         "operationId": "create_job_v1_jobs_post",
         "parameters": [
           {

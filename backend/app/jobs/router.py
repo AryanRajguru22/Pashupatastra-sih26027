@@ -9,6 +9,7 @@ from fastapi import (
     APIRouter,
     Depends,
     Query,
+    Response,
 )
 
 from backend.app.api.deps import request_actor
@@ -19,13 +20,25 @@ from backend.app.identity.actor import Actor
 
 from backend.app.identity.authorization import AuthorizationDenied
 
+from backend.app.jobs.asset_association import (
+    AssetAssociationError,
+    AssetReferenceError,
+)
+
 from backend.app.jobs.execution import (
     EvidenceValidationError,
     ExecutionIntegrityError,
     ExecutionRecord,
 )
 
+from backend.app.jobs.field_location import (
+    FieldLocationError,
+    LocationInputConflictError,
+)
+
 from backend.app.jobs.history import StoredJobEvent
+
+from backend.app.jobs.idempotency import IdempotencyKeyConflictError
 
 from backend.app.jobs.lifecycle import (
     CommittedJobError,
@@ -140,8 +153,16 @@ _TRANSLATIONS: tuple[tuple[type, int, ErrorCode], ...] = (
         409,
         ErrorCode.CONCURRENT_MODIFICATION,
     ),
+    # A bare IdempotencyKeyError (key without actor headers) is a
+    # malformed request and falls through to the ValueError 400 below.
+    (IdempotencyKeyConflictError, 409, ErrorCode.IDEMPOTENCY_KEY_CONFLICT),
+    (AssetReferenceError, 409, ErrorCode.ASSET_REFERENCE_INVALID),
     (EvidenceValidationError, 400, ErrorCode.EVIDENCE_INVALID),
     (InvalidTransitionError, 400, ErrorCode.INVALID_TRANSITION),
+    (AssetAssociationError, 400, ErrorCode.ASSET_ASSOCIATION_FAILED),
+    # LocationInputConflictError subclasses FieldLocationError.
+    (LocationInputConflictError, 400, ErrorCode.LOCATION_INPUT_CONFLICT),
+    (FieldLocationError, 400, ErrorCode.FIELD_LOCATION_INVALID),
     (ValueError, 400, ErrorCode.INVALID_REQUEST),
 )
 
@@ -212,17 +233,29 @@ def _decode_cursor(cursor: str) -> tuple[str, str]:
 )
 def create_job(
     request: JobCreateRequest,
+    response: Response,
     actor: Actor = Depends(request_actor),
 ) -> JobResponse:
+    """Report a maintenance job.
+
+    A retried submission (same actor, same idempotency_key, same request)
+    returns the job the first one created - 201 with the same body and an
+    `Idempotent-Replayed: true` header - instead of creating a second.
+    The status is deliberately not changed for a replay: that keeps the
+    frozen v1 contract's response set exactly as it was.
+    """
 
     try:
-        job = service.create_job(request, actor=actor)
+        outcome = service.create_job_with_outcome(request, actor=actor)
 
     except _HANDLED as exc:
         raise _api_error(exc) from exc
 
+    if outcome.replayed:
+        response.headers["Idempotent-Replayed"] = "true"
+
     return JobResponse(
-        **as_public_job(job)
+        **as_public_job(outcome.job)
     )
 
 

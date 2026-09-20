@@ -43,6 +43,16 @@ class ErrorCode(str, Enum):
     INVALID_CURSOR = "INVALID_CURSOR"
     ACTOR_HEADERS_INCOMPLETE = "ACTOR_HEADERS_INCOMPLETE"
     ACTOR_INVALID = "ACTOR_INVALID"
+    # Slice 8 field intake. No asset lies close enough to the reported span
+    # to attach the job to (or none is usable); the report is refused, not
+    # attached to a distant asset.
+    ASSET_ASSOCIATION_FAILED = "ASSET_ASSOCIATION_FAILED"
+    # The field_location could not be converted: unknown/non-adjacent
+    # station, negative or out-of-section offset, ambiguous section.
+    FIELD_LOCATION_INVALID = "FIELD_LOCATION_INVALID"
+    # field_location and distance_start/distance_end describe different
+    # spans; neither is preferred.
+    LOCATION_INPUT_CONFLICT = "LOCATION_INPUT_CONFLICT"
 
     # 403
     ACTOR_SYSTEM_ROLE_FORBIDDEN = "ACTOR_SYSTEM_ROLE_FORBIDDEN"
@@ -64,6 +74,14 @@ class ErrorCode(str, Enum):
     TIMETABLE_COVERAGE_GAP = "TIMETABLE_COVERAGE_GAP"
     COMMITTED_STATE_INCONSISTENT = "COMMITTED_STATE_INCONSISTENT"
     EXECUTION_HISTORY_INCONSISTENT = "EXECUTION_HISTORY_INCONSISTENT"
+    # Slice 8. The idempotency_key was already used for a different
+    # request (or its job is gone): the key is not reused.
+    IDEMPOTENCY_KEY_CONFLICT = "IDEMPOTENCY_KEY_CONFLICT"
+    # Slice 8. A stored asset_id no longer resolves to the asset it named
+    # in the active asset set. Not reachable from a v1 route today (no
+    # route re-trusts a stored asset_id); carried so any that does maps to
+    # a stable code.
+    ASSET_REFERENCE_INVALID = "ASSET_REFERENCE_INVALID"
 
 
 class ApiError(HTTPException):

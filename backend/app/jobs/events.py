@@ -378,9 +378,15 @@ def make_event(
     before_state: Optional[JobStateSnapshot] = None,
     after_state: Optional[JobStateSnapshot] = None,
     metadata: Optional[Mapping[str, Any]] = None,
+    event_id: Optional[str] = None,
 ) -> JobEvent:
+    """Build an event. event_id is minted unless the caller supplies one -
+    the only current caller that does is idempotent intake, which derives
+    a deterministic JOB_CREATED id so the events table's UNIQUE(event_id)
+    constraint enforces one job per (actor, idempotency key)."""
+
     return JobEvent(
-        event_id=new_event_id(),
+        event_id=event_id or new_event_id(),
         job_id=job_id,
         event_type=event_type,
         occurred_at=occurred_at or event_timestamp(),

@@ -70,12 +70,12 @@ def resolve_job_resource(
     """Resolve a job's declared span to the ONE section that contains it.
 
     distance_start_m / distance_end_m are meters (JobCreateRequest's own
-    units - see JobService._nearest_asset, which already divides by
-    1000.0 to get a corridor-absolute km for asset lookup). Both
+    units - see backend.app.jobs.asset_association.select_asset, which
+    divides by 1000.0 to get a corridor-absolute km for asset lookup). Both
     endpoints are resolved independently through
     SectionRegistry.resolve_by_chainage and must land in the SAME
     section - not merely their midpoint, which is what
-    JobService._nearest_asset uses for the (unrelated) job-nearest-asset
+    asset selection uses for the (unrelated) job-nearest-asset
     lookup. Requiring both endpoints keeps this resolver from silently
     approving a job whose declared work physically straddles a section
     boundary: a job spanning two sections is a real safety concern

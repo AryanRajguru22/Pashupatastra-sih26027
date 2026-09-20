@@ -52,6 +52,7 @@ from backend.app.data.section_registry import (
     ChainageResolutionError,
     SectionRegistry,
 )
+from backend.app.jobs.asset_association import AssetAssociationPolicy
 from backend.app.jobs.models import JobCreateRequest
 from backend.app.jobs.optimization import (
     JobOptimizationService,
@@ -130,13 +131,18 @@ def two_section_corridor_and_registry(
     return corridor, registry
 
 
-def two_section_service(tmp_path: Path, track_ids=("T1",)) -> JobService:
+def two_section_service(
+    tmp_path: Path,
+    track_ids=("T1",),
+    asset_policy=None,
+) -> JobService:
     corridor, registry = two_section_corridor_and_registry(track_ids)
 
     return JobService(
         repository=JobRepository(tmp_path / "jobs.db"),
         corridor=corridor,
         registry=registry,
+        asset_policy=asset_policy,
     )
 
 
@@ -486,7 +492,16 @@ def test_job_missing_location_is_rejected_before_reaching_create_job():
 
 
 def test_job_on_multi_track_section_with_explicit_track(tmp_path: Path):
-    service = two_section_service(tmp_path, track_ids=["T1", "T2"])
+    # This hand-built corridor has only 4 assets per 200 km track, so T2's
+    # nearest asset is ~31 km from the job - beyond the Slice 8 default
+    # asset-association bound. The test is about section/track
+    # resolution, not asset association, so the bound is widened for this
+    # fixture only (assertions unchanged).
+    service = two_section_service(
+        tmp_path,
+        track_ids=["T1", "T2"],
+        asset_policy=AssetAssociationPolicy(max_distance_km=50.0),
+    )
 
     job_t1 = service.create_job(make_job_request(track_id="T1"))
     job_t2 = service.create_job(make_job_request(track_id="T2"))

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import os
+import sqlite3
 import threading
 import uuid
 from dataclasses import dataclass
@@ -55,6 +57,7 @@ from backend.app.data.models import Corridor
 from backend.app.identity.actor import (
     SCORER,
     Actor,
+    IdentityAssurance,
     unidentified_actor,
 )
 
@@ -64,7 +67,41 @@ from backend.app.identity.authorization import (
     UnenforcedPolicy,
 )
 
-from backend.app.jobs.events import JobEventType, event_timestamp
+from backend.app.jobs.asset_association import (
+    ASSET_REFERENCE_UNFINGERPRINTED,
+    AssetAssociationPolicy,
+    AssetReferenceCheck,
+    AssetReferenceError,
+    reference_from_block,
+    select_asset,
+    verify_asset_reference,
+)
+
+from backend.app.jobs.duplicate_detection import (
+    DuplicatePolicy,
+    DuplicateProbe,
+    find_duplicate_candidates,
+    parse_created_at,
+)
+
+from backend.app.jobs.events import (
+    JobEventType,
+    canonical_json,
+    event_timestamp,
+)
+
+from backend.app.jobs.idempotency import (
+    IdempotencyKeyConflictError,
+    IdempotencyKeyError,
+    idempotency_event_id,
+    request_fingerprint,
+)
+
+from backend.app.jobs.field_location import (
+    FieldLocationError,
+    assert_matches_declared,
+    convert_field_location,
+)
 
 from backend.app.jobs.execution import (
     EvidenceItem,
@@ -405,6 +442,15 @@ class PossessionInputs:
         return () if self.snapshot is None else self.snapshot.rejections
 
 
+@dataclass(frozen=True)
+class CreateJobOutcome:
+    """What create_job_with_outcome did: the job, and whether it was an
+    idempotent replay of an earlier identical submission (no new job)."""
+
+    job: dict[str, Any]
+    replayed: bool
+
+
 class JobService:
     """Maintenance job reporting, lifecycle and optimization input.
 
@@ -478,6 +524,8 @@ class JobService:
         authorization: AuthorizationPolicy | None = None,
         horizon_minutes: int = OPTIMIZATION_HORIZON_MINUTES,
         clock: Callable[[], datetime] | None = None,
+        asset_policy: AssetAssociationPolicy | None = None,
+        duplicate_policy: DuplicatePolicy | None = None,
     ):
         if horizon_minutes <= 0 or horizon_minutes % 1440 != 0:
             raise InvalidHorizonMinutesError(
@@ -488,6 +536,13 @@ class JobService:
             )
 
         self.horizon_minutes = horizon_minutes
+
+        # Sprint 3 Slice 8: the two intake policies. Explicit, injectable
+        # and documented (see backend.app.jobs.asset_association and
+        # backend.app.jobs.duplicate_detection) so no threshold is a
+        # literal buried in create_job.
+        self.asset_policy = asset_policy or AssetAssociationPolicy()
+        self.duplicate_policy = duplicate_policy or DuplicatePolicy()
 
         # Sprint 3 Slice 5: the one source of "now" for field-execution
         # observation-time rules (recording moment for EXECUTION_* events;
@@ -649,9 +704,38 @@ class JobService:
         request: JobCreateRequest,
         actor: Actor | None = None,
     ) -> dict[str, Any]:
+        """Create (or, for an idempotent replay, return) one job.
+
+        The job dict only; create_job_with_outcome also says whether the
+        job was newly created, which the HTTP layer reports in a header.
+        """
+
+        return self.create_job_with_outcome(request, actor).job
+
+    def create_job_with_outcome(
+        self,
+        request: JobCreateRequest,
+        actor: Actor | None = None,
+    ) -> CreateJobOutcome:
 
         reporter = self._resolve_actor(actor)
         self.authorization.authorize(reporter, JobAction.REPORT_JOB)
+
+        # ---------------------------------
+        # 0a. Idempotency (Slice 8) - a retry is answered, not re-created
+        # ---------------------------------
+        #
+        # See backend.app.jobs.idempotency for the mechanism, the
+        # guarantee and its limits. This early check is the common retry
+        # path; the write below can still lose a race, and that is handled
+        # at the repository call by the same UNIQUE event_id.
+        idempotency = self._idempotency_identity(request, reporter)
+
+        if idempotency is not None:
+            replay = self._idempotent_replay(*idempotency)
+
+            if replay is not None:
+                return CreateJobOutcome(job=replay, replayed=True)
 
         # ---------------------------------
         # 0. Validate corridor, when named
@@ -705,22 +789,6 @@ class JobService:
             )
 
         # ---------------------------------
-        # 3. Find nearest existing asset
-        # ---------------------------------
-
-        asset = self._nearest_asset(
-            request.track_id,
-            request.distance_start,
-            request.distance_end,
-        )
-
-        if asset is None:
-            raise ValueError(
-                f"No asset found for "
-                f"track_id '{request.track_id}'"
-            )
-
-        # ---------------------------------
         # 3.5. Resolve the canonical (track_id, section_id) resource
         # ---------------------------------
         #
@@ -757,6 +825,89 @@ class JobService:
             )
         except JobResourceResolutionError as exc:
             raise ValueError(str(exc)) from exc
+
+        # ---------------------------------
+        # 3.6. Human field location, when given (Slice 8)
+        # ---------------------------------
+        #
+        # distance_start/distance_end stay the ONLY stored location; a
+        # field location is converted through the same SectionRegistry
+        # and must describe exactly that span, else the request is
+        # refused. See backend.app.jobs.field_location.
+        location_source = "ABSOLUTE_CHAINAGE"
+        field_location_record = None
+
+        if request.field_location is not None:
+            fl = request.field_location
+
+            converted = convert_field_location(
+                self.registry,
+                fl.from_station_id,
+                fl.toward_station_id,
+                fl.offset_start_m,
+                fl.offset_end_m,
+            )
+
+            assert_matches_declared(
+                converted,
+                request.distance_start,
+                request.distance_end,
+            )
+
+            if converted.section_id != resource.section_id:
+                raise FieldLocationError(
+                    f"The field location is in section "
+                    f"{converted.section_id!r} but the declared distances "
+                    f"resolve to section {resource.section_id!r} on track "
+                    f"{request.track_id!r}."
+                )
+
+            location_source = "FIELD_LOCATION_VERIFIED"
+            field_location_record = converted.to_metadata()
+
+        # ---------------------------------
+        # 3.7. Bounded asset association (Slice 8)
+        # ---------------------------------
+        #
+        # After the location is resolved, so the association is judged
+        # against the job's resolved section. Refuses (400) rather than
+        # attach to an asset beyond the policy bound. See
+        # backend.app.jobs.asset_association.
+        association = select_asset(
+            self.corridor.assets,
+            corridor_id=self.corridor.corridor_id,
+            registry=self.registry,
+            track_id=request.track_id,
+            job_section_id=resource.section_id,
+            distance_start_m=request.distance_start,
+            distance_end_m=request.distance_end,
+            policy=self.asset_policy,
+        )
+
+        asset = association.asset
+
+        # ---------------------------------
+        # 3.8. Advisory duplicate assessment (Slice 8)
+        # ---------------------------------
+        #
+        # Never blocks, merges or alters this report - it only records
+        # which existing jobs look like the same issue.
+        created_at = event_timestamp()
+
+        duplicate_assessment = find_duplicate_candidates(
+            DuplicateProbe(
+                track_id=resource.track_id,
+                section_id=resource.section_id,
+                asset_id=asset.asset_id,
+                work_type=request.job_type.value,
+                distance_start_m=request.distance_start,
+                distance_end_m=request.distance_end,
+                created_at=parse_created_at(created_at),
+            ),
+            self.repository.list_active(),
+            self.duplicate_policy,
+            verify_asset=self._asset_problem,
+        )
 
         # ---------------------------------
         # 4. Create canonical BlockCandidate
@@ -831,6 +982,29 @@ class JobService:
 
                 "evidence_reference":
                     request.evidence_reference,
+
+                # Sprint 3 Slice 8: how the asset was chosen, how the
+                # location was given, and whether this report looks like
+                # another. Plain JSON, additive, never scoring inputs.
+                "asset_association":
+                    association.to_metadata(),
+
+                "location_source":
+                    location_source,
+
+                "field_location":
+                    field_location_record,
+
+                "duplicate_detection":
+                    duplicate_assessment.to_metadata(),
+
+                "idempotency":
+                    None
+                    if idempotency is None
+                    else {
+                        "key": request.idempotency_key,
+                        "request_fingerprint": idempotency[2],
+                    },
             },
         )
 
@@ -857,8 +1031,6 @@ class JobService:
         # ---------------------------------
         # 6. Store in DB, with its creation history
         # ---------------------------------
-
-        created_at = event_timestamp()
 
         job = {
             "job_id":
@@ -910,15 +1082,165 @@ class JobService:
                 scored_block.to_dict(),
         }
 
-        return self.repository.create(
+        events = creation_events(
             job,
-            creation_events(
-                job,
-                reporter=reporter,
-                scorer=SCORER,
-                at=created_at,
-            ),
+            reporter=reporter,
+            scorer=SCORER,
+            at=created_at,
+            created_event_id=None if idempotency is None else idempotency[0],
         )
+
+        try:
+            created = self.repository.create(job, events)
+
+        except sqlite3.IntegrityError:
+            # A concurrent submission under the same (actor, key) won the
+            # write: the UNIQUE event_id refused ours and rolled the whole
+            # transaction back, job row included. Answer with the winner.
+            if idempotency is not None:
+                replay = self._idempotent_replay(*idempotency)
+
+                if replay is not None:
+                    return CreateJobOutcome(job=replay, replayed=True)
+
+            raise
+
+        return CreateJobOutcome(job=created, replayed=False)
+
+    # -----------------------------------------
+    # Idempotent intake (Slice 8)
+    # -----------------------------------------
+
+    @staticmethod
+    def _idempotency_identity(
+        request: JobCreateRequest,
+        reporter: Actor,
+    ) -> tuple[str, str, str] | None:
+        """(event_id, key, request_fingerprint), or None without a key.
+
+        Fails closed for an unidentified caller: a key is scoped to the
+        declared actor_id, and with no identity there is nothing to
+        scope it to - guessing a shared scope would let strangers replay
+        each other's submissions.
+        """
+
+        if request.idempotency_key is None:
+            return None
+
+        if reporter.assurance is IdentityAssurance.NONE:
+            raise IdempotencyKeyError(
+                "idempotency_key requires actor headers "
+                "(X-Actor-Id / X-Actor-Role): a key is scoped to the "
+                "declaring actor, and an unidentified caller has no scope."
+            )
+
+        return (
+            idempotency_event_id(reporter.actor_id, request.idempotency_key),
+            request.idempotency_key,
+            request_fingerprint(request.model_dump(mode="json")),
+        )
+
+    def _idempotent_replay(
+        self,
+        event_id: str,
+        key: str,
+        fingerprint: str,
+    ) -> dict[str, Any] | None:
+        """The job an earlier submission under this key created, or None.
+
+        Same request -> that job. A different request -> refused. A key
+        whose job no longer exists -> refused, not re-created: the
+        history says this key was spent.
+        """
+
+        stored = self.history.get_by_event_id(event_id)
+
+        if stored is None:
+            return None
+
+        event = stored.event
+
+        recorded = (event.metadata.get("idempotency") or {}).get(
+            "request_fingerprint"
+        )
+
+        if event.event_type is not JobEventType.JOB_CREATED or recorded is None:
+            raise IdempotencyKeyConflictError(
+                f"idempotency_key {key!r} is bound to an event that is not "
+                "a recorded intake; refusing to guess."
+            )
+
+        if recorded != fingerprint:
+            raise IdempotencyKeyConflictError(
+                f"idempotency_key {key!r} was already used by this actor "
+                f"for a different request (job {event.job_id!r}). A key "
+                "identifies one request; use a new key for a new report."
+            )
+
+        job = self.repository.get(event.job_id)
+
+        if job is None:
+            raise IdempotencyKeyConflictError(
+                f"idempotency_key {key!r} was recorded for job "
+                f"{event.job_id!r}, which no longer exists; the key is "
+                "spent and is not reused to create a different job."
+            )
+
+        return job
+
+    # -----------------------------------------
+    # Asset reference integrity (Slice 8)
+    # -----------------------------------------
+
+    def verify_job_asset_reference(
+        self,
+        job: Mapping[str, Any] | str,
+    ) -> AssetReferenceCheck:
+        """Validate a stored job's asset_id against the ACTIVE asset set.
+
+        Accepts a job dict (repository shape) or a job_id. Raises
+        AssetReferenceError - never substitutes a different asset - when
+        the id does not resolve, is ambiguous, was recorded against
+        another corridor, or no longer describes the asset it named.
+
+        A job created before Slice 8 has no recorded fingerprint: it can
+        only be checked for existence and comes back as
+        RESOLVED_UNFINGERPRINTED, never as VERIFIED.
+
+        This checks the active in-memory asset set. It does not, and
+        cannot, make asset identity durable: see
+        backend.app.jobs.asset_association.
+        """
+
+        if isinstance(job, str):
+            found = self.repository.get(job)
+
+            if found is None:
+                raise KeyError(f"Job '{job}' not found")
+
+            job = found
+
+        asset_id, corridor_id, fingerprint = reference_from_block(
+            job.get("block_candidate") or {}
+        )
+
+        return verify_asset_reference(
+            self.corridor.corridor_id,
+            self.corridor.assets,
+            asset_id,
+            recorded_corridor_id=corridor_id,
+            recorded_fingerprint=fingerprint,
+        )
+
+    def _asset_problem(self, job: Mapping[str, Any]) -> str | None:
+        """None when the job's asset reference is trustworthy, else why not."""
+
+        try:
+            self.verify_job_asset_reference(job)
+        except AssetReferenceError as exc:
+            return f"asset reference unverified: {exc}"
+
+        return None
 
     # -----------------------------------------
     # GET /jobs support
@@ -1959,41 +2281,6 @@ class JobService:
                 committed.append(block)
 
         return candidates, committed, statuses
-
-    # -----------------------------------------
-    # Asset selection
-    # -----------------------------------------
-
-    def _nearest_asset(
-        self,
-        track_id: str,
-        distance_start: float,
-        distance_end: float,
-    ):
-
-        midpoint_km = (
-            (distance_start + distance_end)
-            / 2.0
-            / 1000.0
-        )
-
-        candidates = [
-            asset
-            for asset in self.corridor.assets
-            if asset.track_id == track_id
-        ]
-
-        if not candidates:
-            return None
-
-        return min(
-            candidates,
-            key=lambda asset:
-                abs(
-                    asset.km_location
-                    - midpoint_km
-                ),
-        )
 
 
 # The lifecycle events that put a job back to (or leave it at) 'reported'

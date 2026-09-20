@@ -2445,8 +2445,13 @@ def creation_events(
     reporter: Actor,
     scorer: Actor,
     at: str,
+    created_event_id: Optional[str] = None,
 ) -> List[JobEvent]:
     """JOB_CREATED by the reporter, then JOB_SCORED by the system.
+
+    created_event_id, when given, is the JOB_CREATED event's id (see
+    make_event) - used by idempotent intake so the event_id UNIQUE
+    constraint itself refuses a second creation under the same key.
 
     Scoring runs synchronously inside report intake, but it is an
     automated decision, so it is recorded under the scorer's SYSTEM
@@ -2457,6 +2462,22 @@ def creation_events(
     metadata = block.get("metadata") or {}
     state = _snapshot(job)
 
+    # Sprint 3 Slice 8: additive creation-time facts. Each is a fact ABOUT
+    # creation, computed once and immutable in the append-only history,
+    # so none needs an event type of its own. Absent for a job built
+    # without them (legacy callers), never defaulted to a guess.
+    slice8 = {
+        key: metadata[key]
+        for key in (
+            "asset_association",
+            "location_source",
+            "field_location",
+            "duplicate_detection",
+            "idempotency",
+        )
+        if metadata.get(key) is not None
+    }
+
     created = make_event(
         job["job_id"],
         JobEventType.JOB_CREATED,
@@ -2464,7 +2485,9 @@ def creation_events(
         occurred_at=at,
         before_state=None,
         after_state=state,
+        event_id=created_event_id,
         metadata={
+            **slice8,
             "track_id": job["track_id"],
             "section_id": block.get("section_id"),
             "work_type": job["work_type"],

@@ -169,13 +169,20 @@ class JobHistoryRepository:
 
         return self._select("job_id", job_id)
 
+    def get_by_event_id(self, event_id: str) -> "StoredJobEvent | None":
+        """One event by its (unique) event_id, or None."""
+
+        stored = self._select("event_id", event_id)
+
+        return stored[0] if stored else None
+
     def list_for_run(self, optimization_run_id: str) -> list[StoredJobEvent]:
         """Every job event that references one optimization run."""
 
         return self._select("optimization_run_id", optimization_run_id)
 
     def _select(self, column: str, value: str) -> list[StoredJobEvent]:
-        # column is one of two literals above, never caller input.
+        # column is one of the literals above, never caller input.
         with closing(self._connect()) as conn, conn:
             rows = conn.execute(
                 f"SELECT * FROM {JOB_EVENTS_TABLE} "
