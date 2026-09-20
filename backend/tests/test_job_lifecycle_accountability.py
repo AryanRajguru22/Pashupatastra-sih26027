@@ -1820,6 +1820,11 @@ def test_every_state_changing_route_is_a_reviewed_history_recording_path():
         ("POST", "/jobs/{job_id}/proposal/approve"),
         ("POST", "/jobs/{job_id}/proposal/reject"),
         ("POST", "/jobs/{job_id}/proposal/postpone"),
+        # Sprint 3 Slice 6: authority release of an APPROVED (committed)
+        # block whose execution cannot begin. notified -> reported, with
+        # its own JobAction (RELEASE_COMMITTED_BLOCK) and its own event
+        # (BLOCK_RELEASED).
+        ("POST", "/jobs/{job_id}/proposal/release"),
         # Sprint 3 Slice 5: field execution of an approved block, the only
         # completion mechanism (Step 4 retired POST /jobs/{job_id}/complete).
         # GET /jobs/{job_id}/execution is a read and is excluded above.
@@ -1948,6 +1953,14 @@ def _proposal_review_body(path: str) -> dict | None:
     if path.endswith("/proposal/reject") or path.endswith("/proposal/postpone"):
         return dict(_PROPOSAL_REVIEW_BODY)
 
+    if path.endswith("/proposal/release"):
+        return {
+            "expected_proposal_run_id": _PROPOSAL_REVIEW_BODY[
+                "expected_proposal_run_id"
+            ],
+            "reason": _PROPOSAL_REVIEW_BODY["reason"],
+        }
+
     if path.endswith("/execution/start"):
         return dict(_EXECUTION_START_BODY)
 
@@ -1978,6 +1991,7 @@ def test_no_state_changing_route_accepts_a_system_role(client, role):
         f"/jobs/{job_id}/proposal/approve",
         f"/jobs/{job_id}/proposal/reject",
         f"/jobs/{job_id}/proposal/postpone",
+        f"/jobs/{job_id}/proposal/release",
         f"/jobs/{job_id}/execution/start",
         f"/jobs/{job_id}/execution/complete",
         f"/jobs/{job_id}/execution/not-completed",
@@ -2001,6 +2015,7 @@ def test_system_looking_id_with_a_human_role_is_rejected_on_every_route(client):
         f"/jobs/{job['job_id']}/proposal/approve",
         f"/jobs/{job['job_id']}/proposal/reject",
         f"/jobs/{job['job_id']}/proposal/postpone",
+        f"/jobs/{job['job_id']}/proposal/release",
         f"/jobs/{job['job_id']}/execution/start",
         f"/jobs/{job['job_id']}/execution/complete",
         f"/jobs/{job['job_id']}/execution/not-completed",

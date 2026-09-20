@@ -61,6 +61,14 @@ class JobAction(str, Enum):
     REPORT_EXECUTION_NOT_COMPLETED = "REPORT_EXECUTION_NOT_COMPLETED"
     READ_JOB_EXECUTION = "READ_JOB_EXECUTION"
 
+    # Sprint 3 Slice 6: authority release of an already approved
+    # (committed) block whose execution cannot begin. Deliberately its
+    # OWN action rather than a reuse of REJECT_PROPOSAL: rejection
+    # refuses an uncommitted proposal, while this withdraws a commitment
+    # the authority has already made - a strictly larger decision, and
+    # one a future policy must be able to grant separately.
+    RELEASE_COMMITTED_BLOCK = "RELEASE_COMMITTED_BLOCK"
+
 
 class AuthorizationDenied(Exception):
     """A policy refused an action. Raised before any state is touched.

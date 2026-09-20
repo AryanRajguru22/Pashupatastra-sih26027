@@ -33,6 +33,25 @@ EXECUTION TOKENS (Sprint 3 Slice 5)
     they record and the execution history derived from their events live
     in backend.app.jobs.execution.
 
+AUTHORITY RELEASE (Sprint 3 Slice 6)
+    notified -> reported closes the one remaining lifecycle hole: an
+    already approved (committed) block whose execution cannot begin -
+    possession not granted, crew or safety restriction, authority
+    cancellation before START. It is gated exactly as an execution
+    transition is, by its own token (AuthorityRelease) carried on the
+    JobMutation and cross-checked against exactly one BLOCK_RELEASED
+    event (validate_release_events), so the history-less primitives
+    structurally cannot perform it either. plan_release is the only plan
+    that sets it.
+
+    Release, reject, postpone and not-completed are four DIFFERENT
+    operations and are never collapsed: reject and postpone act on a
+    'scheduled', uncommitted proposal; release withdraws a commitment
+    before work starts; EXECUTION_NOT_COMPLETED reports work that
+    started and then failed. No new JobStatus exists for any of them -
+    all four return the job to 'reported', and their events and reasons
+    are what tell them apart.
+
 THE TWO STEP 16 DEFECTS THIS FIXES
     Stale proposal (P0). A scheduled job that a later optimization
     attempt did not (re)place used to keep status 'scheduled' and its old
@@ -130,17 +149,19 @@ COMMITTED_STATUSES = (NOTIFIED, IN_PROGRESS)
 ALLOWED_TRANSITIONS: Dict[str, frozenset] = {
     REPORTED: frozenset({REPORTED, SCHEDULED}),
     SCHEDULED: frozenset({SCHEDULED, REPORTED, NOTIFIED}),
-    NOTIFIED: frozenset({NOTIFIED, IN_PROGRESS}),
+    NOTIFIED: frozenset({NOTIFIED, IN_PROGRESS, REPORTED}),
     IN_PROGRESS: frozenset({IN_PROGRESS, COMPLETED, REPORTED}),
     COMPLETED: frozenset(),
 }
 
 # Target statuses a COMMITTED job may move to, as far as the protected
-# state guard is concerned. Every entry except in_progress -> reported
-# keeps the commitment (block COMMITTED, exact placement); that one is
-# the execution-token-gated release.
+# state guard is concerned. Every entry except the two -> reported moves
+# keeps the commitment (block COMMITTED, exact placement). Both releases
+# are token-gated and fully withdraw the commitment:
+#   in_progress -> reported  ExecutionTransition(NOT_COMPLETED)
+#   notified    -> reported  AuthorityRelease (Sprint 3 Slice 6)
 _COMMITTED_TARGETS: Dict[str, Tuple[str, ...]] = {
-    NOTIFIED: (NOTIFIED, IN_PROGRESS),
+    NOTIFIED: (NOTIFIED, IN_PROGRESS, REPORTED),
     IN_PROGRESS: (IN_PROGRESS, COMPLETED, REPORTED),
 }
 
@@ -242,6 +263,45 @@ class ExecutionTransition:
             raise ValueError("ExecutionTransition requires a non-blank execution_id")
 
 
+class ReleaseTokenError(CommittedJobError):
+    """An authority release lacks, misuses or mismatches its token.
+
+    A CommittedJobError subclass for exactly the reason ExecutionTokenError
+    is one: every existing refusal path (409 over HTTP, TRANSITION_REJECTED
+    in JobService._transition) already treats "would weaken committed work"
+    as a refusal, and an ungated release is precisely that.
+    """
+
+
+@dataclass(frozen=True)
+class AuthorityRelease:
+    """Permission, carried on a JobMutation, for the Slice 6 release.
+
+    notified -> reported: an already approved (committed) block whose
+    execution cannot begin is released back for replanning.
+
+    proposal_run_id is the run whose committed placement is being
+    released. It is the release's identity in the same way execution_id
+    is an ExecutionTransition's: the guard checks it against the stored
+    block's proposal_run_id, and validate_release_events checks it against
+    the BLOCK_RELEASED event, so neither a forged token nor a forged event
+    can stand alone.
+    """
+
+    proposal_run_id: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.proposal_run_id, str) or not self.proposal_run_id.strip():
+            raise ValueError("AuthorityRelease requires a non-blank proposal_run_id")
+
+
+# The one event type that must accompany an AuthorityRelease token.
+RELEASE_EVENT_TYPE = JobEventType.BLOCK_RELEASED
+
+# The BLOCK_RELEASED metadata key naming the released run, cross-checked
+# against the token by validate_release_events.
+RELEASED_RUN_ID_KEY = "released_proposal_run_id"
+
 # The one event type that must accompany each token kind.
 EXECUTION_EVENT_TYPES: Dict[ExecutionTransitionKind, JobEventType] = {
     ExecutionTransitionKind.START: JobEventType.EXECUTION_STARTED,
@@ -271,6 +331,12 @@ class JobMutation:
     # execution-gated transition. Only execution plans set it; every
     # other construction (including unchanged()) leaves it None.
     execution: Optional[ExecutionTransition] = None
+
+    # Sprint 3 Slice 6. Not a column either: the permission for the
+    # authority release of a committed, not-yet-executed block. Only
+    # plan_release sets it. A mutation may never carry both tokens -
+    # _gate_execution_transition refuses that outright.
+    release: Optional[AuthorityRelease] = None
 
     @classmethod
     def unchanged(cls, job: Mapping[str, Any]) -> "JobMutation":
@@ -407,6 +473,7 @@ def protect_committed_and_terminal_state(
     new_schedule: Tuple[Optional[int], Optional[int]],
     *,
     execution: Optional[ExecutionTransition] = None,
+    release: Optional[AuthorityRelease] = None,
 ) -> None:
     """Invariants EVERY write path must respect, including low-level ones.
 
@@ -422,15 +489,17 @@ def protect_committed_and_terminal_state(
     4. Execution gate (Sprint 3 Slice 5): entering in_progress (only from
        notified), entering completed (only from in_progress) and releasing
        in_progress -> reported each require the matching
-       ExecutionTransition token; a token on any other move is misuse.
+       ExecutionTransition token; releasing notified -> reported requires
+       an AuthorityRelease naming the stored proposal run (Sprint 3 Slice
+       6); a token on any other move, or both tokens at once, is misuse.
        The history-less repository primitives never pass a token, so they
        can do none of these.
     5. A non-committed job has nothing further to protect.
     6. A committed job may only move to the targets in _COMMITTED_TARGETS.
-       Every move except the token-gated release keeps a COMMITTED,
+       Every move except the two token-gated releases keeps a COMMITTED,
        is_committed block, its exact placement, its placement metadata and
-       its proposal run (and, once started, its execution). The release
-       must fully un-commit the block.
+       its proposal run (and, once started, its execution). A release must
+       fully un-commit the block.
     """
 
     job_id = current["job_id"]
@@ -455,8 +524,8 @@ def protect_committed_and_terminal_state(
             f"committed state: {', '.join(resulting)}"
         )
 
-    # 4. Execution gate.
-    _gate_execution_transition(current, new_status, new_block, execution)
+    # 4. Execution / release gate.
+    _gate_execution_transition(current, new_status, new_block, execution, release)
 
     # 5. Non-committed current state.
     if status not in COMMITTED_STATUSES:
@@ -472,9 +541,11 @@ def protect_committed_and_terminal_state(
     current_metadata = (current.get("block_candidate") or {}).get("metadata") or {}
     new_metadata = new_block.get("metadata") or {}
 
-    if status == IN_PROGRESS and new_status == REPORTED:
-        # The execution-token-gated release (token verified in step 4).
-        # The commitment is withdrawn completely, exactly as _withdrawn()
+    if new_status == REPORTED:
+        # A token-gated release (the token itself was verified in step 4):
+        # in_progress -> reported on a NOT_COMPLETED execution token, or
+        # notified -> reported on an AuthorityRelease. Either way the
+        # commitment is withdrawn completely, exactly as _withdrawn()
         # withdraws an uncommitted proposal.
         leftovers = [
             key
@@ -537,16 +608,74 @@ def protect_committed_and_terminal_state(
             )
 
 
+def _gate_release_transition(
+    current: Mapping[str, Any],
+    new_status: str,
+    release: Optional[AuthorityRelease],
+) -> None:
+    """The Slice 6 half of step 4: notified -> reported needs an AuthorityRelease.
+
+    Symmetric with the execution gate, and for the same reason: the
+    permission lives on the JobMutation, never on a status pair, so the
+    history-less repository primitives (update_status, update_schedule),
+    which build no JobMutation and therefore pass no token, structurally
+    cannot release an approved block. The token must also NAME the stored
+    proposal run, so a hand-built plan cannot release a block while
+    claiming some other run in the BLOCK_RELEASED event it also forges.
+    """
+
+    job_id = current["job_id"]
+    status = current["status"]
+    is_release = status == NOTIFIED and new_status == REPORTED
+
+    if not is_release:
+        if release is not None:
+            raise ReleaseTokenError(
+                f"Job '{job_id}' move '{status}' -> '{new_status}' is not an "
+                "authority release, but carries a release token"
+            )
+        return
+
+    if release is None:
+        raise ReleaseTokenError(
+            f"Job '{job_id}' move 'notified' -> 'reported' releases an "
+            "approved block and requires an authority release token; none "
+            "was supplied"
+        )
+
+    current_run = proposal_run_id_of(current)
+
+    if release.proposal_run_id != current_run:
+        raise ReleaseTokenError(
+            f"Job '{job_id}' release token names run "
+            f"{release.proposal_run_id!r}, but the approved block is from "
+            f"run {current_run!r}"
+        )
+
+
 def _gate_execution_transition(
     current: Mapping[str, Any],
     new_status: str,
     new_block: Mapping[str, Any],
     execution: Optional[ExecutionTransition],
+    release: Optional[AuthorityRelease] = None,
 ) -> None:
     """Step 4 of protect_committed_and_terminal_state. See its docstring."""
 
     job_id = current["job_id"]
     status = current["status"]
+
+    if execution is not None and release is not None:
+        raise ReleaseTokenError(
+            f"Job '{job_id}' mutation carries both a "
+            f"{execution.kind.value} execution token and an authority "
+            "release token; a move is one or the other, never both"
+        )
+
+    # The Slice 6 release is gated first and separately: it is the only
+    # move an AuthorityRelease may permit, and an AuthorityRelease is the
+    # only thing that permits it.
+    _gate_release_transition(current, new_status, release)
 
     if new_status == IN_PROGRESS and status != IN_PROGRESS:
         required = ExecutionTransitionKind.START
@@ -607,6 +736,39 @@ def _gate_execution_transition(
         )
 
 
+def assert_placement_invariants(
+    job_id: str,
+    status: str,
+    start: Optional[int],
+    end: Optional[int],
+) -> None:
+    """A status and its placement must agree, on EVERY write path.
+
+    'reported' means "no current placement" and 'scheduled'/'notified'/
+    'in_progress' each mean "this exact window", so a row claiming one
+    while carrying the other is a lifecycle invariant violation whichever
+    path produced it. Extracted from validate_mutation (unchanged in
+    order, wording and error type) so JobRepository.update_status - the
+    history-less primitive, which builds no JobMutation and so never
+    reaches validate_mutation - is held to the same invariant instead of
+    being able to strand a live window on a 'reported' job.
+    """
+
+    if status == REPORTED and (start is not None or end is not None):
+        raise InvalidTransitionError(
+            f"Job '{job_id}' would be 'reported' while still "
+            "carrying a proposed window"
+        )
+
+    if status in (SCHEDULED,) + COMMITTED_STATUSES and (
+        start is None or end is None or end <= start
+    ):
+        raise InvalidTransitionError(
+            f"Job '{job_id}' would be '{status}' "
+            "without a valid placement"
+        )
+
+
 def validate_mutation(current: Mapping[str, Any], mutation: JobMutation) -> None:
     """Full service-path validation: protected state plus the transition graph."""
 
@@ -616,6 +778,7 @@ def validate_mutation(current: Mapping[str, Any], mutation: JobMutation) -> None
         mutation.block_candidate,
         (mutation.schedule_start_minute, mutation.schedule_end_minute),
         execution=mutation.execution,
+        release=mutation.release,
     )
 
     allowed = ALLOWED_TRANSITIONS.get(current["status"])
@@ -626,22 +789,12 @@ def validate_mutation(current: Mapping[str, Any], mutation: JobMutation) -> None
             f"'{current['status']}' to '{mutation.status}'"
         )
 
-    start = mutation.schedule_start_minute
-    end = mutation.schedule_end_minute
-
-    if mutation.status == REPORTED and (start is not None or end is not None):
-        raise InvalidTransitionError(
-            f"Job '{current['job_id']}' would be 'reported' while still "
-            "carrying a proposed window"
-        )
-
-    if mutation.status in (SCHEDULED,) + COMMITTED_STATUSES and (
-        start is None or end is None or end <= start
-    ):
-        raise InvalidTransitionError(
-            f"Job '{current['job_id']}' would be '{mutation.status}' "
-            "without a valid placement"
-        )
+    assert_placement_invariants(
+        current["job_id"],
+        mutation.status,
+        mutation.schedule_start_minute,
+        mutation.schedule_end_minute,
+    )
 
 
 def validate_execution_events(
@@ -659,6 +812,12 @@ def validate_execution_events(
     - an EXECUTION_* event may only be written alongside the token-carrying
       mutation it describes, so history can never claim an execution
       transition the job row did not make;
+    - an EXECUTION_COMPLETED event must carry non-empty after-work
+      evidence. plan_execution_complete already validates minimum=1
+      before it builds the event, so no production path can reach this;
+      it is here for the same reason as every other check in this
+      function - a buggy or hand-built planner must not be able to record
+      a completion with no evidence behind it (Slice 5 audit F1);
     - JOB_COMPLETED, the retired legacy completion event, is never written
       (it stays readable in stored history only).
 
@@ -713,6 +872,75 @@ def validate_execution_events(
                 f"{event.event_type.value} event {event.event_id!r} for job "
                 f"'{event.job_id}' is not backed by a matching execution "
                 "token on that job's mutation"
+            )
+
+        if event.event_type is JobEventType.EXECUTION_COMPLETED and not (
+            event.metadata.get("after_work_evidence") or []
+        ):
+            raise ExecutionTokenError(
+                f"EXECUTION_COMPLETED event {event.event_id!r} for job "
+                f"'{event.job_id}' records no after-work evidence; work is "
+                "never completed without it"
+            )
+
+
+def validate_release_events(
+    mutations: Sequence[JobMutation],
+    events: Sequence[JobEvent],
+) -> None:
+    """Every AuthorityRelease is backed by exactly one BLOCK_RELEASED event, and vice versa.
+
+    Pure, and the exact counterpart of validate_execution_events for the
+    Slice 6 release (see that function's docstring for the reasoning):
+
+    - a mutation carrying an AuthorityRelease must be accompanied, in the
+      SAME plan, by exactly one BLOCK_RELEASED event for that job whose
+      metadata RELEASED_RUN_ID_KEY is the token's proposal_run_id;
+    - a BLOCK_RELEASED event may only be written alongside the
+      token-carrying mutation it describes, so history can never claim a
+      release the job row did not make - nor omit one it did.
+
+    Raises ReleaseTokenError; JobRepository.mutate_jobs calls this inside
+    its transaction, so a refusal writes neither rows nor events.
+    """
+
+    tokens = {
+        mutation.job_id: mutation.release
+        for mutation in mutations
+        if mutation.release is not None
+    }
+
+    for job_id, token in tokens.items():
+        matching = [
+            event
+            for event in events
+            if event.job_id == job_id
+            and event.event_type is RELEASE_EVENT_TYPE
+            and event.metadata.get(RELEASED_RUN_ID_KEY) == token.proposal_run_id
+        ]
+
+        if len(matching) != 1:
+            raise ReleaseTokenError(
+                f"Job '{job_id}' carries an authority release token for run "
+                f"{token.proposal_run_id!r}, which requires exactly one "
+                f"{RELEASE_EVENT_TYPE.value} event naming it; found "
+                f"{len(matching)}"
+            )
+
+    for event in events:
+        if event.event_type is not RELEASE_EVENT_TYPE:
+            continue
+
+        token = tokens.get(event.job_id)
+
+        if (
+            token is None
+            or event.metadata.get(RELEASED_RUN_ID_KEY) != token.proposal_run_id
+        ):
+            raise ReleaseTokenError(
+                f"{RELEASE_EVENT_TYPE.value} event {event.event_id!r} for job "
+                f"'{event.job_id}' is not backed by a matching authority "
+                "release token on that job's mutation"
             )
 
 
@@ -1486,6 +1714,157 @@ def plan_postpone(
 
 
 # ----------------------------------------------------------------------
+# Authority release of a committed block (Sprint 3 Slice 6)
+# ----------------------------------------------------------------------
+
+
+def plan_release(
+    job_id: str,
+    *,
+    actor: Actor,
+    at: str,
+    reason: str,
+    expected_proposal_run_id: str,
+    horizon_minutes: int,
+) -> Plan:
+    """notified -> reported: release an APPROVED block whose execution cannot begin.
+
+    WHICH HOLE THIS CLOSES
+        Approval commits a block. Until Slice 6 the only way out of
+        'notified' was START, into execution: reject and postpone act on
+        a 'scheduled', UNCOMMITTED proposal, and EXECUTION_NOT_COMPLETED
+        requires an execution that actually started. A committed block
+        whose possession was never granted, whose crew or safety
+        clearance fell through, or which the authority cancelled before
+        START, had no valid path back. This is that path, and the ONLY
+        one: there is deliberately no possession-denied, crew-unavailable
+        or cancelled status - the mandatory reason says which it was.
+
+    THE FOUR ARE NOT INTERCHANGEABLE
+        reject         the proposal was refused before commitment
+        postpone       the proposal was not accepted for THIS placement
+        release        the block was committed, but cannot proceed (here)
+        not-completed  execution started and then failed
+
+    WHAT IT DOES
+        Through _withdrawn() - the same "clear placement, return to
+        reported" mutation a solver refusal, a rejection, a postponement
+        and a not-completed release all apply - the job becomes
+        'reported' with no placement, its block PLANNED / is_committed
+        False, and committed_start/end, proposal_run_id and (defensively;
+        a notified job never carries one) execution_id removed. reason
+        becomes last_refusal_reason, exactly as for a rejection.
+
+        The released commitment survives in history only: BLOCK_PROPOSED,
+        BLOCK_COMMITTED, this BLOCK_RELEASED event and the run's
+        optimization_runs row are untouched. Nothing here fabricates a
+        replacement proposal or triggers an optimization; the job simply
+        becomes eligible for the next one, which mints its own run.
+
+    REPLANNING WINDOW
+        earliest_start_minute = max(stored earliest_start_minute,
+                                    released_end_minute)
+        via the shared _raise_not_before(), so the window whose
+        possession has just collapsed is never simply offered back and a
+        prior postponement's not-before is never lowered. As for a
+        not-completed release it is NOT clamped: at or beyond
+        horizon_minutes the next optimization honestly refuses the job as
+        window-infeasible rather than inventing availability.
+        latest_end_minute = max(current, horizon_minutes) - the Slice 4
+        widening, shared with plan_postpone.
+
+    expected_proposal_run_id and reason are both mandatory, for the same
+    reason they are on plan_reject: an authority decision must name the
+    exact commitment it releases, and say why.
+    """
+
+    _require_nonblank(expected_proposal_run_id, "expected_proposal_run_id")
+    _require_nonblank(reason, "reason")
+
+    def plan(rows):
+        job = rows[job_id]
+
+        assert_committed_state_consistent([job])
+
+        status = job["status"]
+
+        # 'scheduled' (reject or postpone instead), 'reported' (nothing
+        # to release), 'in_progress' (report not-completed instead) and
+        # 'completed' (terminal) are all refused here - by code, not by
+        # documentation.
+        if status != NOTIFIED:
+            raise InvalidTransitionError(
+                f"Job '{job_id}' cannot release a committed block from "
+                f"status '{status}'; only an approved ('notified') block "
+                "that has not started execution can be released"
+            )
+
+        _require_identified_human(actor, job_id)
+
+        current_run = proposal_run_id_of(job)
+
+        if expected_proposal_run_id != current_run:
+            raise StaleProposalError(
+                f"Job '{job_id}' approved block is from run {current_run!r}, "
+                f"not the expected {expected_proposal_run_id!r}; the block "
+                "being released is not the one that was approved"
+            )
+
+        before = _snapshot(job)
+        released_start = job["schedule_start_minute"]
+        released_end = job["schedule_end_minute"]
+        previous_earliest = int(
+            (job.get("block_candidate") or {}).get("earliest_start_minute", 0)
+        )
+
+        withdrawn = _withdrawn(
+            replace(JobMutation.unchanged(job), updated_at=at), job, reason
+        )
+        block, not_before, original_latest_end, widened_latest_end = _raise_not_before(
+            withdrawn.block_candidate,
+            int(released_end),
+            horizon_minutes,
+            never_lower=True,
+        )
+
+        mutation = replace(
+            withdrawn,
+            block_candidate=block,
+            release=AuthorityRelease(current_run),
+        )
+
+        event = make_event(
+            job_id,
+            JobEventType.BLOCK_RELEASED,
+            actor,
+            occurred_at=at,
+            reason=reason,
+            optimization_run_id=current_run,
+            before_state=before,
+            after_state=_snapshot(mutation.as_job(job)),
+            metadata={
+                "transition": "release",
+                "optimization_run_id": current_run,
+                "proposal_id": proposal_id_for(current_run, job_id),
+                "expected_proposal_run_id": expected_proposal_run_id,
+                RELEASED_RUN_ID_KEY: current_run,
+                "released_start_minute": released_start,
+                "released_end_minute": released_end,
+                "track_id": job["track_id"],
+                "section_id": (job.get("block_candidate") or {}).get("section_id"),
+                "previous_earliest_start_minute": previous_earliest,
+                "not_before_minute": not_before,
+                "original_latest_end_minute": original_latest_end,
+                "widened_latest_end_minute": widened_latest_end,
+            },
+        )
+
+        return [mutation], [event]
+
+    return plan
+
+
+# ----------------------------------------------------------------------
 # Field execution (Sprint 3 Slice 5)
 # ----------------------------------------------------------------------
 
@@ -2124,6 +2503,10 @@ def creation_events(
 __all__ = [
     "ALLOWED_TRANSITIONS",
     "COMMITTED_STATUSES",
+    "RELEASED_RUN_ID_KEY",
+    "RELEASE_EVENT_TYPE",
+    "AuthorityRelease",
+    "ReleaseTokenError",
     "CommittedJobError",
     "CommittedStateIntegrityError",
     "ConcurrentJobModificationError",
@@ -2145,6 +2528,7 @@ __all__ = [
     "TERMINAL_STATUSES",
     "TerminalJobError",
     "assert_committed_state_consistent",
+    "assert_placement_invariants",
     "committed_state_problems",
     "creation_events",
     "plan_commit",
@@ -2155,10 +2539,12 @@ __all__ = [
     "plan_optimization_outcome",
     "plan_postpone",
     "plan_reject",
+    "plan_release",
     "plan_schedule_assignment",
     "proposal_run_id_of",
     "protect_committed_and_terminal_state",
     "rejected_transition_event",
     "validate_execution_events",
     "validate_mutation",
+    "validate_release_events",
 ]

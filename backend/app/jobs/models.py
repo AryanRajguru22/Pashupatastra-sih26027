@@ -220,6 +220,23 @@ class PostponeProposalRequest(BaseModel):
         return value
 
 
+class ReleaseBlockRequest(BaseModel):
+    """Body for POST /jobs/{job_id}/proposal/release (Sprint 3 Slice 6).
+
+    Releases an APPROVED (committed) block whose execution cannot begin -
+    possession not granted, crew or safety restriction, cancellation
+    before START. Both fields are mandatory: the release must name the
+    exact commitment it withdraws and say why. There is no status field
+    and no new JobStatus: the job returns to 'reported', and reason is
+    what distinguishes one release from another.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    expected_proposal_run_id: str = Field(min_length=1, max_length=128)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
 class ActorResponse(BaseModel):
     actor_id: str
     role: str

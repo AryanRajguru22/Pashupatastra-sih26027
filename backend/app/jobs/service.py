@@ -94,6 +94,7 @@ from backend.app.jobs.lifecycle import (
     plan_execution_start,
     plan_postpone,
     plan_reject,
+    plan_release,
     assert_committed_state_consistent,
     plan_schedule_assignment,
     proposal_run_id_of,
@@ -1234,6 +1235,60 @@ class JobService:
                 horizon_minutes=self.horizon_minutes,
                 expected_proposal_run_id=expected_proposal_run_id,
                 proposal_digest=digest,
+            ),
+        )
+
+    # -----------------------------------------
+    # Authority release of a committed block (Sprint 3 Slice 6)
+    # -----------------------------------------
+
+    def release_committed_block(
+        self,
+        job_id: str,
+        actor: Actor | None = None,
+        *,
+        expected_proposal_run_id: str,
+        reason: str,
+    ) -> dict[str, Any]:
+        """Release an APPROVED block that cannot proceed: notified -> reported.
+
+        The lifecycle hole this closes, and why it is neither a
+        rejection, a postponement nor a not-completed report, is
+        documented on backend.app.jobs.lifecycle.plan_release - the one
+        place that decides what a release does. Nothing is duplicated
+        here: this authorizes once, validates its two mandatory
+        arguments, and hands the decision to that plan through
+        _transition, exactly as reject_proposal and postpone_proposal do.
+
+        Deliberately does NOT optimize. The released job becomes eligible
+        for the next optimization run, which mints its own run id and
+        proposes afresh; fabricating a replacement proposal inside a
+        release would attribute a placement to a run that never
+        considered it.
+        """
+
+        releaser = self._resolve_actor(actor)
+        self.authorization.authorize(releaser, JobAction.RELEASE_COMMITTED_BLOCK)
+
+        if not expected_proposal_run_id or not expected_proposal_run_id.strip():
+            raise ValueError(
+                "expected_proposal_run_id is required to release a committed block"
+            )
+
+        if not reason or not reason.strip():
+            raise ValueError("reason is required to release a committed block")
+
+        return self._transition(
+            job_id,
+            releaser,
+            "release",
+            plan_release(
+                job_id,
+                actor=releaser,
+                at=event_timestamp(self.clock()),
+                reason=reason,
+                expected_proposal_run_id=expected_proposal_run_id,
+                horizon_minutes=self.horizon_minutes,
             ),
         )
 

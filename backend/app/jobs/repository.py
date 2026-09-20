@@ -13,14 +13,18 @@ from contracts import BlockStatus
 from backend.app.jobs.events import JobEvent
 from backend.app.jobs.history import append_events, ensure_job_events_schema
 from backend.app.jobs.lifecycle import (
+    COMMITTED_STATUSES,
     TERMINAL_STATUSES,
+    CommittedJobError,
     OptimizationAttempt,
     Plan,
     TerminalJobError,
+    assert_placement_invariants,
     plan_optimization_outcome,
     protect_committed_and_terminal_state,
     validate_execution_events,
     validate_mutation,
+    validate_release_events,
 )
 
 
@@ -77,9 +81,12 @@ class JobRepository:
             and apply_optimization_outcome refuse to touch a terminal
             job, to weaken committed work, or to write a job whose
             committed state is already inconsistent
-            (lifecycle.protect_committed_and_terminal_state).
-            record_refusal refuses terminal jobs and writes only the
-            last_solver_status / last_refusal_reason columns.
+            (lifecycle.protect_committed_and_terminal_state), and
+            update_status additionally satisfies the same status/placement
+            invariant the service path does
+            (lifecycle.assert_placement_invariants).
+            record_refusal refuses terminal AND committed jobs, and writes
+            only the last_solver_status / last_refusal_reason columns.
     """
 
     def __init__(self, db_path: str | Path = DEFAULT_DB_PATH):
@@ -252,8 +259,9 @@ class JobRepository:
           3. call plan(rows) -> (mutations, events);
           4. validate every mutation against the lifecycle rules;
           5. write the mutations;
-          6. check execution tokens against their events
-             (lifecycle.validate_execution_events);
+          6. check execution and release tokens against their events
+             (lifecycle.validate_execution_events /
+             validate_release_events);
           7. append the events.
 
         Any exception - from the plan, a validation, or SQLite - rolls
@@ -321,9 +329,12 @@ class JobRepository:
 
             # Sprint 3 Slice 5: an execution token must be backed by its
             # accountable event (and an execution event by its token).
-            # Still inside the transaction, so a refusal rolls back every
-            # row written above and appends no event.
+            # Sprint 3 Slice 6 applies the same rule to the authority
+            # release token and BLOCK_RELEASED. Still inside the
+            # transaction, so a refusal rolls back every row written above
+            # and appends no event.
             validate_execution_events(mutations, events)
+            validate_release_events(mutations, events)
 
             append_events(conn, events)
 
@@ -443,6 +454,17 @@ class JobRepository:
         `block_status` / `is_committed` mirror the transition into
         block_candidate_json so the persisted BlockCandidate stays
         consistent with the job row.
+
+        This primitive changes the status WITHOUT touching the
+        schedule_* columns, so on its own it could strand a live window
+        on a job it moved to 'reported' - a lifecycle invariant violation
+        the service path cannot produce, because validate_mutation checks
+        exactly that. assert_placement_invariants below is that same
+        check, called against the STORED placement this write leaves in
+        place, so no status mutation can create a 'reported' job that is
+        still carrying a window (Slice 5 audit F3). It is the lifecycle's
+        own rule, not a second one: no bypass is introduced and no
+        legitimate move is newly refused.
         """
 
         with self._write_transaction() as conn:
@@ -474,6 +496,13 @@ class JobRepository:
                     current["schedule_start_minute"],
                     current["schedule_end_minute"],
                 ),
+            )
+
+            assert_placement_invariants(
+                job_id,
+                status,
+                current["schedule_start_minute"],
+                current["schedule_end_minute"],
             )
 
             conn.execute(
@@ -626,6 +655,16 @@ class JobRepository:
         Writes no lifecycle history and does not change status. Not used
         by the service path, which withdraws a stale uncommitted proposal
         on refusal (see lifecycle.plan_optimization_outcome).
+
+        Refuses a terminal job, and (Slice 5 audit F4) a COMMITTED one:
+        "committed work is never invalidated by a failed attempt" is the
+        lifecycle's rule, and the service path honours it by recording
+        COMMITTED_BLOCK_CONFLICT against a notified or in_progress job
+        rather than stamping a solver refusal onto it. Without this guard
+        the primitive was the one write path that could overwrite a
+        committed job's last_refusal_reason with an unscheduled-work
+        reason, which _no_proposal_reason and the demo surfaces then read
+        back as if the commitment had been refused.
         """
 
         with self._write_transaction() as conn:
@@ -642,6 +681,12 @@ class JobRepository:
                 raise TerminalJobError(
                     f"Job '{job_id}' is in terminal status "
                     f"'{row['status']}'"
+                )
+
+            if row["status"] in COMMITTED_STATUSES:
+                raise CommittedJobError(
+                    f"Job '{job_id}' is committed ('{row['status']}'); a "
+                    "solver refusal is never recorded against committed work"
                 )
 
             conn.execute(

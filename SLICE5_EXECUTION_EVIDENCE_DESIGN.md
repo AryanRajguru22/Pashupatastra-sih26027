@@ -331,7 +331,16 @@ Existing databases: every Slice 1–4 row stays valid (`notified` jobs can start
 Terminal check is the first statement of the guard and precedes the token logic; `ALLOWED_TRANSITIONS[completed] = ∅`; `list_active` and `reject_terminal` exclude it from optimization; `plan_optimization_failure` skips it; all three execution plans require `notified`/`in_progress`; authority plans require `scheduled`. No token kind targets a completed row.
 
 ### 10.2 Q15 — No completion without after evidence
-Four independent layers: request model (`min_length=1`); plan (`InvalidTransitionError` if empty); guard (entering `completed` requires COMPLETE token); `mutate_jobs` cross-check (token requires a matching `EXECUTION_COMPLETED` event, and `validate_execution_events` asserts its `after_work_evidence` is non-empty). The only other way to `completed` — `update_status` — carries no token.
+Four independent layers:
+
+1. **Request model** — `CompleteExecutionRequest.after_work_evidence` is `min_length=1`, so an empty list is a 422 before the service is reached.
+2. **Plan** — `plan_execution_complete` calls `validate_evidence_set(..., phase=AFTER_WORK, minimum=1)` and raises `InvalidTransitionError` (400) if nothing valid survives. This is the layer that actually rejects an evidence-less completion on every production path, HTTP or in-process.
+3. **Guard** — entering `completed` requires a COMPLETE `ExecutionTransition` token from `in_progress` (`_gate_execution_transition`). It checks the token, not the evidence.
+4. **`mutate_jobs` cross-check** — `validate_execution_events` requires the token to be accompanied by exactly one matching `EXECUTION_COMPLETED` event naming the same `execution_id`, **and** asserts that event's `metadata["after_work_evidence"]` is non-empty.
+
+Layer 4's evidence assertion was added in Sprint 3 Slice 6 (final Slice 5 audit finding F1). Before that, layers 1–3 were the only real defences: the cross-check verified token↔event correspondence but not the event's contents, so a hand-built or buggy planner that produced a COMPLETE token together with an evidence-less `EXECUTION_COMPLETED` event would have been accepted. It is unreachable through any production path — layer 2 refuses first — which is why it is stated here as defence-in-depth rather than as the mechanism users hit.
+
+The only other way to `completed` — `update_status` — builds no `JobMutation` and so carries no token, and is refused at layer 3.
 
 ---
 

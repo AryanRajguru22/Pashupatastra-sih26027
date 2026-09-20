@@ -126,6 +126,16 @@ class JobEventType(str, Enum):
       EXECUTION_NOT_COMPLETED  field work could not be completed; the
                                commitment is released for replanning:
                                in_progress -> reported
+      BLOCK_RELEASED           an authority released an already approved
+                               (committed) block whose execution could
+                               not begin - possession not granted, crew
+                               or safety restriction, cancellation before
+                               START (Sprint 3 Slice 6): notified ->
+                               reported. Distinct from PROPOSAL_REJECTED
+                               and PROPOSAL_POSTPONED, which act on an
+                               UNCOMMITTED proposal, and from
+                               EXECUTION_NOT_COMPLETED, which reports work
+                               that actually started and then failed
 
     System decisions
       JOB_SCORED               priority/risk computed (SYSTEM:SCORER)
@@ -163,6 +173,7 @@ class JobEventType(str, Enum):
     EXECUTION_STARTED = "EXECUTION_STARTED"
     EXECUTION_COMPLETED = "EXECUTION_COMPLETED"
     EXECUTION_NOT_COMPLETED = "EXECUTION_NOT_COMPLETED"
+    BLOCK_RELEASED = "BLOCK_RELEASED"
 
 
 @dataclass(frozen=True)

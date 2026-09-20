@@ -155,7 +155,27 @@ def corrupt_block_metadata(db_path, job_id, *, set_=None, drop=()) -> None:
         )
 
 
+# Slice 5 audit F1 (added in Slice 6): validate_execution_events refuses an
+# EXECUTION_COMPLETED event that records no after-work evidence, so a
+# hand-built completion must carry some - exactly as the real
+# plan_execution_complete does. The shape mirrors record_evidence() output.
+# The refusal itself is covered by test_slice6_authority_release.py.
+_AFTER_WORK_EVIDENCE = [
+    {
+        "evidence_id": "EVD-HANDBUILT-AFTER-WORK",
+        "phase": "AFTER_WORK",
+        "evidence_kind": "PHOTO",
+        "evidence_reference": "EVIDENCE-HANDBUILT-AFTER-WORK",
+    }
+]
+
+
 def _event(job, event_type, execution_id, before, after, at):
+    metadata = {EXECUTION_ID_KEY: execution_id}
+
+    if event_type is JobEventType.EXECUTION_COMPLETED:
+        metadata["after_work_evidence"] = list(_AFTER_WORK_EVIDENCE)
+
     return make_event(
         job["job_id"],
         event_type,
@@ -164,7 +184,7 @@ def _event(job, event_type, execution_id, before, after, at):
         optimization_run_id=proposal_run_id_of(job),
         before_state=before,
         after_state=after,
-        metadata={EXECUTION_ID_KEY: execution_id},
+        metadata=metadata,
     )
 
 

@@ -47,6 +47,7 @@ from backend.app.jobs.models import (
     PostponeProposalRequest,
     ProposalExplanationItem,
     RejectProposalRequest,
+    ReleaseBlockRequest,
     StartExecutionRequest,
 )
 
@@ -558,6 +559,71 @@ def postpone_proposal(
             **as_public_job(job)
         ),
         message="Proposal postponed",
+    )
+
+
+@router.post(
+    "/jobs/{job_id}/proposal/release",
+    response_model=JobActionResponse,
+)
+def release_committed_block(
+    job_id: str,
+    body: ReleaseBlockRequest,
+    actor: Actor = Depends(request_actor),
+) -> JobActionResponse:
+    """Release the job's APPROVED (committed) block: notified -> reported.
+
+    For a block that was already approved but whose execution cannot
+    begin - possession not granted, crew or safety restriction, authority
+    cancellation before START. Distinct from /proposal/reject and
+    /proposal/postpone, which act on an UNCOMMITTED proposal, and from
+    /execution/not-completed, which reports work that actually started;
+    once the job is 'in_progress' this route refuses it (409/400) and
+    not-completed is the correct operation. See
+    JobService.release_committed_block.
+
+    The released job returns to 'reported' and becomes eligible for the
+    next optimization run; no proposal is fabricated and no optimization
+    is triggered here.
+    """
+
+    try:
+        job = service.release_committed_block(
+            job_id,
+            actor=actor,
+            expected_proposal_run_id=body.expected_proposal_run_id,
+            reason=body.reason,
+        )
+
+    except AuthorizationDenied as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        ) from exc
+
+    except _CONFLICTS as exc:
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        ) from exc
+
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
+    return JobActionResponse(
+        job=JobResponse(
+            **as_public_job(job)
+        ),
+        message="Committed block released",
     )
 
 

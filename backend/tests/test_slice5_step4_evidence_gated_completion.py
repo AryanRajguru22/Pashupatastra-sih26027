@@ -198,15 +198,21 @@ def assert_nothing_changed(service, db_path, job_id, row_before, events_before, 
 
 
 def test_the_transition_graph_has_exactly_one_route_to_completed():
+    # notified -> reported is the Sprint 3 Slice 6 authority release of a
+    # committed block that cannot proceed. It is gated by an
+    # AuthorityRelease token exactly as in_progress -> reported is gated by
+    # a NOT_COMPLETED execution token (test_slice6_authority_release.py),
+    # and it adds no route into 'completed' - which is what this test
+    # exists to pin.
     assert ALLOWED_TRANSITIONS == {
         "reported": frozenset({"reported", "scheduled"}),
         "scheduled": frozenset({"scheduled", "reported", "notified"}),
-        "notified": frozenset({"notified", "in_progress"}),
+        "notified": frozenset({"notified", "in_progress", "reported"}),
         "in_progress": frozenset({"in_progress", "completed", "reported"}),
         "completed": frozenset(),
     }
     assert lifecycle._COMMITTED_TARGETS == {
-        "notified": ("notified", "in_progress"),
+        "notified": ("notified", "in_progress", "reported"),
         "in_progress": ("in_progress", "completed", "reported"),
     }
     assert [s for s, targets in ALLOWED_TRANSITIONS.items() if "completed" in targets] == [
