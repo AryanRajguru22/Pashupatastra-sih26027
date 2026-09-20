@@ -1034,7 +1034,7 @@ def test_every_new_state_changing_http_route_records_history():
 
     try:
         created = client.post(
-            "/jobs",
+            "/v1/jobs",
             json={
                 "track_id": "UP-1",
                 "job_type": "BALLAST_TAMPING",
@@ -1049,15 +1049,15 @@ def test_every_new_state_changing_http_route_records_history():
         job_id = created["job_id"]
 
         run_id = client.post(
-            "/corridors/CORRIDOR_A/optimize-jobs", headers=engineer_headers
+            "/v1/corridors/CORRIDOR_A/optimize-jobs", headers=engineer_headers
         ).json()["optimization_run_id"]
 
         def events():
-            return client.get(f"/jobs/{job_id}/history").json()["events"]
+            return client.get(f"/v1/jobs/{job_id}/history").json()["events"]
 
         before = len(events())
         rejected = client.post(
-            f"/jobs/{job_id}/proposal/reject",
+            f"/v1/jobs/{job_id}/proposal/reject",
             json={"expected_proposal_run_id": run_id, "reason": "HTTP reject check"},
             headers=authority_headers,
         )
@@ -1066,12 +1066,12 @@ def test_every_new_state_changing_http_route_records_history():
         assert added[-1]["event_type"] == "PROPOSAL_REJECTED"
 
         run_id_2 = client.post(
-            "/corridors/CORRIDOR_A/optimize-jobs", headers=engineer_headers
+            "/v1/corridors/CORRIDOR_A/optimize-jobs", headers=engineer_headers
         ).json()["optimization_run_id"]
 
         before = len(events())
         postponed = client.post(
-            f"/jobs/{job_id}/proposal/postpone",
+            f"/v1/jobs/{job_id}/proposal/postpone",
             json={
                 "expected_proposal_run_id": run_id_2,
                 "reason": "HTTP postpone check",
@@ -1084,19 +1084,19 @@ def test_every_new_state_changing_http_route_records_history():
         assert added[-1]["event_type"] == "PROPOSAL_POSTPONED"
 
         run_id_3 = client.post(
-            "/corridors/CORRIDOR_A/optimize-jobs", headers=engineer_headers
+            "/v1/corridors/CORRIDOR_A/optimize-jobs", headers=engineer_headers
         ).json()["optimization_run_id"]
 
         before = len(events())
         approved = client.post(
-            f"/jobs/{job_id}/proposal/approve",
+            f"/v1/jobs/{job_id}/proposal/approve",
             json={"expected_proposal_run_id": run_id_3},
             headers=authority_headers,
         )
         assert approved.status_code == 200, approved.text
         added = events()[before:]
         assert added[-1]["event_type"] == "BLOCK_COMMITTED"
-        assert client.get(f"/jobs/{job_id}").json()["status"] == "notified"
+        assert client.get(f"/v1/jobs/{job_id}").json()["status"] == "notified"
 
     finally:
         wipe()
@@ -1117,7 +1117,7 @@ def test_postpone_route_rejects_malformed_selected_date():
 
     try:
         created = client.post(
-            "/jobs",
+            "/v1/jobs",
             json={
                 "track_id": "UP-1",
                 "job_type": "BALLAST_TAMPING",
@@ -1131,7 +1131,7 @@ def test_postpone_route_rejects_malformed_selected_date():
         ).json()
 
         response = client.post(
-            f"/jobs/{created['job_id']}/proposal/postpone",
+            f"/v1/jobs/{created['job_id']}/proposal/postpone",
             json={
                 "expected_proposal_run_id": "RUN-X",
                 "reason": "bad date",
@@ -1159,15 +1159,15 @@ def test_reject_and_postpone_reject_extra_fields():
     try:
         for path, body in (
             (
-                "/jobs/JOB-DOES-NOT-EXIST/proposal/approve",
+                "/v1/jobs/JOB-DOES-NOT-EXIST/proposal/approve",
                 {"expected_proposal_run_id": "RUN-X", "extra": True},
             ),
             (
-                "/jobs/JOB-DOES-NOT-EXIST/proposal/reject",
+                "/v1/jobs/JOB-DOES-NOT-EXIST/proposal/reject",
                 {"expected_proposal_run_id": "RUN-X", "reason": "x", "extra": True},
             ),
             (
-                "/jobs/JOB-DOES-NOT-EXIST/proposal/postpone",
+                "/v1/jobs/JOB-DOES-NOT-EXIST/proposal/postpone",
                 {
                     "expected_proposal_run_id": "RUN-X",
                     "reason": "x",

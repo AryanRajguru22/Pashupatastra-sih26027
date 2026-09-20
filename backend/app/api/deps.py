@@ -12,7 +12,9 @@ import json
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Header, HTTPException
+from fastapi import Header
+
+from backend.app.api.errors import ApiError, ErrorCode
 
 from backend.app.identity.actor import (
     Actor,
@@ -29,8 +31,24 @@ ACTOR_ROLE_HEADER = "X-Actor-Role"
 
 
 def request_actor(
-    actor_id: Optional[str] = Header(default=None, alias=ACTOR_ID_HEADER),
-    actor_role: Optional[str] = Header(default=None, alias=ACTOR_ROLE_HEADER),
+    actor_id: Optional[str] = Header(
+        default=None,
+        alias=ACTOR_ID_HEADER,
+        description=(
+            "Declared actor identifier (e.g. WORKER-042). NOT verified: "
+            "recorded with DECLARED_UNVERIFIED assurance. Send together "
+            "with X-Actor-Role, or send neither."
+        ),
+    ),
+    actor_role: Optional[str] = Header(
+        default=None,
+        alias=ACTOR_ROLE_HEADER,
+        description=(
+            "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM "
+            "is refused (403). NOT verified and not yet enforced as a "
+            "permission: authentication and RBAC are later slices."
+        ),
+    ),
 ) -> Actor:
     """The actor a request is recorded under. NOT authentication.
 
@@ -55,26 +73,26 @@ def request_actor(
         return unidentified_actor()
 
     if actor_id is None or actor_role is None:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"{ACTOR_ID_HEADER} and {ACTOR_ROLE_HEADER} must be sent "
-                "together, or not at all."
-            ),
+        raise ApiError(
+            400,
+            ErrorCode.ACTOR_HEADERS_INCOMPLETE,
+            f"{ACTOR_ID_HEADER} and {ACTOR_ROLE_HEADER} must be sent "
+            "together, or not at all.",
         )
 
     role = actor_role.strip().upper()
 
     if role == ActorRole.SYSTEM.value:
-        raise HTTPException(
-            status_code=403,
-            detail="External callers cannot act as the SYSTEM actor.",
+        raise ApiError(
+            403,
+            ErrorCode.ACTOR_SYSTEM_ROLE_FORBIDDEN,
+            "External callers cannot act as the SYSTEM actor.",
         )
 
     try:
         return human_actor(actor_id.strip(), role)
     except InvalidActorError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise ApiError(400, ErrorCode.ACTOR_INVALID, str(exc)) from exc
 
 
 def load_optimization_request(path: Path) -> OptimizationRequest:

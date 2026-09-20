@@ -1,0 +1,3258 @@
+{
+  "components": {
+    "schemas": {
+      "ActorResponse": {
+        "properties": {
+          "actor_id": {
+            "title": "Actor Id",
+            "type": "string"
+          },
+          "assurance": {
+            "title": "Assurance",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "actor_id",
+          "role",
+          "kind",
+          "assurance"
+        ],
+        "title": "ActorResponse",
+        "type": "object"
+      },
+      "ApproveProposalRequest": {
+        "additionalProperties": false,
+        "description": "Body for POST /jobs/{job_id}/proposal/approve (Sprint 3 Slice 3).\n\nLike CommitBlockRequest, expected_proposal_run_id is REQUIRED here: an\nauthority approving a reviewed proposal must always name it, so an\napproval can never silently commit whatever happens to be current.\nApproval itself delegates to the existing commit machinery\n(JobService.notify) rather than a second commit implementation -\nsee JobService.approve_proposal.",
+        "properties": {
+          "expected_proposal_run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Expected Proposal Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_proposal_run_id"
+        ],
+        "title": "ApproveProposalRequest",
+        "type": "object"
+      },
+      "BlockCandidate": {
+        "properties": {
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "block_id": {
+            "title": "Block Id",
+            "type": "string"
+          },
+          "dependencies": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Dependencies",
+            "type": "array"
+          },
+          "duration_minutes": {
+            "title": "Duration Minutes",
+            "type": "integer"
+          },
+          "earliest_start_minute": {
+            "default": 0,
+            "title": "Earliest Start Minute",
+            "type": "integer"
+          },
+          "is_committed": {
+            "default": false,
+            "title": "Is Committed",
+            "type": "boolean"
+          },
+          "latest_end_minute": {
+            "default": 1440,
+            "title": "Latest End Minute",
+            "type": "integer"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "mutual_exclusion_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mutual Exclusion Group"
+          },
+          "priority_score": {
+            "default": 0.5,
+            "title": "Priority Score",
+            "type": "number"
+          },
+          "risk_score": {
+            "default": 0.5,
+            "title": "Risk Score",
+            "type": "number"
+          },
+          "section_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Id"
+          },
+          "status": {
+            "default": "PLANNED",
+            "title": "Status",
+            "type": "string"
+          },
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          },
+          "work_type": {
+            "title": "Work Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "asset_id",
+          "track_id",
+          "work_type",
+          "duration_minutes"
+        ],
+        "title": "BlockCandidate",
+        "type": "object"
+      },
+      "BlockProposalResponse": {
+        "description": "A NEW scheduling proposal for ONE maintenance job (Sprint 3 Slice 2).\n\nDerived, not separately persisted: built from the job's own row,\nthe specific BLOCK_PROPOSED/BLOCK_REPROPOSED/COMMITTED_BLOCK_PRESERVED\nhistory event that produced the current placement, and the\noptimization_runs record for that run. See backend.app.jobs.proposal.\n\nA proposal is never a commitment: is_committed is always False here\n- committing happens through POST /jobs/{job_id}/notify, a distinct\naction recorded as BLOCK_COMMITTED, never implied by this object's\nexistence.",
+        "properties": {
+          "corridor_id": {
+            "title": "Corridor Id",
+            "type": "string"
+          },
+          "duration_minutes": {
+            "title": "Duration Minutes",
+            "type": "integer"
+          },
+          "end_minute": {
+            "title": "End Minute",
+            "type": "integer"
+          },
+          "explanation": {
+            "items": {
+              "$ref": "#/components/schemas/ProposalExplanationItem"
+            },
+            "title": "Explanation",
+            "type": "array"
+          },
+          "generated_at": {
+            "title": "Generated At",
+            "type": "string"
+          },
+          "is_committed": {
+            "title": "Is Committed",
+            "type": "boolean"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "objective_score": {
+            "title": "Objective Score",
+            "type": "number"
+          },
+          "optimization_run_id": {
+            "title": "Optimization Run Id",
+            "type": "string"
+          },
+          "priority_score": {
+            "title": "Priority Score",
+            "type": "number"
+          },
+          "proposal_id": {
+            "title": "Proposal Id",
+            "type": "string"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceResponse"
+          },
+          "risk_score": {
+            "title": "Risk Score",
+            "type": "number"
+          },
+          "section_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Id"
+          },
+          "start_minute": {
+            "title": "Start Minute",
+            "type": "integer"
+          },
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          },
+          "work_type": {
+            "title": "Work Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proposal_id",
+          "job_id",
+          "optimization_run_id",
+          "corridor_id",
+          "track_id",
+          "start_minute",
+          "end_minute",
+          "duration_minutes",
+          "work_type",
+          "priority_score",
+          "risk_score",
+          "objective_score",
+          "is_committed",
+          "explanation",
+          "provenance",
+          "generated_at"
+        ],
+        "title": "BlockProposalResponse",
+        "type": "object"
+      },
+      "CommitBlockRequest": {
+        "additionalProperties": false,
+        "description": "Body for POST /v1/jobs/{job_id}/notify.\n\nexpected_proposal_run_id is REQUIRED (Slice 7): the v1 contract has\nno unpinned commit path. It pins the commit to the proposal the\ncaller reviewed - if the job's current proposal came from a different\nrun, the commit is refused with 409 STALE_PROPOSAL and the attempt is\nrecorded. The in-process JobService.notify keeps its optional\nparameter for direct callers; only the HTTP contract requires it.",
+        "properties": {
+          "expected_proposal_run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Expected Proposal Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_proposal_run_id"
+        ],
+        "title": "CommitBlockRequest",
+        "type": "object"
+      },
+      "CompleteExecutionRequest": {
+        "additionalProperties": false,
+        "description": "Body for POST /jobs/{job_id}/execution/complete.",
+        "properties": {
+          "actual_end_at": {
+            "minLength": 1,
+            "title": "Actual End At",
+            "type": "string"
+          },
+          "after_work_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceInput"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "After Work Evidence",
+            "type": "array"
+          },
+          "execution_id": {
+            "minLength": 1,
+            "title": "Execution Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "execution_id",
+          "actual_end_at",
+          "after_work_evidence"
+        ],
+        "title": "CompleteExecutionRequest",
+        "type": "object"
+      },
+      "DefectSeverity": {
+        "enum": [
+          "NONE",
+          "MINOR",
+          "MODERATE",
+          "CRITICAL"
+        ],
+        "title": "DefectSeverity",
+        "type": "string"
+      },
+      "DisruptionEvent": {
+        "properties": {
+          "affected_asset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Affected Asset Id"
+          },
+          "corridor_id": {
+            "title": "Corridor Id",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "title": "Description",
+            "type": "string"
+          },
+          "disruption_id": {
+            "title": "Disruption Id",
+            "type": "string"
+          },
+          "disruption_type": {
+            "title": "Disruption Type",
+            "type": "string"
+          },
+          "end_minute": {
+            "default": 1440,
+            "title": "End Minute",
+            "type": "integer"
+          },
+          "new_candidate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BlockCandidate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "start_minute": {
+            "default": 0,
+            "title": "Start Minute",
+            "type": "integer"
+          },
+          "track_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track Id"
+          }
+        },
+        "required": [
+          "disruption_id",
+          "disruption_type",
+          "corridor_id"
+        ],
+        "title": "DisruptionEvent",
+        "type": "object"
+      },
+      "EvidenceInput": {
+        "additionalProperties": false,
+        "description": "One piece of caller-supplied execution evidence.\n\nShape-level validation only (length, coordinate pairing). The\ndeeper observation-time rules - explicit UTC offset, not in the\nfuture, ordering against actual_start_at/actual_end_at, no before-\nreference reused as after - are enforced once, by\nbackend.app.jobs.execution.EvidenceItem, which JobService\nconstructs from this model's dict rather than reimplementing the\nsame checks here (a doubly-validated model, not a second one).\nField names mirror EvidenceItem's own so that conversion needs no\nrenaming layer.",
+        "properties": {
+          "captured_at": {
+            "minLength": 1,
+            "title": "Captured At",
+            "type": "string"
+          },
+          "evidence_kind": {
+            "enum": [
+              "PHOTO",
+              "VIDEO",
+              "DOCUMENT",
+              "MEASUREMENT"
+            ],
+            "title": "Evidence Kind",
+            "type": "string"
+          },
+          "evidence_reference": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Evidence Reference",
+            "type": "string"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": -90.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "maximum": 180.0,
+                "minimum": -180.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "evidence_reference",
+          "evidence_kind",
+          "captured_at"
+        ],
+        "title": "EvidenceInput",
+        "type": "object"
+      },
+      "ExecutionActionResponse": {
+        "properties": {
+          "execution": {
+            "$ref": "#/components/schemas/ExecutionResponse"
+          },
+          "job": {
+            "$ref": "#/components/schemas/JobResponse"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job",
+          "execution",
+          "message"
+        ],
+        "title": "ExecutionActionResponse",
+        "type": "object"
+      },
+      "ExecutionDeviationsResponse": {
+        "properties": {
+          "ended_after_planned_end": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended After Planned End"
+          },
+          "started_before_planned_start": {
+            "title": "Started Before Planned Start",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "started_before_planned_start"
+        ],
+        "title": "ExecutionDeviationsResponse",
+        "type": "object"
+      },
+      "ExecutionNotCompletedRequest": {
+        "additionalProperties": false,
+        "description": "Body for POST /jobs/{job_id}/execution/not-completed.",
+        "properties": {
+          "actual_end_at": {
+            "minLength": 1,
+            "title": "Actual End At",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceInput"
+            },
+            "maxItems": 10,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "execution_id": {
+            "minLength": 1,
+            "title": "Execution Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "execution_id",
+          "actual_end_at",
+          "reason"
+        ],
+        "title": "ExecutionNotCompletedRequest",
+        "type": "object"
+      },
+      "ExecutionResponse": {
+        "description": "One execution attempt of one approved block (Sprint 3 Slice 5).\n\nDerived, not separately persisted - built straight from\nbackend.app.jobs.execution.ExecutionRecord.to_dict(), the job's own\nappend-only history, exactly as BlockProposalResponse is built from\nBlockProposal.",
+        "properties": {
+          "actual_end_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual End At"
+          },
+          "actual_end_minute": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual End Minute"
+          },
+          "actual_start_at": {
+            "title": "Actual Start At",
+            "type": "string"
+          },
+          "actual_start_minute": {
+            "title": "Actual Start Minute",
+            "type": "integer"
+          },
+          "after_work_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/RecordedEvidenceResponse"
+            },
+            "title": "After Work Evidence",
+            "type": "array"
+          },
+          "attempt_number": {
+            "title": "Attempt Number",
+            "type": "integer"
+          },
+          "before_work_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/RecordedEvidenceResponse"
+            },
+            "title": "Before Work Evidence",
+            "type": "array"
+          },
+          "committed_block_digest": {
+            "title": "Committed Block Digest",
+            "type": "string"
+          },
+          "deviations": {
+            "$ref": "#/components/schemas/ExecutionDeviationsResponse"
+          },
+          "ended_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActorResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ended_recorded_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended Recorded At"
+          },
+          "execution_id": {
+            "title": "Execution Id",
+            "type": "string"
+          },
+          "failure_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/RecordedEvidenceResponse"
+            },
+            "title": "Failure Evidence",
+            "type": "array"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "not_completed_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Completed Reason"
+          },
+          "optimization_run_id": {
+            "title": "Optimization Run Id",
+            "type": "string"
+          },
+          "planned_end_minute": {
+            "title": "Planned End Minute",
+            "type": "integer"
+          },
+          "planned_start_minute": {
+            "title": "Planned Start Minute",
+            "type": "integer"
+          },
+          "proposal_id": {
+            "title": "Proposal Id",
+            "type": "string"
+          },
+          "section_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Id"
+          },
+          "started_by": {
+            "$ref": "#/components/schemas/ActorResponse"
+          },
+          "started_recorded_at": {
+            "title": "Started Recorded At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "execution_id",
+          "job_id",
+          "attempt_number",
+          "optimization_run_id",
+          "proposal_id",
+          "track_id",
+          "planned_start_minute",
+          "planned_end_minute",
+          "committed_block_digest",
+          "status",
+          "started_by",
+          "started_recorded_at",
+          "actual_start_at",
+          "actual_start_minute",
+          "before_work_evidence",
+          "deviations"
+        ],
+        "title": "ExecutionResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "JobActionResponse": {
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/JobResponse"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job",
+          "message"
+        ],
+        "title": "JobActionResponse",
+        "type": "object"
+      },
+      "JobCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "corridor_id": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corridor Id"
+          },
+          "description": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "distance_end": {
+            "exclusiveMinimum": 0.0,
+            "title": "Distance End",
+            "type": "number"
+          },
+          "distance_start": {
+            "minimum": 0.0,
+            "title": "Distance Start",
+            "type": "number"
+          },
+          "evidence_reference": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Reference"
+          },
+          "job_type": {
+            "$ref": "#/components/schemas/JobType"
+          },
+          "severity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DefectSeverity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "track_id": {
+            "minLength": 1,
+            "title": "Track Id",
+            "type": "string"
+          },
+          "workers_max": {
+            "minimum": 1.0,
+            "title": "Workers Max",
+            "type": "integer"
+          },
+          "workers_min": {
+            "minimum": 1.0,
+            "title": "Workers Min",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "track_id",
+          "job_type",
+          "distance_start",
+          "distance_end",
+          "workers_min",
+          "workers_max",
+          "description"
+        ],
+        "title": "JobCreateRequest",
+        "type": "object"
+      },
+      "JobEventResponse": {
+        "description": "One job lifecycle event, as recorded. Read-only.",
+        "properties": {
+          "actor": {
+            "$ref": "#/components/schemas/ActorResponse"
+          },
+          "after_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JobStateResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "before_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JobStateResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "entity_type": {
+            "title": "Entity Type",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "string"
+          },
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "occurred_at": {
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "optimization_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimization Run Id"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sequence",
+          "event_id",
+          "schema_version",
+          "entity_type",
+          "job_id",
+          "event_type",
+          "occurred_at",
+          "actor",
+          "metadata"
+        ],
+        "title": "JobEventResponse",
+        "type": "object"
+      },
+      "JobExecutionsResponse": {
+        "description": "GET /jobs/{job_id}/execution - every execution of this job, oldest first.",
+        "properties": {
+          "executions": {
+            "items": {
+              "$ref": "#/components/schemas/ExecutionResponse"
+            },
+            "title": "Executions",
+            "type": "array"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "executions"
+        ],
+        "title": "JobExecutionsResponse",
+        "type": "object"
+      },
+      "JobHistoryResponse": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/JobEventResponse"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "events"
+        ],
+        "title": "JobHistoryResponse",
+        "type": "object"
+      },
+      "JobListResponse": {
+        "description": "GET /v1/jobs - one page of jobs, newest first.\n\nnext_cursor is opaque: pass it back verbatim as ?cursor= to fetch the\nfollowing page. None means this was the last page.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/JobResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "JobListResponse",
+        "type": "object"
+      },
+      "JobOptimizationResponse": {
+        "description": "Honest outcome of one corridor optimization batch.\n\nReports scheduled and unscheduled work separately so a partially\nsuccessful run can never read as a fully successful one.",
+        "properties": {
+          "corridor_id": {
+            "title": "Corridor Id",
+            "type": "string"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/OptimizationCounts"
+          },
+          "generated_at": {
+            "title": "Generated At",
+            "type": "string"
+          },
+          "infeasibility_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Infeasibility Reasons",
+            "type": "array"
+          },
+          "optimization_run_id": {
+            "title": "Optimization Run Id",
+            "type": "string"
+          },
+          "possession_derivation": {
+            "title": "Possession Derivation",
+            "type": "string"
+          },
+          "possession_source": {
+            "title": "Possession Source",
+            "type": "string"
+          },
+          "possession_window_count": {
+            "title": "Possession Window Count",
+            "type": "integer"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceResponse"
+          },
+          "scheduled": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduledJobOutcome"
+            },
+            "title": "Scheduled",
+            "type": "array"
+          },
+          "solve_time_seconds": {
+            "title": "Solve Time Seconds",
+            "type": "number"
+          },
+          "solver_status": {
+            "title": "Solver Status",
+            "type": "string"
+          },
+          "uncovered_tracks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Uncovered Tracks",
+            "type": "array"
+          },
+          "unscheduled": {
+            "items": {
+              "$ref": "#/components/schemas/UnscheduledJobOutcome"
+            },
+            "title": "Unscheduled",
+            "type": "array"
+          }
+        },
+        "required": [
+          "corridor_id",
+          "optimization_run_id",
+          "solver_status",
+          "solve_time_seconds",
+          "possession_source",
+          "possession_derivation",
+          "possession_window_count",
+          "provenance",
+          "uncovered_tracks",
+          "generated_at",
+          "counts",
+          "scheduled",
+          "unscheduled",
+          "infeasibility_reasons"
+        ],
+        "title": "JobOptimizationResponse",
+        "type": "object"
+      },
+      "JobResponse": {
+        "properties": {
+          "block_candidate": {
+            "additionalProperties": true,
+            "title": "Block Candidate",
+            "type": "object"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "distance_end": {
+            "title": "Distance End",
+            "type": "number"
+          },
+          "distance_start": {
+            "title": "Distance Start",
+            "type": "number"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "last_refusal_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Refusal Reason"
+          },
+          "last_solver_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Solver Status"
+          },
+          "priority_score": {
+            "title": "Priority Score",
+            "type": "number"
+          },
+          "proposal_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposal Run Id"
+          },
+          "risk_score": {
+            "title": "Risk Score",
+            "type": "number"
+          },
+          "schedule_end_minute": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule End Minute"
+          },
+          "schedule_start_minute": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Start Minute"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "work_type": {
+            "title": "Work Type",
+            "type": "string"
+          },
+          "workers_max": {
+            "title": "Workers Max",
+            "type": "integer"
+          },
+          "workers_min": {
+            "title": "Workers Min",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "job_id",
+          "track_id",
+          "work_type",
+          "distance_start",
+          "distance_end",
+          "workers_min",
+          "workers_max",
+          "description",
+          "status",
+          "priority_score",
+          "risk_score",
+          "created_at",
+          "block_candidate"
+        ],
+        "title": "JobResponse",
+        "type": "object"
+      },
+      "JobStateResponse": {
+        "properties": {
+          "block_status": {
+            "title": "Block Status",
+            "type": "string"
+          },
+          "is_committed": {
+            "title": "Is Committed",
+            "type": "boolean"
+          },
+          "proposal_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposal Run Id"
+          },
+          "schedule_end_minute": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule End Minute"
+          },
+          "schedule_start_minute": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Start Minute"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "block_status",
+          "is_committed"
+        ],
+        "title": "JobStateResponse",
+        "type": "object"
+      },
+      "JobStatus": {
+        "enum": [
+          "reported",
+          "scheduled",
+          "notified",
+          "in_progress",
+          "completed"
+        ],
+        "title": "JobStatus",
+        "type": "string"
+      },
+      "JobType": {
+        "enum": [
+          "TRACK_RENEWAL",
+          "BALLAST_TAMPING",
+          "OHE_MAINTENANCE",
+          "SIGNALLING_INTERLOCKING",
+          "ROUTINE_INSPECTION",
+          "EMERGENCY_REPAIR"
+        ],
+        "title": "JobType",
+        "type": "string"
+      },
+      "OptimizationCounts": {
+        "properties": {
+          "committed": {
+            "title": "Committed",
+            "type": "integer"
+          },
+          "considered": {
+            "title": "Considered",
+            "type": "integer"
+          },
+          "scheduled": {
+            "title": "Scheduled",
+            "type": "integer"
+          },
+          "unscheduled": {
+            "title": "Unscheduled",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "considered",
+          "committed",
+          "scheduled",
+          "unscheduled"
+        ],
+        "title": "OptimizationCounts",
+        "type": "object"
+      },
+      "OptimizationRequest": {
+        "description": "The input the CP-SAT solver solves.\n\nhorizon_start + horizon_minutes together define the absolute\nmonotonic planning horizon: horizon_start anchors minute 0 to a\nreal wall-clock moment (explicit UTC offset required - see\nDEFAULT_HORIZON_START / _validate_horizon_start), and every\nsolver-facing time field elsewhere in this contract\n(BlockCandidate.earliest_start_minute/latest_end_minute,\nPossessionWindow.start_minute/end_minute, ScheduledBlock.\nstart_minute/end_minute, ...) is an integer minute offset from that\nanchor. horizon_minutes may exceed 1440; nothing in this contract\nassumes a single calendar day.\n\nhorizon_start carries a default (DEFAULT_HORIZON_START) purely so\nevery pre-Sprint-3-Step-4 caller - the corridor generator, the jobs\npipeline, every existing fixture and test - keeps constructing\nvalid requests without naming it explicitly. A caller that cares\nabout the real anchor moment should always pass it explicitly.",
+        "properties": {
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/BlockCandidate"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "corridor_id": {
+            "title": "Corridor Id",
+            "type": "string"
+          },
+          "existing_committed_blocks": {
+            "items": {
+              "$ref": "#/components/schemas/BlockCandidate"
+            },
+            "title": "Existing Committed Blocks",
+            "type": "array"
+          },
+          "horizon_minutes": {
+            "title": "Horizon Minutes",
+            "type": "integer"
+          },
+          "horizon_start": {
+            "default": "2026-09-10T00:00:00+05:30",
+            "title": "Horizon Start",
+            "type": "string"
+          },
+          "min_headway_minutes": {
+            "default": 15,
+            "title": "Min Headway Minutes",
+            "type": "integer"
+          },
+          "possession_windows": {
+            "items": {
+              "$ref": "#/components/schemas/PossessionWindow"
+            },
+            "title": "Possession Windows",
+            "type": "array"
+          },
+          "tracks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tracks",
+            "type": "array"
+          },
+          "train_timetable": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Train Timetable",
+            "type": "array"
+          }
+        },
+        "required": [
+          "corridor_id",
+          "horizon_minutes",
+          "tracks",
+          "candidates"
+        ],
+        "title": "OptimizationRequest",
+        "type": "object"
+      },
+      "OptimizationResult": {
+        "properties": {
+          "corridor_id": {
+            "title": "Corridor Id",
+            "type": "string"
+          },
+          "infeasibility_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Infeasibility Reasons",
+            "type": "array"
+          },
+          "rejection_reasons": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Rejection Reasons",
+            "type": "object"
+          },
+          "scheduled_blocks": {
+            "items": {
+              "$ref": "#/components/schemas/ScheduledBlock"
+            },
+            "title": "Scheduled Blocks",
+            "type": "array"
+          },
+          "solve_time_seconds": {
+            "default": 0.0,
+            "title": "Solve Time Seconds",
+            "type": "number"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total_priority_scheduled": {
+            "default": 0.0,
+            "title": "Total Priority Scheduled",
+            "type": "number"
+          },
+          "total_risk_mitigated": {
+            "default": 0.0,
+            "title": "Total Risk Mitigated",
+            "type": "number"
+          },
+          "unscheduled_blocks": {
+            "items": {
+              "$ref": "#/components/schemas/BlockCandidate"
+            },
+            "title": "Unscheduled Blocks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "corridor_id",
+          "status"
+        ],
+        "title": "OptimizationResult",
+        "type": "object"
+      },
+      "PossessionWindow": {
+        "description": "A maintenance possession window on one track.\n\nstart_minute/end_minute are integer minutes relative to the\nenclosing OptimizationRequest.horizon_start - an absolute monotonic\naxis, not minutes-from-midnight. A window is free to cross a\ncalendar midnight (e.g. 23:30 -> 04:30 next day is start_minute\n1410, end_minute 1710) or span multiple days; nothing here re-bases\nto 0 at each day boundary. The only invalid shape is\nend_minute <= start_minute (zero or negative duration), which the\nsolver's possession-window handling in\nbackend.app.optimizer.solver.solve treats as an empty/impossible\nwindow and refuses to schedule into - see the \"Skip impossible/\nempty windows\" comment there. That check needed no change for\nmulti-day horizons: it was never a midnight check, only a\nzero-duration guard.",
+        "properties": {
+          "end_minute": {
+            "title": "End Minute",
+            "type": "integer"
+          },
+          "section_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Id"
+          },
+          "start_minute": {
+            "title": "Start Minute",
+            "type": "integer"
+          },
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          },
+          "window_id": {
+            "title": "Window Id",
+            "type": "string"
+          },
+          "window_type": {
+            "default": "MAINTENANCE_POSSESSION",
+            "title": "Window Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "window_id",
+          "track_id",
+          "start_minute",
+          "end_minute"
+        ],
+        "title": "PossessionWindow",
+        "type": "object"
+      },
+      "PostponeProposalRequest": {
+        "additionalProperties": false,
+        "description": "Body for POST /jobs/{job_id}/proposal/postpone (Sprint 3 Slice 3).\n\nselected_date is a calendar date (YYYY-MM-DD), converted to a\nnot-before minute through the one authoritative horizon-anchoring\nconversion - backend.app.data.horizon_anchor.horizon_relative_minutes\n- at local midnight of that date (see JobService.postpone_proposal).\nIt is never a specific time of day: postponing expresses \"not before\nthis date\", not \"not before this instant\".",
+        "properties": {
+          "expected_proposal_run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Expected Proposal Run Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "selected_date": {
+            "maxLength": 10,
+            "minLength": 1,
+            "title": "Selected Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_proposal_run_id",
+          "reason",
+          "selected_date"
+        ],
+        "title": "PostponeProposalRequest",
+        "type": "object"
+      },
+      "ProposalExplanationItem": {
+        "description": "One structured reason behind a BlockProposal (Sprint 3 Slice 2).\n\nA fixed {code, detail} shape rather than free-form generated text,\nper the Slice 2 explainability requirement: `code` is a stable,\nmachine-checkable label a test or a UI can switch on; `detail` is\nthe human-readable statement of the same fact.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "detail"
+        ],
+        "title": "ProposalExplanationItem",
+        "type": "object"
+      },
+      "ProvenanceResponse": {
+        "description": "Sprint 3 Step 9 canonical provenance, mirroring\nbackend.app.data.provenance.ProvenanceProfile.to_dict().\n\nFour independent axes plus the derived effective value. `effective`\nis always the weakest-link result of the other four fields - it is\nnever set independently, because the dict this model validates\ncomes straight out of ProvenanceProfile.to_dict(), which computes\nit fresh every time rather than storing it. See\nbackend/app/data/provenance.py for the full rule.",
+        "properties": {
+          "asset_condition": {
+            "title": "Asset Condition",
+            "type": "string"
+          },
+          "effective": {
+            "title": "Effective",
+            "type": "string"
+          },
+          "possession": {
+            "title": "Possession",
+            "type": "string"
+          },
+          "timetable": {
+            "title": "Timetable",
+            "type": "string"
+          },
+          "topology": {
+            "title": "Topology",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topology",
+          "timetable",
+          "asset_condition",
+          "possession",
+          "effective"
+        ],
+        "title": "ProvenanceResponse",
+        "type": "object"
+      },
+      "RecordedEvidenceResponse": {
+        "properties": {
+          "captured_at": {
+            "title": "Captured At",
+            "type": "string"
+          },
+          "evidence_id": {
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "evidence_kind": {
+            "title": "Evidence Kind",
+            "type": "string"
+          },
+          "evidence_reference": {
+            "title": "Evidence Reference",
+            "type": "string"
+          },
+          "latitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latitude"
+          },
+          "longitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longitude"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "phase",
+          "evidence_reference",
+          "evidence_kind",
+          "captured_at"
+        ],
+        "title": "RecordedEvidenceResponse",
+        "type": "object"
+      },
+      "RecoveryRequest": {
+        "description": "POST /recover request body: a plan plus the disruption to apply to it.",
+        "properties": {
+          "disruption": {
+            "$ref": "#/components/schemas/DisruptionEvent"
+          },
+          "request": {
+            "$ref": "#/components/schemas/OptimizationRequest"
+          }
+        },
+        "required": [
+          "request",
+          "disruption"
+        ],
+        "title": "RecoveryRequest",
+        "type": "object"
+      },
+      "RecoveryResponse": {
+        "description": "POST /recover response body: the disrupted plan and its recovery result.",
+        "properties": {
+          "disruption": {
+            "$ref": "#/components/schemas/DisruptionEvent"
+          },
+          "recovery_result": {
+            "$ref": "#/components/schemas/OptimizationResult"
+          },
+          "updated_request": {
+            "$ref": "#/components/schemas/OptimizationRequest"
+          }
+        },
+        "required": [
+          "disruption",
+          "updated_request",
+          "recovery_result"
+        ],
+        "title": "RecoveryResponse",
+        "type": "object"
+      },
+      "RejectProposalRequest": {
+        "additionalProperties": false,
+        "description": "Body for POST /jobs/{job_id}/proposal/reject (Sprint 3 Slice 3).\n\nBoth fields are mandatory: a rejection must name the exact proposal\nit refuses and state why.",
+        "properties": {
+          "expected_proposal_run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Expected Proposal Run Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_proposal_run_id",
+          "reason"
+        ],
+        "title": "RejectProposalRequest",
+        "type": "object"
+      },
+      "ReleaseBlockRequest": {
+        "additionalProperties": false,
+        "description": "Body for POST /jobs/{job_id}/proposal/release (Sprint 3 Slice 6).\n\nReleases an APPROVED (committed) block whose execution cannot begin -\npossession not granted, crew or safety restriction, cancellation\nbefore START. Both fields are mandatory: the release must name the\nexact commitment it withdraws and say why. There is no status field\nand no new JobStatus: the job returns to 'reported', and reason is\nwhat distinguishes one release from another.",
+        "properties": {
+          "expected_proposal_run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Expected Proposal Run Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_proposal_run_id",
+          "reason"
+        ],
+        "title": "ReleaseBlockRequest",
+        "type": "object"
+      },
+      "ScheduledBlock": {
+        "properties": {
+          "block_id": {
+            "title": "Block Id",
+            "type": "string"
+          },
+          "end_minute": {
+            "title": "End Minute",
+            "type": "integer"
+          },
+          "is_committed": {
+            "default": false,
+            "title": "Is Committed",
+            "type": "boolean"
+          },
+          "priority_score": {
+            "default": 0.5,
+            "title": "Priority Score",
+            "type": "number"
+          },
+          "risk_score": {
+            "default": 0.5,
+            "title": "Risk Score",
+            "type": "number"
+          },
+          "section_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Id"
+          },
+          "start_minute": {
+            "title": "Start Minute",
+            "type": "integer"
+          },
+          "status": {
+            "default": "SCHEDULED",
+            "title": "Status",
+            "type": "string"
+          },
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          },
+          "work_type": {
+            "title": "Work Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_id",
+          "track_id",
+          "start_minute",
+          "end_minute",
+          "work_type"
+        ],
+        "title": "ScheduledBlock",
+        "type": "object"
+      },
+      "ScheduledJobOutcome": {
+        "properties": {
+          "end_minute": {
+            "title": "End Minute",
+            "type": "integer"
+          },
+          "is_committed": {
+            "title": "Is Committed",
+            "type": "boolean"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "start_minute": {
+            "title": "Start Minute",
+            "type": "integer"
+          },
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "track_id",
+          "start_minute",
+          "end_minute",
+          "is_committed"
+        ],
+        "title": "ScheduledJobOutcome",
+        "type": "object"
+      },
+      "StartExecutionRequest": {
+        "additionalProperties": false,
+        "description": "Body for POST /jobs/{job_id}/execution/start.\n\nexpected_proposal_run_id pins the start to the block the caller\nreviewed, exactly as CommitBlockRequest/ApproveProposalRequest pin a\ncommit - see JobService.start_execution.",
+        "properties": {
+          "actual_start_at": {
+            "minLength": 1,
+            "title": "Actual Start At",
+            "type": "string"
+          },
+          "before_work_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceInput"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Before Work Evidence",
+            "type": "array"
+          },
+          "expected_proposal_run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Expected Proposal Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_proposal_run_id",
+          "actual_start_at",
+          "before_work_evidence"
+        ],
+        "title": "StartExecutionRequest",
+        "type": "object"
+      },
+      "UnscheduledJobOutcome": {
+        "properties": {
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "track_id",
+          "reason"
+        ],
+        "title": "UnscheduledJobOutcome",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Pashupatastra API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/optimize": {
+      "post": {
+        "operationId": "optimize_optimize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OptimizationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptimizationResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Optimize"
+      }
+    },
+    "/recover": {
+      "post": {
+        "operationId": "recover_recover_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecoveryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recover"
+      }
+    },
+    "/v1/corridors/{corridor_id}/optimize-jobs": {
+      "post": {
+        "description": "Run the existing CP-SAT solver over this corridor's active jobs.\n\nReturns an honest batch outcome: scheduled and unscheduled work are\nreported separately, with the solver's own reasons, and the\nprovenance of the possession data used is stated explicitly.",
+        "operationId": "optimize_corridor_jobs_v1_corridors__corridor_id__optimize_jobs_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "corridor_id",
+            "required": true,
+            "schema": {
+              "title": "Corridor Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobOptimizationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Optimize Corridor Jobs",
+        "tags": [
+          "jobs",
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs": {
+      "get": {
+        "description": "One page of jobs, newest first: {items, next_cursor}.\n\nOrdered by (created_at, job_id) descending, so paging never repeats\nor skips a job that existed when paging began. next_cursor is null on\nthe last page.",
+        "operationId": "list_jobs_v1_jobs_get",
+        "parameters": [
+          {
+            "description": "Optional status filter, e.g. 'reported' for the authority review queue.",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/JobStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional status filter, e.g. 'reported' for the authority review queue.",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "Page size (1-200, default 50).",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Page size (1-200, default 50).",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Opaque cursor: the next_cursor of the previous page, passed back verbatim. Omit for the first page.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque cursor: the next_cursor of the previous page, passed back verbatim. Omit for the first page.",
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Jobs",
+        "tags": [
+          "jobs"
+        ]
+      },
+      "post": {
+        "operationId": "create_job_v1_jobs_post",
+        "parameters": [
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}": {
+      "get": {
+        "operationId": "get_job_v1_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}/execution": {
+      "get": {
+        "description": "Every execution of this job, oldest first, derived from history.\n\n200 with an empty executions list when the job exists but has never\nhad a field execution - never a 404 - see JobService.get_execution.\n404 only when the job itself does not exist.",
+        "operationId": "get_job_execution_v1_jobs__job_id__execution_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobExecutionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Job Execution",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}/execution/complete": {
+      "post": {
+        "description": "in_progress -> completed: field work finished, with after-work evidence.\n\nTerminal - see JobService.complete_execution. Requires 1-10\nafter-work evidence items; none may reuse a before-work reference of\nthe same execution.",
+        "operationId": "complete_execution_v1_jobs__job_id__execution_complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteExecutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionActionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Complete Execution",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}/execution/not-completed": {
+      "post": {
+        "description": "in_progress -> reported: work not completed; released for replanning.\n\nThe committed block is released, never rewritten into a new\nproposal - see JobService.report_execution_not_completed. Evidence is\noptional (0-10 items); reason is mandatory.",
+        "operationId": "report_execution_not_completed_v1_jobs__job_id__execution_not_completed_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecutionNotCompletedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionActionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Execution Not Completed",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}/execution/start": {
+      "post": {
+        "description": "notified -> in_progress: field work on the approved block has started.\n\nApproval is permission to execute, not completion - see\nJobService.start_execution. Requires 1-10 before-work evidence items\nand the expected_proposal_run_id of the block being executed.",
+        "operationId": "start_execution_v1_jobs__job_id__execution_start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartExecutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExecutionActionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Execution",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}/history": {
+      "get": {
+        "description": "Chronological, append-only lifecycle history of one job.\n\nRead-only: there is no route that updates or deletes history, and\nthe underlying table rejects UPDATE and DELETE at the SQL layer.\nEvents contain actor identifiers, roles and assurance levels - no\ncredentials, tokens or secrets are recorded anywhere in history.",
+        "operationId": "get_job_history_v1_jobs__job_id__history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobHistoryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Job History",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}/notify": {
+      "post": {
+        "description": "Commit the job's CURRENT proposal, pinned to the run the caller reviewed.\n\nexpected_proposal_run_id is REQUIRED (Slice 7): there is no unpinned\ncommit path in the v1 contract. Equivalent to /proposal/approve, which\nis the preferred route for the authority review flow.",
+        "operationId": "notify_job_v1_jobs__job_id__notify_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitBlockRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobActionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Notify Job",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}/proposal": {
+      "get": {
+        "description": "The job's current NEW-scheduling proposal (Sprint 3 Slice 2).\n\n409 when the job exists but has no current proposal right now -\nnever yet optimized, considered and left UNSCHEDULED, or already\ncommitted/completed. A proposal is never a commitment: this route\nnever reports is_committed=True (POST /jobs/{job_id}/notify is the\nonly route that commits work).",
+        "operationId": "get_job_proposal_v1_jobs__job_id__proposal_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockProposalResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Job Proposal",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}/proposal/approve": {
+      "post": {
+        "description": "Approve (commit) the job's CURRENT NEW-block proposal.\n\nDelegates to the same commit machinery as POST /jobs/{job_id}/notify\n(JobAction.COMMIT_BLOCK; no separate APPROVE_PROPOSAL permission\nexists) - see JobService.approve_proposal. expected_proposal_run_id\nis mandatory here, unlike /notify's optional body.",
+        "operationId": "approve_proposal_v1_jobs__job_id__proposal_approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveProposalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobActionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Proposal",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}/proposal/postpone": {
+      "post": {
+        "description": "Postpone the job's CURRENT NEW-block proposal to a not-before date.\n\nscheduled -> reported, with the block's earliest_start_minute raised\nso the next optimization attempt cannot place it earlier than\nselected_date - see JobService.postpone_proposal. A date outside\nthis deployment's supported optimization horizon fails closed (400)\nrather than silently accepted.",
+        "operationId": "postpone_proposal_v1_jobs__job_id__proposal_postpone_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostponeProposalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobActionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Postpone Proposal",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}/proposal/reject": {
+      "post": {
+        "description": "Reject the job's CURRENT NEW-block proposal outright.\n\nscheduled -> reported. The job stays eligible for the next\noptimization attempt to produce a genuinely new proposal - see\nJobService.reject_proposal.",
+        "operationId": "reject_proposal_v1_jobs__job_id__proposal_reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectProposalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobActionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reject Proposal",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/jobs/{job_id}/proposal/release": {
+      "post": {
+        "description": "Release the job's APPROVED (committed) block: notified -> reported.\n\nFor a block that was already approved but whose execution cannot\nbegin - possession not granted, crew or safety restriction, authority\ncancellation before START. Distinct from /proposal/reject and\n/proposal/postpone, which act on an UNCOMMITTED proposal, and from\n/execution/not-completed, which reports work that actually started;\nonce the job is 'in_progress' this route refuses it (409/400) and\nnot-completed is the correct operation. See\nJobService.release_committed_block.\n\nThe released job returns to 'reported' and becomes eligible for the\nnext optimization run; no proposal is fabricated and no optimization\nis triggered here.",
+        "operationId": "release_committed_block_v1_jobs__job_id__proposal_release_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseBlockRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobActionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Release Committed Block",
+        "tags": [
+          "jobs"
+        ]
+      }
+    }
+  }
+}

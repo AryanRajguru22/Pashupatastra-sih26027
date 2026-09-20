@@ -418,20 +418,20 @@ def _create(client, **overrides) -> dict:
     }
     payload.update(overrides)
 
-    response = client.post("/jobs", json=payload, headers=WORKER_HEADERS)
+    response = client.post("/v1/jobs", json=payload, headers=WORKER_HEADERS)
     assert response.status_code == 201, response.text
     return response.json()
 
 
 def test_http_proposal_endpoint_404_before_creation(client):
-    response = client.get("/jobs/JOB-DOES-NOT-EXIST/proposal")
+    response = client.get("/v1/jobs/JOB-DOES-NOT-EXIST/proposal")
     assert response.status_code == 404
 
 
 def test_http_proposal_endpoint_409_before_optimization(client):
     job = _create(client)
 
-    response = client.get(f"/jobs/{job['job_id']}/proposal")
+    response = client.get(f"/v1/jobs/{job['job_id']}/proposal")
     assert response.status_code == 409
 
 
@@ -439,12 +439,12 @@ def test_http_proposal_endpoint_returns_the_new_proposal(client):
     job = _create(client, evidence_reference="PHOTO-777")
 
     optimized = client.post(
-        "/corridors/CORRIDOR_A/optimize-jobs", headers=ENGINEER_HEADERS
+        "/v1/corridors/CORRIDOR_A/optimize-jobs", headers=ENGINEER_HEADERS
     )
     assert optimized.status_code == 200, optimized.text
     run_id = optimized.json()["optimization_run_id"]
 
-    response = client.get(f"/jobs/{job['job_id']}/proposal")
+    response = client.get(f"/v1/jobs/{job['job_id']}/proposal")
     assert response.status_code == 200, response.text
     body = response.json()
 

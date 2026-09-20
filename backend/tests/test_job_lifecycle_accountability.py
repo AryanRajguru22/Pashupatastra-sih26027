@@ -1502,7 +1502,7 @@ AUTHORITY_HEADERS = {"X-Actor-Id": "AUTHORITY-017", "X-Actor-Role": "AUTHORITY"}
 
 def _create(client) -> dict:
     response = client.post(
-        "/jobs",
+        "/v1/jobs",
         json={
             "track_id": "UP-1",
             "job_type": "BALLAST_TAMPING",
@@ -1522,13 +1522,13 @@ def test_history_endpoint_shows_who_did_what_and_the_resulting_state(client):
     job = _create(client)
 
     optimized = client.post(
-        "/corridors/CORRIDOR_A/optimize-jobs", headers=ENGINEER_HEADERS
+        "/v1/corridors/CORRIDOR_A/optimize-jobs", headers=ENGINEER_HEADERS
     )
     assert optimized.status_code == 200, optimized.text
     run_id = optimized.json()["optimization_run_id"]
 
     committed = client.post(
-        f"/jobs/{job['job_id']}/notify",
+        f"/v1/jobs/{job['job_id']}/notify",
         json={"expected_proposal_run_id": run_id},
         headers=AUTHORITY_HEADERS,
     )
@@ -1539,14 +1539,14 @@ def test_history_endpoint_shows_who_did_what_and_the_resulting_state(client):
 
     stored = router_service.repository.get(job["job_id"])
     started = client.post(
-        f"/jobs/{job['job_id']}/execution/start",
+        f"/v1/jobs/{job['job_id']}/execution/start",
         json=start_execution_body(stored),
         headers=WORKER_HEADERS,
     )
     assert started.status_code == 200, started.text
 
     completed = client.post(
-        f"/jobs/{job['job_id']}/execution/complete",
+        f"/v1/jobs/{job['job_id']}/execution/complete",
         json=complete_execution_body(
             stored, started.json()["execution"]["execution_id"]
         ),
@@ -1554,7 +1554,7 @@ def test_history_endpoint_shows_who_did_what_and_the_resulting_state(client):
     )
     assert completed.status_code == 200, completed.text
 
-    response = client.get(f"/jobs/{job['job_id']}/history")
+    response = client.get(f"/v1/jobs/{job['job_id']}/history")
     assert response.status_code == 200
     body = response.json()
 
@@ -1590,17 +1590,17 @@ def test_history_endpoint_shows_who_did_what_and_the_resulting_state(client):
 
 
 def test_history_endpoint_for_missing_job_is_404(client):
-    assert client.get("/jobs/JOB-DOES-NOT-EXIST/history").status_code == 404
+    assert client.get("/v1/jobs/JOB-DOES-NOT-EXIST/history").status_code == 404
 
 
 @pytest.mark.parametrize("method", ["put", "patch", "delete", "post"])
 def test_history_endpoint_offers_no_modification(client, method):
     job = _create(client)
 
-    response = getattr(client, method)(f"/jobs/{job['job_id']}/history")
+    response = getattr(client, method)(f"/v1/jobs/{job['job_id']}/history")
 
     assert response.status_code == 405
-    assert len(client.get(f"/jobs/{job['job_id']}/history").json()["events"]) == 2
+    assert len(client.get(f"/v1/jobs/{job['job_id']}/history").json()["events"]) == 2
 
 
 def _http_operations() -> set[tuple[str, str]]:
@@ -1642,7 +1642,7 @@ def _http_operations() -> set[tuple[str, str]]:
 
 def test_no_route_can_modify_or_delete_history():
     operations = _http_operations()
-    assert ("GET", "/jobs/{job_id}/history") in operations
+    assert ("GET", "/v1/jobs/{job_id}/history") in operations
 
     for method, path in operations:
         if "history" in path:
@@ -1655,29 +1655,29 @@ def test_stale_commit_over_http_is_409_and_recorded(client):
     job = _create(client)
 
     first = client.post(
-        "/corridors/CORRIDOR_A/optimize-jobs", headers=ENGINEER_HEADERS
+        "/v1/corridors/CORRIDOR_A/optimize-jobs", headers=ENGINEER_HEADERS
     ).json()["optimization_run_id"]
-    client.post("/corridors/CORRIDOR_A/optimize-jobs", headers=ENGINEER_HEADERS)
+    client.post("/v1/corridors/CORRIDOR_A/optimize-jobs", headers=ENGINEER_HEADERS)
 
     response = client.post(
-        f"/jobs/{job['job_id']}/notify",
+        f"/v1/jobs/{job['job_id']}/notify",
         json={"expected_proposal_run_id": first},
         headers=AUTHORITY_HEADERS,
     )
 
     assert response.status_code == 409
 
-    last = client.get(f"/jobs/{job['job_id']}/history").json()["events"][-1]
+    last = client.get(f"/v1/jobs/{job['job_id']}/history").json()["events"][-1]
     assert last["event_type"] == "TRANSITION_REJECTED"
     assert last["actor"]["actor_id"] == "AUTHORITY-017"
-    assert client.get(f"/jobs/{job['job_id']}").json()["status"] == "scheduled"
+    assert client.get(f"/v1/jobs/{job['job_id']}").json()["status"] == "scheduled"
 
 
 def test_commit_body_rejects_unknown_fields(client):
     job = _create(client)
 
     response = client.post(
-        f"/jobs/{job['job_id']}/notify",
+        f"/v1/jobs/{job['job_id']}/notify",
         json={"approve": True},
         headers=AUTHORITY_HEADERS,
     )
@@ -1690,10 +1690,10 @@ def test_inconsistent_committed_state_over_http_is_409_and_recorded(client):
 
     job = _create(client)
     run_id = client.post(
-        "/corridors/CORRIDOR_A/optimize-jobs", headers=ENGINEER_HEADERS
+        "/v1/corridors/CORRIDOR_A/optimize-jobs", headers=ENGINEER_HEADERS
     ).json()["optimization_run_id"]
     client.post(
-        f"/jobs/{job['job_id']}/notify",
+        f"/v1/jobs/{job['job_id']}/notify",
         json={"expected_proposal_run_id": run_id},
         headers=AUTHORITY_HEADERS,
     )
@@ -1707,18 +1707,18 @@ def test_inconsistent_committed_state_over_http_is_409_and_recorded(client):
     )
 
     for path, headers, body in (
-        ("/corridors/CORRIDOR_A/optimize-jobs", ENGINEER_HEADERS, None),
-        (f"/jobs/{job['job_id']}/execution/start", WORKER_HEADERS, start_body),
+        ("/v1/corridors/CORRIDOR_A/optimize-jobs", ENGINEER_HEADERS, None),
+        (f"/v1/jobs/{job['job_id']}/execution/start", WORKER_HEADERS, start_body),
     ):
         response = client.post(path, json=body, headers=headers)
         assert response.status_code == 409, response.text
         assert "inconsistent" in response.json()["detail"]
 
-    stored = client.get(f"/jobs/{job['job_id']}").json()
+    stored = client.get(f"/v1/jobs/{job['job_id']}").json()
     assert stored["status"] == "notified"
     assert stored["block_candidate"]["status"] == "SCHEDULED"
 
-    last_two = client.get(f"/jobs/{job['job_id']}/history").json()["events"][-2:]
+    last_two = client.get(f"/v1/jobs/{job['job_id']}/history").json()["events"][-2:]
     assert [e["metadata"]["error_type"] for e in last_two] == [
         "CommittedStateIntegrityError"
     ] * 2
@@ -1814,23 +1814,23 @@ def test_every_state_changing_route_is_a_reviewed_history_recording_path():
     }
 
     assert mutating == {
-        ("POST", "/jobs"),
-        ("POST", "/corridors/{corridor_id}/optimize-jobs"),
-        ("POST", "/jobs/{job_id}/notify"),
-        ("POST", "/jobs/{job_id}/proposal/approve"),
-        ("POST", "/jobs/{job_id}/proposal/reject"),
-        ("POST", "/jobs/{job_id}/proposal/postpone"),
+        ("POST", "/v1/jobs"),
+        ("POST", "/v1/corridors/{corridor_id}/optimize-jobs"),
+        ("POST", "/v1/jobs/{job_id}/notify"),
+        ("POST", "/v1/jobs/{job_id}/proposal/approve"),
+        ("POST", "/v1/jobs/{job_id}/proposal/reject"),
+        ("POST", "/v1/jobs/{job_id}/proposal/postpone"),
         # Sprint 3 Slice 6: authority release of an APPROVED (committed)
         # block whose execution cannot begin. notified -> reported, with
         # its own JobAction (RELEASE_COMMITTED_BLOCK) and its own event
         # (BLOCK_RELEASED).
-        ("POST", "/jobs/{job_id}/proposal/release"),
+        ("POST", "/v1/jobs/{job_id}/proposal/release"),
         # Sprint 3 Slice 5: field execution of an approved block, the only
         # completion mechanism (Step 4 retired POST /jobs/{job_id}/complete).
         # GET /jobs/{job_id}/execution is a read and is excluded above.
-        ("POST", "/jobs/{job_id}/execution/start"),
-        ("POST", "/jobs/{job_id}/execution/complete"),
-        ("POST", "/jobs/{job_id}/execution/not-completed"),
+        ("POST", "/v1/jobs/{job_id}/execution/start"),
+        ("POST", "/v1/jobs/{job_id}/execution/complete"),
+        ("POST", "/v1/jobs/{job_id}/execution/not-completed"),
         ("POST", "/optimize"),
         ("POST", "/recover"),
     }
@@ -1847,7 +1847,7 @@ def test_every_job_mutation_over_http_records_its_event(client):
     job_id = job["job_id"]
 
     def events():
-        return client.get(f"/jobs/{job_id}/history").json()["events"]
+        return client.get(f"/v1/jobs/{job_id}/history").json()["events"]
 
     assert [e["event_type"] for e in events()] == ["JOB_CREATED", "JOB_SCORED"]
 
@@ -1862,22 +1862,29 @@ def test_every_job_mutation_over_http_records_its_event(client):
         assert added, path
         assert added[-1]["event_type"] == event_type
         assert added[-1]["after_state"]["status"] == status
-        assert client.get(f"/jobs/{job_id}").json()["status"] == status
+        assert client.get(f"/v1/jobs/{job_id}").json()["status"] == status
         return response
 
-    step("/corridors/CORRIDOR_A/optimize-jobs", ENGINEER_HEADERS, "BLOCK_PROPOSED", "scheduled")
-    step(f"/jobs/{job_id}/notify", AUTHORITY_HEADERS, "BLOCK_COMMITTED", "notified")
+    step("/v1/corridors/CORRIDOR_A/optimize-jobs", ENGINEER_HEADERS, "BLOCK_PROPOSED", "scheduled")
+    run_id = client.get(f"/v1/jobs/{job_id}").json()["proposal_run_id"]
+    step(
+        f"/v1/jobs/{job_id}/notify",
+        AUTHORITY_HEADERS,
+        "BLOCK_COMMITTED",
+        "notified",
+        {"expected_proposal_run_id": run_id},
+    )
 
     stored = router_service.repository.get(job_id)
     started = step(
-        f"/jobs/{job_id}/execution/start",
+        f"/v1/jobs/{job_id}/execution/start",
         WORKER_HEADERS,
         "EXECUTION_STARTED",
         "in_progress",
         start_execution_body(stored),
     )
     step(
-        f"/jobs/{job_id}/execution/complete",
+        f"/v1/jobs/{job_id}/execution/complete",
         WORKER_HEADERS,
         "EXECUTION_COMPLETED",
         "completed",
@@ -1985,24 +1992,24 @@ def test_no_state_changing_route_accepts_a_system_role(client, role):
     headers = {"X-Actor-Id": "SYSTEM:OPTIMIZER", "X-Actor-Role": role}
 
     for path in (
-        "/jobs",
-        "/corridors/CORRIDOR_A/optimize-jobs",
-        f"/jobs/{job_id}/notify",
-        f"/jobs/{job_id}/proposal/approve",
-        f"/jobs/{job_id}/proposal/reject",
-        f"/jobs/{job_id}/proposal/postpone",
-        f"/jobs/{job_id}/proposal/release",
-        f"/jobs/{job_id}/execution/start",
-        f"/jobs/{job_id}/execution/complete",
-        f"/jobs/{job_id}/execution/not-completed",
+        "/v1/jobs",
+        "/v1/corridors/CORRIDOR_A/optimize-jobs",
+        f"/v1/jobs/{job_id}/notify",
+        f"/v1/jobs/{job_id}/proposal/approve",
+        f"/v1/jobs/{job_id}/proposal/reject",
+        f"/v1/jobs/{job_id}/proposal/postpone",
+        f"/v1/jobs/{job_id}/proposal/release",
+        f"/v1/jobs/{job_id}/execution/start",
+        f"/v1/jobs/{job_id}/execution/complete",
+        f"/v1/jobs/{job_id}/execution/not-completed",
     ):
-        body = _REPORT_BODY if path == "/jobs" else _proposal_review_body(path)
+        body = _REPORT_BODY if path == "/v1/jobs" else _proposal_review_body(path)
         response = client.post(path, json=body, headers=headers)
         assert response.status_code == 403, (path, response.text)
 
     assert count_events(db) == events_before
     assert raw_row(db, job_id) == row_before
-    assert len(client.get("/jobs").json()) == 1
+    assert len(client.get("/v1/jobs").json()["items"]) == 1
 
 
 def test_system_looking_id_with_a_human_role_is_rejected_on_every_route(client):
@@ -2010,27 +2017,27 @@ def test_system_looking_id_with_a_human_role_is_rejected_on_every_route(client):
     headers = {"X-Actor-Id": "system:optimizer", "X-Actor-Role": "AUTHORITY"}
 
     for path in (
-        "/corridors/CORRIDOR_A/optimize-jobs",
-        f"/jobs/{job['job_id']}/notify",
-        f"/jobs/{job['job_id']}/proposal/approve",
-        f"/jobs/{job['job_id']}/proposal/reject",
-        f"/jobs/{job['job_id']}/proposal/postpone",
-        f"/jobs/{job['job_id']}/proposal/release",
-        f"/jobs/{job['job_id']}/execution/start",
-        f"/jobs/{job['job_id']}/execution/complete",
-        f"/jobs/{job['job_id']}/execution/not-completed",
+        "/v1/corridors/CORRIDOR_A/optimize-jobs",
+        f"/v1/jobs/{job['job_id']}/notify",
+        f"/v1/jobs/{job['job_id']}/proposal/approve",
+        f"/v1/jobs/{job['job_id']}/proposal/reject",
+        f"/v1/jobs/{job['job_id']}/proposal/postpone",
+        f"/v1/jobs/{job['job_id']}/proposal/release",
+        f"/v1/jobs/{job['job_id']}/execution/start",
+        f"/v1/jobs/{job['job_id']}/execution/complete",
+        f"/v1/jobs/{job['job_id']}/execution/not-completed",
     ):
         body = _proposal_review_body(path)
         assert client.post(path, json=body, headers=headers).status_code == 400, path
 
-    assert client.get(f"/jobs/{job['job_id']}").json()["status"] == "reported"
+    assert client.get(f"/v1/jobs/{job['job_id']}").json()["status"] == "reported"
 
 
 def test_caller_cannot_raise_its_own_identity_assurance(client):
     """No header can turn a declared identity into a verified or system one."""
 
     response = client.post(
-        "/jobs",
+        "/v1/jobs",
         json=_REPORT_BODY,
         headers={
             **AUTHORITY_HEADERS,
@@ -2041,7 +2048,7 @@ def test_caller_cannot_raise_its_own_identity_assurance(client):
     )
     assert response.status_code == 201, response.text
 
-    actor = client.get(f"/jobs/{response.json()['job_id']}/history").json()[
+    actor = client.get(f"/v1/jobs/{response.json()['job_id']}/history").json()[
         "events"
     ][0]["actor"]
 

@@ -233,9 +233,9 @@ def test_legacy_completion_machinery_is_retired():
     from backend.app.api.main import app
 
     paths = app.openapi()["paths"]
-    assert "/jobs/{job_id}/complete" not in paths
-    assert [p for p in paths if p.endswith("/complete")] == ["/jobs/{job_id}/execution/complete"]
-    assert set(paths["/jobs/{job_id}/execution"]) == {"get"}
+    assert "/v1/jobs/{job_id}/complete" not in paths
+    assert [p for p in paths if p.endswith("/complete")] == ["/v1/jobs/{job_id}/execution/complete"]
+    assert set(paths["/v1/jobs/{job_id}/execution"]) == {"get"}
 
 
 def test_a_job_committed_without_an_optimization_run_cannot_be_executed(
@@ -275,7 +275,7 @@ def test_legacy_completion_route_is_absent_over_http():
 
     client = TestClient(app)
     job = client.post(
-        "/jobs",
+        "/v1/jobs",
         json={
             "track_id": "UP-1",
             "job_type": "BALLAST_TAMPING",
@@ -290,7 +290,7 @@ def test_legacy_completion_route_is_absent_over_http():
 
     before = router_service.repository.get(job["job_id"])
     response = client.post(
-        f"/jobs/{job['job_id']}/complete",
+        f"/v1/jobs/{job['job_id']}/complete",
         headers={"X-Actor-Id": "WORKER-042", "X-Actor-Role": "WORKER"},
     )
 

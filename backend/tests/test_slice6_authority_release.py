@@ -1153,7 +1153,7 @@ WORKER_HEADERS = {"X-Actor-Id": "WORKER-042", "X-Actor-Role": "WORKER"}
 
 def _http_notified(client) -> dict:
     created = client.post(
-        "/jobs",
+        "/v1/jobs",
         json={
             "track_id": "UP-1",
             "job_type": "BALLAST_TAMPING",
@@ -1170,7 +1170,7 @@ def _http_notified(client) -> dict:
 
     assert (
         client.post(
-            f"/corridors/{CORRIDOR}/optimize-jobs", headers=ENGINEER_HEADERS
+            f"/v1/corridors/{CORRIDOR}/optimize-jobs", headers=ENGINEER_HEADERS
         ).status_code
         == 200
     )
@@ -1180,7 +1180,7 @@ def _http_notified(client) -> dict:
     run_id = proposal_run_id_of(router_module.service.repository.get(job_id))
 
     approved = client.post(
-        f"/jobs/{job_id}/proposal/approve",
+        f"/v1/jobs/{job_id}/proposal/approve",
         json={"expected_proposal_run_id": run_id},
         headers=AUTHORITY_HEADERS,
     )
@@ -1192,7 +1192,7 @@ def test_http_release_returns_the_reported_job(client):
     context = _http_notified(client)
 
     response = client.post(
-        f"/jobs/{context['job_id']}/proposal/release",
+        f"/v1/jobs/{context['job_id']}/proposal/release",
         json={"expected_proposal_run_id": context["run_id"], "reason": REASON},
         headers=AUTHORITY_HEADERS,
     )
@@ -1204,7 +1204,7 @@ def test_http_release_returns_the_reported_job(client):
     assert body["job"]["schedule_start_minute"] is None
 
     history = client.get(
-        f"/jobs/{context['job_id']}/history", headers=AUTHORITY_HEADERS
+        f"/v1/jobs/{context['job_id']}/history", headers=AUTHORITY_HEADERS
     ).json()["events"]
     assert history[-1]["event_type"] == "BLOCK_RELEASED"
     assert history[-1]["reason"] == REASON
@@ -1214,13 +1214,13 @@ def test_http_stale_release_is_a_conflict(client):
     context = _http_notified(client)
 
     response = client.post(
-        f"/jobs/{context['job_id']}/proposal/release",
+        f"/v1/jobs/{context['job_id']}/proposal/release",
         json={"expected_proposal_run_id": "RUN-NOT-CURRENT", "reason": REASON},
         headers=AUTHORITY_HEADERS,
     )
 
     assert response.status_code == 409, response.text
-    assert client.get(f"/jobs/{context['job_id']}").json()["status"] == "notified"
+    assert client.get(f"/v1/jobs/{context['job_id']}").json()["status"] == "notified"
 
 
 def test_http_release_after_start_is_refused(client):
@@ -1231,20 +1231,20 @@ def test_http_release_after_start_is_refused(client):
 
     stored = router_module.service.repository.get(job_id)
     started = client.post(
-        f"/jobs/{job_id}/execution/start",
+        f"/v1/jobs/{job_id}/execution/start",
         json=start_execution_body(stored),
         headers=WORKER_HEADERS,
     )
     assert started.status_code == 200, started.text
 
     response = client.post(
-        f"/jobs/{job_id}/proposal/release",
+        f"/v1/jobs/{job_id}/proposal/release",
         json={"expected_proposal_run_id": context["run_id"], "reason": REASON},
         headers=AUTHORITY_HEADERS,
     )
 
     assert response.status_code == 400, response.text
-    assert client.get(f"/jobs/{job_id}").json()["status"] == "in_progress"
+    assert client.get(f"/v1/jobs/{job_id}").json()["status"] == "in_progress"
 
 
 @pytest.mark.parametrize(
@@ -1262,13 +1262,13 @@ def test_http_release_validates_its_body_strictly(client, body):
     context = _http_notified(client)
 
     response = client.post(
-        f"/jobs/{context['job_id']}/proposal/release",
+        f"/v1/jobs/{context['job_id']}/proposal/release",
         json=body,
         headers=AUTHORITY_HEADERS,
     )
 
     assert response.status_code == 422, response.text
-    assert client.get(f"/jobs/{context['job_id']}").json()["status"] == "notified"
+    assert client.get(f"/v1/jobs/{context['job_id']}").json()["status"] == "notified"
 
 
 def test_http_release_is_denied_without_authorization(client):
@@ -1282,7 +1282,7 @@ def test_http_release_is_denied_without_authorization(client):
 
     try:
         response = client.post(
-            f"/jobs/{context['job_id']}/proposal/release",
+            f"/v1/jobs/{context['job_id']}/proposal/release",
             json={"expected_proposal_run_id": context["run_id"], "reason": REASON},
             headers=AUTHORITY_HEADERS,
         )
@@ -1290,12 +1290,12 @@ def test_http_release_is_denied_without_authorization(client):
         router_module.service.authorization = original
 
     assert response.status_code == 403, response.text
-    assert client.get(f"/jobs/{context['job_id']}").json()["status"] == "notified"
+    assert client.get(f"/v1/jobs/{context['job_id']}").json()["status"] == "notified"
 
 
 def test_http_release_of_a_missing_job_is_a_404(client):
     response = client.post(
-        "/jobs/JOB-DOES-NOT-EXIST/proposal/release",
+        "/v1/jobs/JOB-DOES-NOT-EXIST/proposal/release",
         json={"expected_proposal_run_id": "RUN-1", "reason": REASON},
         headers=AUTHORITY_HEADERS,
     )

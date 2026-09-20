@@ -135,25 +135,36 @@ class JobResponse(BaseModel):
     block_candidate: dict
 
 
+class JobListResponse(BaseModel):
+    """GET /v1/jobs - one page of jobs, newest first.
+
+    next_cursor is opaque: pass it back verbatim as ?cursor= to fetch the
+    following page. None means this was the last page.
+    """
+
+    items: list[JobResponse]
+    next_cursor: Optional[str] = None
+
+
 class JobActionResponse(BaseModel):
     job: JobResponse
     message: str
 
 
 class CommitBlockRequest(BaseModel):
-    """Optional body for POST /jobs/{job_id}/notify.
+    """Body for POST /v1/jobs/{job_id}/notify.
 
-    expected_proposal_run_id pins the commit to the proposal the caller
-    reviewed: if the job's current proposal came from a different run,
-    the commit is refused with 409 and the attempt is recorded. Omitting
-    the body keeps the pre-Slice-1 behaviour (commit the current
-    proposal).
+    expected_proposal_run_id is REQUIRED (Slice 7): the v1 contract has
+    no unpinned commit path. It pins the commit to the proposal the
+    caller reviewed - if the job's current proposal came from a different
+    run, the commit is refused with 409 STALE_PROPOSAL and the attempt is
+    recorded. The in-process JobService.notify keeps its optional
+    parameter for direct callers; only the HTTP contract requires it.
     """
 
     model_config = ConfigDict(extra="forbid")
 
-    expected_proposal_run_id: Optional[str] = Field(
-        default=None,
+    expected_proposal_run_id: str = Field(
         min_length=1,
         max_length=128,
     )
@@ -162,8 +173,7 @@ class CommitBlockRequest(BaseModel):
 class ApproveProposalRequest(BaseModel):
     """Body for POST /jobs/{job_id}/proposal/approve (Sprint 3 Slice 3).
 
-    Unlike CommitBlockRequest (the existing /notify body, kept optional
-    for compatibility), expected_proposal_run_id is REQUIRED here: an
+    Like CommitBlockRequest, expected_proposal_run_id is REQUIRED here: an
     authority approving a reviewed proposal must always name it, so an
     approval can never silently commit whatever happens to be current.
     Approval itself delegates to the existing commit machinery

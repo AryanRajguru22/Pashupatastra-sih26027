@@ -15,13 +15,25 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.app.api.errors import install_error_handlers
 from backend.app.api.routers import health, optimize, recover
 
 from backend.app.jobs.router import (
     router as jobs_router,
 )
 
+# API CONTRACT (Slice 7)
+#   /v1/...            the frozen frontend-facing jobs-lifecycle contract
+#                      (backend.app.jobs.router). Structured {code, detail}
+#                      errors; see backend.app.api.errors.
+#   /optimize,/recover LEGACY Milestone-1 demo routes. Kept exactly as
+#                      they were (unversioned, default error body) because
+#                      the existing dashboard calls them. NOT part of the
+#                      v1 contract; do not build lifecycle features on them.
+#   /health            unversioned liveness check.
 app = FastAPI(title="Pashupatastra API")
+
+install_error_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,

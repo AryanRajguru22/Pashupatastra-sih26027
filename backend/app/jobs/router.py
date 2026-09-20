@@ -1,22 +1,29 @@
 from __future__ import annotations
 
+import base64
+import binascii
+import json
 from typing import Optional
 
 from fastapi import (
     APIRouter,
-    Body,
     Depends,
-    HTTPException,
     Query,
 )
 
 from backend.app.api.deps import request_actor
 
+from backend.app.api.errors import V1_PREFIX, ApiError, ErrorCode
+
 from backend.app.identity.actor import Actor
 
 from backend.app.identity.authorization import AuthorizationDenied
 
-from backend.app.jobs.execution import ExecutionIntegrityError, ExecutionRecord
+from backend.app.jobs.execution import (
+    EvidenceValidationError,
+    ExecutionIntegrityError,
+    ExecutionRecord,
+)
 
 from backend.app.jobs.history import StoredJobEvent
 
@@ -24,6 +31,7 @@ from backend.app.jobs.lifecycle import (
     CommittedJobError,
     CommittedStateIntegrityError,
     ConcurrentJobModificationError,
+    InvalidTransitionError,
     StaleExecutionError,
     StaleProposalError,
 )
@@ -41,6 +49,7 @@ from backend.app.jobs.models import (
     JobEventResponse,
     JobExecutionsResponse,
     JobHistoryResponse,
+    JobListResponse,
     JobOptimizationResponse,
     JobResponse,
     JobStatus,
@@ -70,8 +79,12 @@ from backend.app.jobs.service import (
 )
 
 
+# The v1 contract (Slice 7): every jobs-lifecycle route lives under
+# /v1. The legacy Milestone-1 demo routes (/optimize, /recover) and
+# /health are NOT part of it and stay where they are - see main.py.
 router = APIRouter(
-    tags=["jobs"]
+    prefix=V1_PREFIX,
+    tags=["jobs"],
 )
 
 service = JobService()
@@ -96,6 +109,102 @@ _CONFLICTS = (
 )
 
 
+# Every domain exception the routes translate, mapped to (status, code).
+# ORDER MATTERS: the first isinstance match wins, so a subclass must
+# precede its base (ExecutionTokenError/ReleaseTokenError are
+# CommittedJobError subclasses; EvidenceValidationError and
+# InvalidTransitionError are ValueError subclasses). Statuses are the
+# ones the routes returned before Slice 7 - only the code is new.
+_TRANSLATIONS: tuple[tuple[type, int, ErrorCode], ...] = (
+    (AuthorizationDenied, 403, ErrorCode.AUTHORIZATION_DENIED),
+    (NoEligibleJobsError, 409, ErrorCode.NO_ELIGIBLE_JOBS),
+    (PossessionDataUnavailableError, 409, ErrorCode.POSSESSION_DATA_UNAVAILABLE),
+    (TimetableCoverageGapError, 409, ErrorCode.TIMETABLE_COVERAGE_GAP),
+    (NoBlockProposalError, 409, ErrorCode.NO_CURRENT_PROPOSAL),
+    (TerminalJobError, 409, ErrorCode.JOB_TERMINAL),
+    (CommittedJobError, 409, ErrorCode.JOB_COMMITTED),
+    (
+        CommittedStateIntegrityError,
+        409,
+        ErrorCode.COMMITTED_STATE_INCONSISTENT,
+    ),
+    (StaleProposalError, 409, ErrorCode.STALE_PROPOSAL),
+    (StaleExecutionError, 409, ErrorCode.STALE_EXECUTION),
+    (
+        ExecutionIntegrityError,
+        409,
+        ErrorCode.EXECUTION_HISTORY_INCONSISTENT,
+    ),
+    (
+        ConcurrentJobModificationError,
+        409,
+        ErrorCode.CONCURRENT_MODIFICATION,
+    ),
+    (EvidenceValidationError, 400, ErrorCode.EVIDENCE_INVALID),
+    (InvalidTransitionError, 400, ErrorCode.INVALID_TRANSITION),
+    (ValueError, 400, ErrorCode.INVALID_REQUEST),
+)
+
+_HANDLED = tuple(entry[0] for entry in _TRANSLATIONS) + (KeyError,)
+
+
+def _api_error(
+    exc: Exception,
+    *,
+    not_found: ErrorCode = ErrorCode.JOB_NOT_FOUND,
+) -> ApiError:
+    """The ApiError (status + stable code + prose) for a domain exception.
+
+    KeyError is the 404 every route already used; `not_found` names WHAT
+    was not found (a job by default, a corridor for optimize-jobs).
+    """
+
+    if isinstance(exc, KeyError):
+        # str(KeyError("x")) is the quoted repr "'x'"; the message is args[0].
+        message = exc.args[0] if exc.args and isinstance(exc.args[0], str) else str(exc)
+        return ApiError(404, not_found, message)
+
+    # The lifecycle plans re-raise EvidenceValidationError as an
+    # InvalidTransitionError (lifecycle._observations) so an evidence or
+    # observation-time problem is a refused transition. The original is
+    # kept as __cause__; a client fixing a photo timestamp needs
+    # EVIDENCE_INVALID, not a generic "invalid transition".
+    if isinstance(exc, InvalidTransitionError) and isinstance(
+        exc.__cause__, EvidenceValidationError
+    ):
+        return ApiError(400, ErrorCode.EVIDENCE_INVALID, str(exc))
+
+    for exc_type, status, code in _TRANSLATIONS:
+        if isinstance(exc, exc_type):
+            return ApiError(status, code, str(exc))
+
+    raise exc
+
+
+def _encode_cursor(created_at: str, job_id: str) -> str:
+    raw = json.dumps([created_at, job_id], separators=(",", ":"))
+    return base64.urlsafe_b64encode(raw.encode("utf-8")).decode("ascii")
+
+
+def _decode_cursor(cursor: str) -> tuple[str, str]:
+    try:
+        created_at, job_id = json.loads(
+            base64.urlsafe_b64decode(cursor.encode("ascii")).decode("utf-8")
+        )
+
+        if not isinstance(created_at, str) or not isinstance(job_id, str):
+            raise ValueError("cursor parts must be strings")
+
+    except (ValueError, TypeError, binascii.Error, UnicodeError) as exc:
+        raise ApiError(
+            400,
+            ErrorCode.INVALID_CURSOR,
+            "cursor is not a value returned by this API",
+        ) from exc
+
+    return created_at, job_id
+
+
 @router.post(
     "/jobs",
     response_model=JobResponse,
@@ -109,26 +218,21 @@ def create_job(
     try:
         job = service.create_job(request, actor=actor)
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return JobResponse(
         **as_public_job(job)
     )
 
 
+MAX_PAGE_SIZE = 200
+DEFAULT_PAGE_SIZE = 50
+
+
 @router.get(
     "/jobs",
-    response_model=list[JobResponse],
+    response_model=JobListResponse,
 )
 def list_jobs(
     status: JobStatus | None = Query(
@@ -138,20 +242,46 @@ def list_jobs(
             "authority review queue."
         ),
     ),
-) -> list[JobResponse]:
+    limit: int = Query(
+        default=DEFAULT_PAGE_SIZE,
+        ge=1,
+        le=MAX_PAGE_SIZE,
+        description="Page size (1-200, default 50).",
+    ),
+    cursor: Optional[str] = Query(
+        default=None,
+        description=(
+            "Opaque cursor: the next_cursor of the previous page, passed "
+            "back verbatim. Omit for the first page."
+        ),
+    ),
+) -> JobListResponse:
+    """One page of jobs, newest first: {items, next_cursor}.
 
-    jobs = (
-        service.repository.list_by_status(status.value)
-        if status is not None
-        else service.list_jobs()
+    Ordered by (created_at, job_id) descending, so paging never repeats
+    or skips a job that existed when paging began. next_cursor is null on
+    the last page.
+    """
+
+    after = _decode_cursor(cursor) if cursor is not None else None
+
+    # One extra row tells us whether another page exists.
+    rows = service.repository.list_page(
+        limit=limit + 1,
+        status=status.value if status is not None else None,
+        after=after,
     )
 
-    return [
-        JobResponse(
-            **as_public_job(job)
-        )
-        for job in jobs
-    ]
+    page, more = rows[:limit], len(rows) > limit
+
+    return JobListResponse(
+        items=[JobResponse(**as_public_job(job)) for job in page],
+        next_cursor=(
+            _encode_cursor(page[-1]["created_at"], page[-1]["job_id"])
+            if more
+            else None
+        ),
+    )
 
 
 @router.get(
@@ -165,9 +295,10 @@ def get_job(
     job = service.repository.get(job_id)
 
     if job is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Job '{job_id}' not found",
+        raise ApiError(
+            404,
+            ErrorCode.JOB_NOT_FOUND,
+            f"Job '{job_id}' not found",
         )
 
     return JobResponse(
@@ -194,17 +325,8 @@ def get_job_history(
     try:
         stored = service.job_history(job_id, actor=actor)
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Job '{job_id}' not found",
-        ) from exc
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return JobHistoryResponse(
         job_id=job_id,
@@ -239,23 +361,8 @@ def get_job_proposal(
     try:
         proposal = service.current_proposal(job_id, actor=actor)
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Job '{job_id}' not found",
-        ) from exc
-
-    except NoBlockProposalError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return _proposal_response(proposal)
 
@@ -295,47 +402,13 @@ def optimize_corridor_jobs(
             actor=actor,
         )
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
-
-    except NoEligibleJobsError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except PossessionDataUnavailableError as exc:
-        # Fail closed: nothing was solved and nothing was scheduled.
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except TimetableCoverageGapError as exc:
-        # Fail closed (Slice 4 Step 4): the canonical timetable does not
-        # cover every date the configured horizon requires. Nothing was
-        # solved and no possession window was derived for any date in
-        # this request - see TimetableCoverageGapError's own docstring.
-        # str(exc) carries the required/covered/uncovered dates.
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except _CONFLICTS as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
+    except _HANDLED as exc:
+        # PossessionDataUnavailableError and TimetableCoverageGapError
+        # fail closed: nothing was solved and nothing was scheduled (no
+        # possession window was derived for any date in the request -
+        # see TimetableCoverageGapError's own docstring). KeyError here
+        # means the corridor is unknown.
+        raise _api_error(exc, not_found=ErrorCode.CORRIDOR_NOT_FOUND) from exc
 
     return JobOptimizationResponse(**outcome)
 
@@ -346,42 +419,25 @@ def optimize_corridor_jobs(
 )
 def notify_job(
     job_id: str,
-    body: Optional[CommitBlockRequest] = Body(default=None),
+    body: CommitBlockRequest,
     actor: Actor = Depends(request_actor),
 ) -> JobActionResponse:
+    """Commit the job's CURRENT proposal, pinned to the run the caller reviewed.
+
+    expected_proposal_run_id is REQUIRED (Slice 7): there is no unpinned
+    commit path in the v1 contract. Equivalent to /proposal/approve, which
+    is the preferred route for the authority review flow.
+    """
 
     try:
         job = service.notify(
             job_id,
             actor=actor,
-            expected_proposal_run_id=(
-                body.expected_proposal_run_id if body is not None else None
-            ),
+            expected_proposal_run_id=body.expected_proposal_run_id,
         )
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except _CONFLICTS as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return JobActionResponse(
         job=JobResponse(
@@ -415,29 +471,8 @@ def approve_proposal(
             expected_proposal_run_id=body.expected_proposal_run_id,
         )
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except _CONFLICTS as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return JobActionResponse(
         job=JobResponse(
@@ -471,29 +506,8 @@ def reject_proposal(
             reason=body.reason,
         )
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except _CONFLICTS as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return JobActionResponse(
         job=JobResponse(
@@ -530,29 +544,8 @@ def postpone_proposal(
             selected_date=body.selected_date,
         )
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except _CONFLICTS as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return JobActionResponse(
         job=JobResponse(
@@ -595,29 +588,8 @@ def release_committed_block(
             reason=body.reason,
         )
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except _CONFLICTS as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return JobActionResponse(
         job=JobResponse(
@@ -673,29 +645,8 @@ def start_execution(
             ],
         )
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except _CONFLICTS as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return _execution_action_response(job, execution, "Execution started")
 
@@ -727,29 +678,8 @@ def complete_execution(
             ],
         )
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except _CONFLICTS as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return _execution_action_response(job, execution, "Execution completed")
 
@@ -780,29 +710,8 @@ def report_execution_not_completed(
             failure_evidence=[item.model_dump() for item in body.evidence],
         )
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except _CONFLICTS as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
-
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return _execution_action_response(job, execution, "Execution not completed")
 
@@ -825,23 +734,8 @@ def get_job_execution(
     try:
         executions = service.get_execution(job_id, actor=actor)
 
-    except AuthorizationDenied as exc:
-        raise HTTPException(
-            status_code=403,
-            detail=str(exc),
-        ) from exc
-
-    except ExecutionIntegrityError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc),
-        ) from exc
-
-    except KeyError as exc:
-        raise HTTPException(
-            status_code=404,
-            detail=str(exc),
-        ) from exc
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return JobExecutionsResponse(
         job_id=job_id,

@@ -1031,7 +1031,7 @@ def client():
 
 def _http_commit_job(client) -> dict:
     created = client.post(
-        "/jobs",
+        "/v1/jobs",
         json={
             "track_id": "UP-1",
             "job_type": "BALLAST_TAMPING",
@@ -1046,14 +1046,14 @@ def _http_commit_job(client) -> dict:
     job_id = created["job_id"]
 
     run_id = client.post(
-        "/corridors/CORRIDOR_A/optimize-jobs", headers=HTTP_ENGINEER
+        "/v1/corridors/CORRIDOR_A/optimize-jobs", headers=HTTP_ENGINEER
     ).json()["optimization_run_id"]
     client.post(
-        f"/jobs/{job_id}/notify",
+        f"/v1/jobs/{job_id}/notify",
         json={"expected_proposal_run_id": run_id},
         headers=HTTP_AUTHORITY,
     )
-    return client.get(f"/jobs/{job_id}").json()
+    return client.get(f"/v1/jobs/{job_id}").json()
 
 
 def test_http_start_and_complete_flow_returns_reconstructed_records(client):
@@ -1062,7 +1062,7 @@ def test_http_start_and_complete_flow_returns_reconstructed_records(client):
     start_minute = job["schedule_start_minute"] + 1
 
     start_response = client.post(
-        f"/jobs/{job_id}/execution/start",
+        f"/v1/jobs/{job_id}/execution/start",
         json={
             "expected_proposal_run_id": job["proposal_run_id"],
             "actual_start_at": local(start_minute),
@@ -1075,7 +1075,7 @@ def test_http_start_and_complete_flow_returns_reconstructed_records(client):
     assert body["job"]["status"] == "in_progress"
     execution_id = body["execution"]["execution_id"]
 
-    get_response = client.get(f"/jobs/{job_id}/execution", headers=HTTP_WORKER)
+    get_response = client.get(f"/v1/jobs/{job_id}/execution", headers=HTTP_WORKER)
     assert get_response.status_code == 200
     executions = get_response.json()["executions"]
     assert [item["execution_id"] for item in executions] == [execution_id]
@@ -1083,7 +1083,7 @@ def test_http_start_and_complete_flow_returns_reconstructed_records(client):
 
     end_minute = job["schedule_end_minute"] + 5
     complete_response = client.post(
-        f"/jobs/{job_id}/execution/complete",
+        f"/v1/jobs/{job_id}/execution/complete",
         json={
             "execution_id": execution_id,
             "actual_end_at": local(end_minute),
@@ -1098,14 +1098,14 @@ def test_http_start_and_complete_flow_returns_reconstructed_records(client):
 def test_http_get_execution_with_no_history_is_200_with_empty_list(client):
     job = _http_commit_job(client)
 
-    response = client.get(f"/jobs/{job['job_id']}/execution", headers=HTTP_WORKER)
+    response = client.get(f"/v1/jobs/{job['job_id']}/execution", headers=HTTP_WORKER)
 
     assert response.status_code == 200
     assert response.json() == {"job_id": job["job_id"], "executions": []}
 
 
 def test_http_get_execution_for_missing_job_is_404(client):
-    response = client.get("/jobs/JOB-DOES-NOT-EXIST/execution", headers=HTTP_WORKER)
+    response = client.get("/v1/jobs/JOB-DOES-NOT-EXIST/execution", headers=HTTP_WORKER)
 
     assert response.status_code == 404
 
@@ -1116,7 +1116,7 @@ def test_http_not_completed_flow_returns_job_to_reported(client):
     start_minute = job["schedule_start_minute"] + 1
 
     start_response = client.post(
-        f"/jobs/{job_id}/execution/start",
+        f"/v1/jobs/{job_id}/execution/start",
         json={
             "expected_proposal_run_id": job["proposal_run_id"],
             "actual_start_at": local(start_minute),
@@ -1128,7 +1128,7 @@ def test_http_not_completed_flow_returns_job_to_reported(client):
 
     end_minute = job["schedule_start_minute"] + 30
     response = client.post(
-        f"/jobs/{job_id}/execution/not-completed",
+        f"/v1/jobs/{job_id}/execution/not-completed",
         json={
             "execution_id": execution_id,
             "actual_end_at": local(end_minute),
@@ -1147,7 +1147,7 @@ def test_http_start_requires_at_least_one_before_work_evidence_item(client):
     start_minute = job["schedule_start_minute"] + 1
 
     response = client.post(
-        f"/jobs/{job_id}/execution/start",
+        f"/v1/jobs/{job_id}/execution/start",
         json={
             "expected_proposal_run_id": job["proposal_run_id"],
             "actual_start_at": local(start_minute),
@@ -1165,7 +1165,7 @@ def test_http_unauthenticated_system_role_is_refused_on_execution_routes(client)
     headers = {"X-Actor-Id": "SYSTEM:OPTIMIZER", "X-Actor-Role": "SYSTEM"}
 
     response = client.post(
-        f"/jobs/{job_id}/execution/start",
+        f"/v1/jobs/{job_id}/execution/start",
         json={
             "expected_proposal_run_id": job["proposal_run_id"],
             "actual_start_at": local(1),
@@ -1189,7 +1189,7 @@ def test_http_execution_actions_on_completed_job_return_400(client):
     start_minute = job["schedule_start_minute"] + 1
 
     start_response = client.post(
-        f"/jobs/{job_id}/execution/start",
+        f"/v1/jobs/{job_id}/execution/start",
         json={
             "expected_proposal_run_id": job["proposal_run_id"],
             "actual_start_at": local(start_minute),
@@ -1201,7 +1201,7 @@ def test_http_execution_actions_on_completed_job_return_400(client):
 
     end_minute = job["schedule_end_minute"] + 5
     complete_response = client.post(
-        f"/jobs/{job_id}/execution/complete",
+        f"/v1/jobs/{job_id}/execution/complete",
         json={
             "execution_id": execution_id,
             "actual_end_at": local(end_minute),
@@ -1212,7 +1212,7 @@ def test_http_execution_actions_on_completed_job_return_400(client):
     assert complete_response.json()["job"]["status"] == "completed"
 
     retry_start = client.post(
-        f"/jobs/{job_id}/execution/start",
+        f"/v1/jobs/{job_id}/execution/start",
         json={
             "expected_proposal_run_id": job["proposal_run_id"],
             "actual_start_at": local(start_minute + 1),
@@ -1223,7 +1223,7 @@ def test_http_execution_actions_on_completed_job_return_400(client):
     assert retry_start.status_code == 400, retry_start.text
 
     retry_complete = client.post(
-        f"/jobs/{job_id}/execution/complete",
+        f"/v1/jobs/{job_id}/execution/complete",
         json={
             "execution_id": execution_id,
             "actual_end_at": local(end_minute + 1),
@@ -1234,7 +1234,7 @@ def test_http_execution_actions_on_completed_job_return_400(client):
     assert retry_complete.status_code == 400, retry_complete.text
 
     retry_not_completed = client.post(
-        f"/jobs/{job_id}/execution/not-completed",
+        f"/v1/jobs/{job_id}/execution/not-completed",
         json={
             "execution_id": execution_id,
             "actual_end_at": local(end_minute + 1),
@@ -1262,7 +1262,7 @@ def test_http_authorization_denies_all_four_execution_routes(client):
 
     try:
         start_response = client.post(
-            f"/jobs/{job_id}/execution/start",
+            f"/v1/jobs/{job_id}/execution/start",
             json={
                 "expected_proposal_run_id": job["proposal_run_id"],
                 "actual_start_at": local(1),
@@ -1273,7 +1273,7 @@ def test_http_authorization_denies_all_four_execution_routes(client):
         assert start_response.status_code == 403
 
         complete_response = client.post(
-            f"/jobs/{job_id}/execution/complete",
+            f"/v1/jobs/{job_id}/execution/complete",
             json={
                 "execution_id": f"EXE-{'0' * 32}",
                 "actual_end_at": local(10),
@@ -1284,7 +1284,7 @@ def test_http_authorization_denies_all_four_execution_routes(client):
         assert complete_response.status_code == 403
 
         not_completed_response = client.post(
-            f"/jobs/{job_id}/execution/not-completed",
+            f"/v1/jobs/{job_id}/execution/not-completed",
             json={
                 "execution_id": f"EXE-{'0' * 32}",
                 "actual_end_at": local(10),
@@ -1294,7 +1294,7 @@ def test_http_authorization_denies_all_four_execution_routes(client):
         )
         assert not_completed_response.status_code == 403
 
-        get_response = client.get(f"/jobs/{job_id}/execution", headers=HTTP_WORKER)
+        get_response = client.get(f"/v1/jobs/{job_id}/execution", headers=HTTP_WORKER)
         assert get_response.status_code == 403
     finally:
         router_service.authorization = original_policy
@@ -1310,7 +1310,7 @@ def test_http_stale_and_integrity_error_mappings(client):
     start_minute = job["schedule_start_minute"] + 1
 
     stale_start = client.post(
-        f"/jobs/{job_id}/execution/start",
+        f"/v1/jobs/{job_id}/execution/start",
         json={
             "expected_proposal_run_id": "RUN-DOES-NOT-EXIST",
             "actual_start_at": local(start_minute),
@@ -1321,7 +1321,7 @@ def test_http_stale_and_integrity_error_mappings(client):
     assert stale_start.status_code == 409, stale_start.text
 
     start_response = client.post(
-        f"/jobs/{job_id}/execution/start",
+        f"/v1/jobs/{job_id}/execution/start",
         json={
             "expected_proposal_run_id": job["proposal_run_id"],
             "actual_start_at": local(start_minute),
@@ -1333,7 +1333,7 @@ def test_http_stale_and_integrity_error_mappings(client):
 
     end_minute = job["schedule_end_minute"] + 5
     stale_complete = client.post(
-        f"/jobs/{job_id}/execution/complete",
+        f"/v1/jobs/{job_id}/execution/complete",
         json={
             "execution_id": f"EXE-{'F' * 32}",
             "actual_end_at": local(end_minute),
@@ -1356,7 +1356,7 @@ def test_http_stale_and_integrity_error_mappings(client):
             (json.dumps(stored), job_id),
         )
 
-    integrity_get = client.get(f"/jobs/{job_id}/execution", headers=HTTP_WORKER)
+    integrity_get = client.get(f"/v1/jobs/{job_id}/execution", headers=HTTP_WORKER)
     assert integrity_get.status_code == 409, integrity_get.text
 
 
@@ -1366,7 +1366,7 @@ def test_http_not_completed_rejects_whitespace_only_reason(client):
     start_minute = job["schedule_start_minute"] + 1
 
     start_response = client.post(
-        f"/jobs/{job_id}/execution/start",
+        f"/v1/jobs/{job_id}/execution/start",
         json={
             "expected_proposal_run_id": job["proposal_run_id"],
             "actual_start_at": local(start_minute),
@@ -1378,7 +1378,7 @@ def test_http_not_completed_rejects_whitespace_only_reason(client):
 
     end_minute = job["schedule_start_minute"] + 30
     response = client.post(
-        f"/jobs/{job_id}/execution/not-completed",
+        f"/v1/jobs/{job_id}/execution/not-completed",
         json={
             "execution_id": execution_id,
             "actual_end_at": local(end_minute),

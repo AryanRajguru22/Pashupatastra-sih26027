@@ -262,7 +262,7 @@ def test_http_optimize_jobs_returns_409_for_a_coverage_gap(tmp_path: Path, monke
     client = TestClient(app)
 
     create_response = client.post(
-        "/jobs",
+        "/v1/jobs",
         json={
             "track_id": "UP-1",
             "job_type": "BALLAST_TAMPING",
@@ -275,7 +275,7 @@ def test_http_optimize_jobs_returns_409_for_a_coverage_gap(tmp_path: Path, monke
     )
     assert create_response.status_code == 201, create_response.text
 
-    response = client.post(f"/corridors/{CHECKED_IN_CORRIDOR_ID}/optimize-jobs")
+    response = client.post(f"/v1/corridors/{CHECKED_IN_CORRIDOR_ID}/optimize-jobs")
 
     assert response.status_code == 409
     detail = response.json()["detail"]

@@ -415,6 +415,55 @@ class JobRepository:
             for row in rows
         ]
 
+    def list_page(
+        self,
+        *,
+        limit: int,
+        status: Optional[str] = None,
+        after: Optional[tuple[str, str]] = None,
+    ) -> list[dict[str, Any]]:
+        """One keyset page of jobs, newest first (Slice 7).
+
+        Ordered by (created_at DESC, job_id DESC) - the same newest-first
+        order list_all and list_by_status use, with job_id as the
+        tiebreak so two jobs created in the same instant never straddle
+        a page boundary ambiguously. `after` is the (created_at, job_id)
+        of the last row of the previous page. Returns up to `limit` rows;
+        the caller asks for limit + 1 to learn whether another page
+        exists. A read-only query: no schema change, no new index.
+        """
+
+        clauses = []
+        params: list[Any] = []
+
+        if status is not None:
+            clauses.append("status = ?")
+            params.append(status)
+
+        if after is not None:
+            clauses.append("(created_at < ? OR (created_at = ? AND job_id < ?))")
+            params.extend([after[0], after[0], after[1]])
+
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+
+        with closing(self._connect()) as conn, conn:
+
+            rows = conn.execute(
+                f"""
+                SELECT *
+                FROM maintenance_jobs
+                {where}
+                ORDER BY created_at DESC, job_id DESC
+                LIMIT ?
+                """,
+                (*params, limit),
+            ).fetchall()
+
+        return [
+            self._row_to_dict(row)
+            for row in rows
+        ]
+
     def list_by_status(
         self,
         status: str,

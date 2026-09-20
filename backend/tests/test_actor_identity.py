@@ -182,14 +182,14 @@ def _payload() -> dict:
 
 
 def _created_actor(client, job_id: str) -> dict:
-    history = client.get(f"/jobs/{job_id}/history")
+    history = client.get(f"/v1/jobs/{job_id}/history")
     assert history.status_code == 200, history.text
     return history.json()["events"][0]["actor"]
 
 
 def test_declared_headers_are_recorded_as_unverified_human(client):
     response = client.post(
-        "/jobs",
+        "/v1/jobs",
         json=_payload(),
         headers={"X-Actor-Id": "WORKER-042", "X-Actor-Role": "WORKER"},
     )
@@ -205,7 +205,7 @@ def test_declared_headers_are_recorded_as_unverified_human(client):
 
 def test_role_header_is_case_insensitive(client):
     response = client.post(
-        "/jobs",
+        "/v1/jobs",
         json=_payload(),
         headers={"X-Actor-Id": "ENGINEER-9", "X-Actor-Role": "engineer"},
     )
@@ -214,7 +214,7 @@ def test_role_header_is_case_insensitive(client):
 
 
 def test_no_headers_records_the_unidentified_actor(client):
-    response = client.post("/jobs", json=_payload())
+    response = client.post("/v1/jobs", json=_payload())
     assert response.status_code == 201, response.text
 
     actor = _created_actor(client, response.json()["job_id"])
@@ -231,13 +231,13 @@ def test_no_headers_records_the_unidentified_actor(client):
     ],
 )
 def test_half_an_identity_is_rejected(client, headers):
-    response = client.post("/jobs", json=_payload(), headers=headers)
+    response = client.post("/v1/jobs", json=_payload(), headers=headers)
     assert response.status_code == 400
 
 
 def test_external_caller_cannot_act_as_system(client):
     response = client.post(
-        "/jobs",
+        "/v1/jobs",
         json=_payload(),
         headers={"X-Actor-Id": "SYSTEM", "X-Actor-Role": "SYSTEM"},
     )
@@ -254,5 +254,5 @@ def test_external_caller_cannot_act_as_system(client):
     ],
 )
 def test_invalid_declared_identity_is_rejected(client, headers):
-    response = client.post("/jobs", json=_payload(), headers=headers)
+    response = client.post("/v1/jobs", json=_payload(), headers=headers)
     assert response.status_code == 400, response.text

@@ -64,7 +64,7 @@ from backend.app.identity.authorization import (
     UnenforcedPolicy,
 )
 
-from backend.app.jobs.events import event_timestamp
+from backend.app.jobs.events import JobEventType, event_timestamp
 
 from backend.app.jobs.execution import (
     EvidenceItem,
@@ -998,7 +998,16 @@ class JobService:
             raise KeyError(f"Job '{job_id}' not found")
 
         if job["status"] != JobStatus.SCHEDULED.value:
-            raise NoBlockProposalError(job_id, _no_proposal_reason(job))
+            # History is read only for a 'reported' job: that is the one
+            # status whose "no proposal" cause depends on WHO returned it
+            # there (see _no_proposal_reason).
+            history = (
+                self.history.list_for_job(job_id)
+                if job["status"] == JobStatus.REPORTED.value
+                else ()
+            )
+
+            raise NoBlockProposalError(job_id, _no_proposal_reason(job, history))
 
         run_id = proposal_run_id_of(job)
 
@@ -1987,12 +1996,81 @@ class JobService:
         )
 
 
-def _no_proposal_reason(job: Mapping[str, Any]) -> str:
-    """Human-readable reason a job in a non-'scheduled' status has no proposal."""
+# The lifecycle events that put a job back to (or leave it at) 'reported'
+# with no proposal, i.e. the possible CAUSES of "no current proposal".
+# Human decisions and optimizer outcomes are told apart by event type:
+# an authority's or worker's mandatory reason is stored in
+# last_refusal_reason exactly as a solver refusal's is (lifecycle.
+# _withdrawn), so the stored column alone cannot say who decided.
+_HUMAN_WITHDRAWAL_EVENTS = {
+    JobEventType.PROPOSAL_REJECTED: "the proposal was REJECTED",
+    JobEventType.PROPOSAL_POSTPONED: "the proposal was POSTPONED",
+    JobEventType.BLOCK_RELEASED: "the approved (committed) block was RELEASED",
+    JobEventType.EXECUTION_NOT_COMPLETED: (
+        "field execution was reported NOT COMPLETED"
+    ),
+}
+
+_OPTIMIZER_OUTCOME_EVENTS = frozenset(
+    {
+        JobEventType.OPTIMIZATION_REFUSED,
+        JobEventType.PROPOSAL_INVALIDATED,
+        JobEventType.OPTIMIZATION_FAILED,
+    }
+)
+
+
+def _no_proposal_reason(
+    job: Mapping[str, Any],
+    history: Sequence[Any] = (),
+) -> str:
+    """Human-readable reason a job in a non-'scheduled' status has no proposal.
+
+    For a 'reported' job this is HISTORY-AWARE (Slice 7). `history` is
+    the job's lifecycle history, oldest first (StoredJobEvent items). The
+    most recent event that withdrew or refused a placement decides the
+    attribution:
+
+      - an authority/worker decision (reject, postpone, release,
+        not-completed) is reported as THAT decision, naming the actor's
+        role and id and quoting the reason they gave - never as an
+        optimizer outcome;
+      - an optimizer outcome (refused, failed, proposal invalidated)
+        keeps the original "considered and left UNSCHEDULED" wording;
+      - with no such event (legacy rows, direct repository writes) the
+        stored last_refusal_reason is reported with that same original
+        wording, as before.
+
+    Read-only: no stored value is changed or duplicated.
+    """
 
     status = job["status"]
 
     if status == JobStatus.REPORTED.value:
+        for stored in reversed(list(history)):
+            event = stored.event
+            event_type = event.event_type
+
+            if event_type in _HUMAN_WITHDRAWAL_EVENTS:
+                reason = event.reason or job.get("last_refusal_reason") or "no reason recorded"
+                by = f"{event.actor.role.value} '{event.actor.actor_id}'"
+                detail = ""
+
+                if event_type is JobEventType.PROPOSAL_POSTPONED:
+                    not_before = event.metadata.get("selected_date")
+
+                    if not_before:
+                        detail = f" until {not_before}"
+
+                return (
+                    f"{_HUMAN_WITHDRAWAL_EVENTS[event_type]}{detail} by "
+                    f"{by} (an authority/field decision, not an optimizer "
+                    f"outcome): {reason}"
+                )
+
+            if event_type in _OPTIMIZER_OUTCOME_EVENTS:
+                break
+
         if job.get("last_refusal_reason"):
             return (
                 "job was considered and left UNSCHEDULED: "
