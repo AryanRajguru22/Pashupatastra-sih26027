@@ -69,6 +69,16 @@ class JobAction(str, Enum):
     # one a future policy must be able to grant separately.
     RELEASE_COMMITTED_BLOCK = "RELEASE_COMMITTED_BLOCK"
 
+    # Sprint 3 Slice 9: accountability reads. Both follow the
+    # READ_BLOCK_PROPOSAL / READ_JOB_EXECUTION precedent - a derived read
+    # passes the same seam as every other read - and both are READ
+    # actions only. There is deliberately no ACKNOWLEDGE_ESCALATION or
+    # SILENCE_NOTIFICATION action: acknowledgement without authentication
+    # is meaningless (anyone could acknowledge anything), and a silence
+    # switch is a way to hide an operational failure.
+    READ_JOB_OBLIGATIONS = "READ_JOB_OBLIGATIONS"
+    READ_OPTIMIZATION_RUN = "READ_OPTIMIZATION_RUN"
+
 
 class AuthorizationDenied(Exception):
     """A policy refused an action. Raised before any state is touched.

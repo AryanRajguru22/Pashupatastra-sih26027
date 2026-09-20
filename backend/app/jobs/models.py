@@ -638,3 +638,124 @@ class JobExecutionsResponse(BaseModel):
 
     job_id: str
     executions: list[ExecutionResponse]
+
+# ----------------------------------------------------------------------
+# Accountability: derived obligations (Sprint 3 Slice 9)
+# ----------------------------------------------------------------------
+
+
+class ObligationResponse(BaseModel):
+    """What one job currently owes, at one moment. Derived, never stored.
+
+    Built straight from backend.app.jobs.obligations.JobObligation.
+    to_dict(), the job row plus its append-only history plus an SLA
+    policy - exactly as BlockProposalResponse is built from BlockProposal
+    and ExecutionResponse from ExecutionRecord. No obligation is
+    persisted anywhere, so nothing here can disagree with the history it
+    came from.
+
+    THE TWO HONESTY FIELDS
+      owed_role       AUTHORITY / WORKER / ENGINEER, or null. NEVER a
+                      person: no user table, authority directory or
+                      contact detail exists, so naming an individual
+                      would be fiction. This obligation says a ROLE owes
+                      an action; it never asserts that somebody failed.
+      policy_assumed  true. The SLA durations behind due_at are ASSUMED
+                      DEMO ENGINEERING VALUES, not Indian Railways
+                      policy, and not reviewed by any railway authority.
+                      A client displaying a deadline must display this.
+
+    is_past_due is the predicate for "is this late?" - state OVERDUE
+    alone is not that question, because a policy whose first escalation
+    step is the deadline itself reports ESCALATED_L1 directly.
+    """
+
+    job_id: str
+    obligation_type: str
+    state: str
+    owed_role: Optional[str] = None
+
+    #: The one moment this whole evaluation was made at. Every obligation
+    #: in a page shares it.
+    evaluated_at: str
+
+    clock_started_at: Optional[str] = None
+    due_at: Optional[str] = None
+    escalation_level: int = 0
+    elapsed_seconds: Optional[float] = None
+    sla_seconds: Optional[float] = None
+
+    policy_version: str
+    policy_assumed: bool
+
+    #: The event that started the clock, and the run it belongs to - what
+    #: an auditor recomputes this obligation from.
+    anchor_event_id: Optional[str] = None
+    optimization_run_id: Optional[str] = None
+
+    reason_code: str
+    reason: str
+
+    is_open: bool
+    is_past_due: bool
+
+    #: Orthogonal to the obligation's own clock: a condition that needs
+    #: an engineer to reconcile it (a conflict the optimizer could not
+    #: honour, or a recorded integrity refusal).
+    attention_required: bool = False
+    attention_reason_code: Optional[str] = None
+    attention_event_id: Optional[str] = None
+    attention_role: Optional[str] = None
+
+
+class ObligationListResponse(BaseModel):
+    """GET /v1/obligations - one page of derived obligations.
+
+    PAGING IS OVER JOBS, NOT OVER OBLIGATIONS. Obligations are derived
+    after a page of candidate jobs is read, so a filtered request returns
+    the matches WITHIN each page: a page may hold fewer than `limit`
+    items - even zero - while next_cursor is still set. Keep following
+    next_cursor until it is null. The cursor itself is the same opaque
+    (created_at, job_id) keyset cursor GET /v1/jobs uses.
+
+    evaluated_at is the single moment the whole page was evaluated at.
+    """
+
+    items: list[ObligationResponse]
+    next_cursor: Optional[str] = None
+    evaluated_at: str
+    policy_version: str
+    #: Always true - see ObligationResponse.policy_assumed.
+    policy_assumed: bool
+
+
+class OptimizationRunResponse(BaseModel):
+    """GET /v1/optimization-runs/{run_id} - one run's own audit record.
+
+    The immutable counterpart to a job's last_solver_status: that says
+    the CURRENT outcome for one job, overwritten by every later run;
+    this says what one run actually saw and returned. Append-only at the
+    SQL layer, with no update or delete path anywhere in the application.
+
+    request_json / result_json / provenance_snapshot_json are returned as
+    the opaque pre-serialized strings they are stored as, rather than
+    re-parsed into a shape this contract would then have to freeze.
+
+    `actor` is a bare string here, not an ActorResponse: optimization_runs
+    predates the Actor model and stores no role or assurance. It is
+    reported as stored rather than upgraded into a richer claim than the
+    record actually supports.
+    """
+
+    run_id: str
+    actor: str
+    trigger: str
+    corridor_id: Optional[str] = None
+    requested_at: str
+    completed_at: str
+    solver_status: str
+    solve_time_seconds: Optional[float] = None
+    request_json: str
+    result_json: Optional[str] = None
+    provenance_snapshot_json: Optional[str] = None
+    error: Optional[str] = None

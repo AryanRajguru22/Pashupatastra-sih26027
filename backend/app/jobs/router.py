@@ -49,6 +49,11 @@ from backend.app.jobs.lifecycle import (
     StaleProposalError,
 )
 
+from backend.app.jobs.obligations import (
+    JobObligation,
+    ObligationIntegrityError,
+)
+
 from backend.app.jobs.models import (
     ApproveProposalRequest,
     BlockProposalResponse,
@@ -66,6 +71,9 @@ from backend.app.jobs.models import (
     JobOptimizationResponse,
     JobResponse,
     JobStatus,
+    ObligationListResponse,
+    ObligationResponse,
+    OptimizationRunResponse,
     PostponeProposalRequest,
     ProposalExplanationItem,
     RejectProposalRequest,
@@ -80,6 +88,8 @@ from backend.app.jobs.optimization import (
 )
 
 from backend.app.jobs.proposal import BlockProposal, NoBlockProposalError
+
+from backend.app.jobs.sla_policy import InvalidSlaPolicyError
 
 from backend.app.jobs.repository import (
     TerminalJobError,
@@ -153,6 +163,14 @@ _TRANSLATIONS: tuple[tuple[type, int, ErrorCode], ...] = (
         409,
         ErrorCode.CONCURRENT_MODIFICATION,
     ),
+    # Slice 9: a job row and its history do not describe a coherent
+    # obligation. Fails closed exactly as the other integrity
+    # refusals do, rather than reporting a fabricated deadline.
+    (
+        ObligationIntegrityError,
+        409,
+        ErrorCode.OBLIGATION_STATE_INCONSISTENT,
+    ),
     # A bare IdempotencyKeyError (key without actor headers) is a
     # malformed request and falls through to the ValueError 400 below.
     (IdempotencyKeyConflictError, 409, ErrorCode.IDEMPOTENCY_KEY_CONFLICT),
@@ -163,6 +181,8 @@ _TRANSLATIONS: tuple[tuple[type, int, ErrorCode], ...] = (
     # LocationInputConflictError subclasses FieldLocationError.
     (LocationInputConflictError, 400, ErrorCode.LOCATION_INPUT_CONFLICT),
     (FieldLocationError, 400, ErrorCode.FIELD_LOCATION_INVALID),
+    # A ValueError subclass, so it precedes the generic entry below.
+    (InvalidSlaPolicyError, 409, ErrorCode.SLA_POLICY_UNRESOLVABLE),
     (ValueError, 400, ErrorCode.INVALID_REQUEST),
 )
 
@@ -774,3 +794,208 @@ def get_job_execution(
         job_id=job_id,
         executions=[_execution_response(item) for item in executions],
     )
+
+
+# ----------------------------------------------------------------------
+# Accountability: derived obligations (Sprint 3 Slice 9)
+#
+# READ-ONLY, all three, deliberately. There is no "acknowledge
+# escalation" and no "silence notification" route: acknowledgement
+# without authentication is meaningless - anyone could acknowledge
+# anything - and a silence switch is a way to hide an operational
+# failure. An obligation ends by being done, not by being dismissed.
+#
+# None of these routes sends a notification. Nothing in this deployment
+# delivers anything: see backend.app.jobs.notifications.
+# ----------------------------------------------------------------------
+
+
+def _obligation_response(obligation: JobObligation) -> ObligationResponse:
+    return ObligationResponse(**obligation.to_dict())
+
+
+@router.get(
+    "/obligations",
+    response_model=ObligationListResponse,
+)
+def list_obligations(
+    state: Optional[str] = Query(
+        default=None,
+        description=(
+            "Exact obligation state, e.g. 'ESCALATED_L1'. Note that "
+            "'OVERDUE' is an exact state, not 'anything late': under the "
+            "shipped policy the first escalation step is the deadline "
+            "itself, so late obligations report ESCALATED_L1 upward. Use "
+            "past_due=true to ask 'which are late?'."
+        ),
+    ),
+    obligation_type: Optional[str] = Query(
+        default=None,
+        description="Exact obligation type, e.g. 'APPROVAL_PENDING'.",
+    ),
+    role: Optional[str] = Query(
+        default=None,
+        description=(
+            "The role that owes the action: AUTHORITY, WORKER or "
+            "ENGINEER. Obligations are addressed to roles, never to "
+            "individuals - no recipient directory exists."
+        ),
+    ),
+    past_due: Optional[bool] = Query(
+        default=None,
+        description="true returns only obligations past their deadline.",
+    ),
+    attention: Optional[bool] = Query(
+        default=None,
+        description="true returns only jobs flagged as needing engineer attention.",
+    ),
+    limit: int = Query(
+        default=DEFAULT_PAGE_SIZE,
+        ge=1,
+        le=MAX_PAGE_SIZE,
+        description="Candidate jobs scanned per page (1-200, default 50).",
+    ),
+    cursor: Optional[str] = Query(
+        default=None,
+        description=(
+            "Opaque cursor: the next_cursor of the previous page, passed "
+            "back verbatim. Omit for the first page."
+        ),
+    ),
+    actor: Actor = Depends(request_actor),
+) -> ObligationListResponse:
+    """Derived obligations: who owes an action on which job, and by when.
+
+    Nothing here is stored. Each obligation is recomputed from the job's
+    own committed history plus the SLA policy plus one evaluation moment,
+    so it can never disagree with the history it came from, and an
+    auditor given the same three inputs recomputes it exactly.
+
+    **The SLA values behind every due_at are ASSUMED DEMO ENGINEERING
+    VALUES** - not Indian Railways policy, not derived from any IR
+    source, not reviewed by any railway authority. Every item says so in
+    `policy_assumed`, and `policy_version` names the exact table of
+    durations used.
+
+    PAGING IS OVER CANDIDATE JOBS, NOT OVER OBLIGATIONS. `limit` bounds
+    the jobs scanned; the filters are applied to what that page derives.
+    A filtered page may therefore hold fewer than `limit` items - even
+    zero - while next_cursor is still set. Follow next_cursor until it is
+    null.
+    """
+
+    after = _decode_cursor(cursor) if cursor is not None else None
+
+    try:
+        obligations, last_row, evaluated_at = service.obligations_page(
+            limit=limit,
+            after=after,
+            actor=actor,
+        )
+
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
+
+    def keep(obligation: JobObligation) -> bool:
+        if state is not None and obligation.state.value != state:
+            return False
+
+        if (
+            obligation_type is not None
+            and obligation.obligation_type.value != obligation_type
+        ):
+            return False
+
+        if role is not None and (
+            obligation.owed_role is None or obligation.owed_role.value != role
+        ):
+            return False
+
+        if past_due is not None and obligation.is_past_due is not past_due:
+            return False
+
+        if attention is not None and obligation.attention_required is not attention:
+            return False
+
+        return True
+
+    items = [o for o in obligations if keep(o)]
+
+    return ObligationListResponse(
+        items=[_obligation_response(o) for o in items],
+        next_cursor=(
+            _encode_cursor(last_row["created_at"], last_row["job_id"])
+            if last_row is not None
+            else None
+        ),
+        evaluated_at=evaluated_at,
+        policy_version=service.sla_policy.version,
+        policy_assumed=True,
+    )
+
+
+@router.get(
+    "/jobs/{job_id}/obligation",
+    response_model=ObligationResponse,
+)
+def get_job_obligation(
+    job_id: str,
+    actor: Actor = Depends(request_actor),
+) -> ObligationResponse:
+    """The one current obligation for one job. Derived, never stored.
+
+    200 with obligation_type NONE - never a 404 and never an empty body -
+    when the job exists but owes nothing: a completed job, or a reported
+    one awaiting the next optimization run. `reason_code` says which.
+    "Nobody owes anything" is an answer, not an error.
+
+    State the system withdrew itself reports state MOOT, never OVERDUE:
+    an invalidated proposal or a released commitment ended an obligation,
+    it did not breach one, and no amount of elapsed time turns that into
+    somebody's failure.
+
+    404 only when the job itself does not exist. 409 when the job row and
+    its history do not describe a coherent obligation - a read fails
+    closed rather than inventing a deadline.
+    """
+
+    try:
+        obligation = service.job_obligation(job_id, actor=actor)
+
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
+
+    return _obligation_response(obligation)
+
+
+@router.get(
+    "/optimization-runs/{run_id}",
+    response_model=OptimizationRunResponse,
+    tags=["jobs"],
+)
+def get_optimization_run(
+    run_id: str,
+    actor: Actor = Depends(request_actor),
+) -> OptimizationRunResponse:
+    """One optimization run's immutable audit record.
+
+    Every proposal and every derived obligation names a run id; this is
+    where that id resolves. The record holds what the run was asked,
+    what the solver returned, how long it took, and the four-axis
+    provenance of the data it used.
+
+    Append-only at the SQL layer: there is no route, and no method
+    anywhere in this application, that updates or deletes a run.
+
+    404 with its own code when the audit trail holds no such run.
+    """
+
+    try:
+        run = service.optimization_run(run_id, actor=actor)
+
+    except _HANDLED as exc:
+        raise _api_error(
+            exc, not_found=ErrorCode.OPTIMIZATION_RUN_NOT_FOUND
+        ) from exc
+
+    return OptimizationRunResponse(**run.to_dict())

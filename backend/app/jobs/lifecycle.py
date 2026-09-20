@@ -1398,6 +1398,8 @@ def plan_commit(
                 f"Job '{job_id}' cannot be notified from status '{status}'"
             )
 
+        _require_identified_human(actor, job_id, "approve (commit) a proposal")
+
         if job.get("schedule_start_minute") is None or job.get("schedule_end_minute") is None:
             raise InvalidTransitionError(
                 f"Job '{job_id}' is 'scheduled' but has no current proposal"
@@ -1525,6 +1527,8 @@ def plan_reject(
                 f"'{status}'"
             )
 
+        _require_identified_human(actor, job_id, "reject a proposal")
+
         if job.get("schedule_start_minute") is None or job.get("schedule_end_minute") is None:
             raise InvalidTransitionError(
                 f"Job '{job_id}' is 'scheduled' but has no current "
@@ -1644,6 +1648,8 @@ def plan_postpone(
                 f"Job '{job_id}' cannot postpone a proposal from status "
                 f"'{status}'"
             )
+
+        _require_identified_human(actor, job_id, "postpone a proposal")
 
         if job.get("schedule_start_minute") is None or job.get("schedule_end_minute") is None:
             raise InvalidTransitionError(
@@ -1799,7 +1805,7 @@ def plan_release(
                 "that has not started execution can be released"
             )
 
-        _require_identified_human(actor, job_id)
+        _require_identified_human(actor, job_id, "release a committed block")
 
         current_run = proposal_run_id_of(job)
 
@@ -1869,8 +1875,40 @@ def plan_release(
 # ----------------------------------------------------------------------
 
 
-def _require_identified_human(actor: Actor, job_id: str) -> None:
-    """Accountability, not RBAC: an execution transition needs a named person."""
+def _require_identified_human(
+    actor: Actor,
+    job_id: str,
+    what: str = "perform this transition",
+) -> None:
+    """Accountability, not RBAC: this transition needs a named person.
+
+    WHAT IT CHECKS, AND WHAT IT DELIBERATELY DOES NOT
+        Only that SOMEBODY is claimed: a HUMAN actor whose role is not
+        UNIDENTIFIED. It does not check WHICH role, so it is not a
+        permission check and must never be described as one - that is
+        backend.app.identity.authorization's seam, and no policy that
+        restricts anything ships yet. It also does not check that the
+        claimed identity is real: the assurance recorded on the event
+        stays DECLARED_UNVERIFIED, because no authentication exists.
+        There is no AUTHENTICATED assurance level, deliberately.
+
+    WHICH TRANSITIONS (Sprint 3 Slice 9 widened this)
+        Slice 5/6:  start / complete / report-not-completed, and the
+                    authority release of a committed block.
+        Slice 9:    commit-approve (plan_commit, which /notify and
+                    /proposal/approve both run), reject (plan_reject)
+                    and postpone (plan_postpone).
+
+        Before Slice 9 an approval, rejection or postponement could be
+        recorded against UNIDENTIFIED with assurance NONE, while the
+        field worker who executed it could not - so the system could say
+        an approval happened, but not always that a PERSON made it. That
+        asymmetry is what this closes.
+
+        create_job is deliberately NOT guarded: an unidentified defect
+        report is better than a lost one. Optimization is a SYSTEM
+        action. Reads are unguarded.
+    """
 
     if (
         not isinstance(actor, Actor)
@@ -1878,8 +1916,10 @@ def _require_identified_human(actor: Actor, job_id: str) -> None:
         or actor.role is ActorRole.UNIDENTIFIED
     ):
         raise InvalidTransitionError(
-            f"Job '{job_id}' execution transitions require an identified "
-            f"human actor; got {getattr(actor, 'actor_id', actor)!r}"
+            f"Job '{job_id}' requires an identified human actor to {what}; "
+            f"got {getattr(actor, 'actor_id', actor)!r}. This is "
+            "accountability, not authentication: the identity is recorded "
+            "as declared and unverified, but it may not be absent."
         )
 
 
@@ -2015,7 +2055,7 @@ def plan_execution_start(
                 "be executed"
             )
 
-        _require_identified_human(actor, job_id)
+        _require_identified_human(actor, job_id, "start field execution")
         _require_nonblank(expected_proposal_run_id, "expected_proposal_run_id")
 
         current_run = proposal_run_id_of(job)
@@ -2161,7 +2201,7 @@ def plan_execution_complete(
         digest = _open_execution_checks(
             job, execution_id, execution, corridor_id, "complete execution"
         )
-        _require_identified_human(actor, job_id)
+        _require_identified_human(actor, job_id, "complete field execution")
 
         now = _recording_moment(at)
 
@@ -2266,7 +2306,7 @@ def plan_execution_not_completed(
         digest = _open_execution_checks(
             job, execution_id, execution, corridor_id, "report execution not completed"
         )
-        _require_identified_human(actor, job_id)
+        _require_identified_human(actor, job_id, "report field execution not completed")
 
         now = _recording_moment(at)
 

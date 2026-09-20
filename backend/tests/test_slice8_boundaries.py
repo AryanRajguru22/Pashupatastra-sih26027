@@ -84,6 +84,11 @@ def test_no_new_authorization_action():
         "REPORT_EXECUTION_NOT_COMPLETED",
         "READ_JOB_EXECUTION",
         "RELEASE_COMMITTED_BLOCK",
+        # Slice 9 added exactly two, both READS, both passing the
+        # same unenforced seam as every other read. No write action
+        # was added, renamed or removed.
+        "READ_JOB_OBLIGATIONS",
+        "READ_OPTIMIZATION_RUN",
     ]
 
 

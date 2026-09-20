@@ -29,7 +29,7 @@ import sqlite3
 from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Sequence
 
 from backend.app.jobs.events import JobEvent
 from backend.app.persistence.append_only import install_append_only_guards
@@ -180,6 +180,68 @@ class JobHistoryRepository:
         """Every job event that references one optimization run."""
 
         return self._select("optimization_run_id", optimization_run_id)
+
+    def list_for_jobs(
+        self, job_ids: Sequence[str]
+    ) -> dict[str, list[StoredJobEvent]]:
+        """History for several jobs at once, keyed by job_id (Slice 9).
+
+        WHY THIS EXISTS
+            An accountability view answers "every job whose approval is
+            overdue", which needs each candidate job's anchoring event.
+            Calling list_for_job per job is an N+1 read; this is the one
+            targeted query that replaces it. Every job asked for appears
+            in the result, with an empty list when it has no events, so a
+            caller never has to distinguish "absent" from "none".
+
+        DELIBERATELY NOT AN INDEX
+            job_events carries no index on event_type or occurred_at and
+            this method does not add one. Indexing is a PERFORMANCE
+            change and belongs with measurements, exactly as Slice 8
+            deferred its own (track_id, created_at) index. At demo and
+            pilot scale - tens to low thousands of jobs, a bounded number
+            of events each - a single indexed-by-job_id scan is fine.
+            A deployment with hundreds of thousands of jobs should
+            revisit this WITH measurements; see
+            docs/SLICE9_NOTIFICATIONS_SLA_ESCALATION_ARCHITECTURE.md
+            Sec.15.3.
+
+        Read-only, like every other method here: history has no write
+        path outside append_events.
+        """
+
+        found: dict[str, list[StoredJobEvent]] = {job_id: [] for job_id in job_ids}
+
+        if not found:
+            return found
+
+        unique = list(found)
+
+        # SQLite's default SQLITE_MAX_VARIABLE_NUMBER is 999 on older
+        # builds; chunking keeps this correct on every build rather than
+        # working by luck on the one that happens to be installed.
+        chunk_size = 500
+
+        with closing(self._connect()) as conn, conn:
+            for start in range(0, len(unique), chunk_size):
+                chunk = unique[start : start + chunk_size]
+                placeholders = ",".join("?" for _ in chunk)
+
+                rows = conn.execute(
+                    f"SELECT * FROM {JOB_EVENTS_TABLE} "
+                    f"WHERE job_id IN ({placeholders}) ORDER BY sequence",
+                    chunk,
+                ).fetchall()
+
+                for row in rows:
+                    found[row["job_id"]].append(
+                        StoredJobEvent(
+                            sequence=int(row["sequence"]),
+                            event=self._row_to_event(row),
+                        )
+                    )
+
+        return found
 
     def _select(self, column: str, value: str) -> list[StoredJobEvent]:
         # column is one of the literals above, never caller input.

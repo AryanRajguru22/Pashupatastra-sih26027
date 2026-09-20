@@ -146,6 +146,12 @@ V1_OPERATIONS = {
     ("POST", "/v1/jobs/{job_id}/execution/start"),
     ("POST", "/v1/jobs/{job_id}/execution/complete"),
     ("POST", "/v1/jobs/{job_id}/execution/not-completed"),
+    # Slice 9 (accountability) - additive, added deliberately. All
+    # three are READ-only; no existing operation changed, and no
+    # mutation endpoint was introduced.
+    ("GET", "/v1/obligations"),
+    ("GET", "/v1/jobs/{job_id}/obligation"),
+    ("GET", "/v1/optimization-runs/{run_id}"),
 }
 
 LEGACY_OPERATIONS = {
@@ -855,4 +861,9 @@ def test_error_code_vocabulary_is_frozen():
         "LOCATION_INPUT_CONFLICT",
         "IDEMPOTENCY_KEY_CONFLICT",
         "ASSET_REFERENCE_INVALID",
+        # Slice 9 (accountability reads) - additive, added
+        # deliberately. No existing code was renamed or removed.
+        "OBLIGATION_STATE_INCONSISTENT",
+        "SLA_POLICY_UNRESOLVABLE",
+        "OPTIMIZATION_RUN_NOT_FOUND",
     }

@@ -1346,6 +1346,228 @@
         "title": "JobType",
         "type": "string"
       },
+      "ObligationListResponse": {
+        "description": "GET /v1/obligations - one page of derived obligations.\n\nPAGING IS OVER JOBS, NOT OVER OBLIGATIONS. Obligations are derived\nafter a page of candidate jobs is read, so a filtered request returns\nthe matches WITHIN each page: a page may hold fewer than `limit`\nitems - even zero - while next_cursor is still set. Keep following\nnext_cursor until it is null. The cursor itself is the same opaque\n(created_at, job_id) keyset cursor GET /v1/jobs uses.\n\nevaluated_at is the single moment the whole page was evaluated at.",
+        "properties": {
+          "evaluated_at": {
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ObligationResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "policy_assumed": {
+            "title": "Policy Assumed",
+            "type": "boolean"
+          },
+          "policy_version": {
+            "title": "Policy Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "evaluated_at",
+          "policy_version",
+          "policy_assumed"
+        ],
+        "title": "ObligationListResponse",
+        "type": "object"
+      },
+      "ObligationResponse": {
+        "description": "What one job currently owes, at one moment. Derived, never stored.\n\nBuilt straight from backend.app.jobs.obligations.JobObligation.\nto_dict(), the job row plus its append-only history plus an SLA\npolicy - exactly as BlockProposalResponse is built from BlockProposal\nand ExecutionResponse from ExecutionRecord. No obligation is\npersisted anywhere, so nothing here can disagree with the history it\ncame from.\n\nTHE TWO HONESTY FIELDS\n  owed_role       AUTHORITY / WORKER / ENGINEER, or null. NEVER a\n                  person: no user table, authority directory or\n                  contact detail exists, so naming an individual\n                  would be fiction. This obligation says a ROLE owes\n                  an action; it never asserts that somebody failed.\n  policy_assumed  true. The SLA durations behind due_at are ASSUMED\n                  DEMO ENGINEERING VALUES, not Indian Railways\n                  policy, and not reviewed by any railway authority.\n                  A client displaying a deadline must display this.\n\nis_past_due is the predicate for \"is this late?\" - state OVERDUE\nalone is not that question, because a policy whose first escalation\nstep is the deadline itself reports ESCALATED_L1 directly.",
+        "properties": {
+          "anchor_event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anchor Event Id"
+          },
+          "attention_event_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attention Event Id"
+          },
+          "attention_reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attention Reason Code"
+          },
+          "attention_required": {
+            "default": false,
+            "title": "Attention Required",
+            "type": "boolean"
+          },
+          "attention_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attention Role"
+          },
+          "clock_started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clock Started At"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "elapsed_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed Seconds"
+          },
+          "escalation_level": {
+            "default": 0,
+            "title": "Escalation Level",
+            "type": "integer"
+          },
+          "evaluated_at": {
+            "title": "Evaluated At",
+            "type": "string"
+          },
+          "is_open": {
+            "title": "Is Open",
+            "type": "boolean"
+          },
+          "is_past_due": {
+            "title": "Is Past Due",
+            "type": "boolean"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "obligation_type": {
+            "title": "Obligation Type",
+            "type": "string"
+          },
+          "optimization_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimization Run Id"
+          },
+          "owed_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owed Role"
+          },
+          "policy_assumed": {
+            "title": "Policy Assumed",
+            "type": "boolean"
+          },
+          "policy_version": {
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "reason_code": {
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "sla_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sla Seconds"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "obligation_type",
+          "state",
+          "evaluated_at",
+          "policy_version",
+          "policy_assumed",
+          "reason_code",
+          "reason",
+          "is_open",
+          "is_past_due"
+        ],
+        "title": "ObligationResponse",
+        "type": "object"
+      },
       "OptimizationCounts": {
         "properties": {
           "committed": {
@@ -1500,6 +1722,105 @@
           "status"
         ],
         "title": "OptimizationResult",
+        "type": "object"
+      },
+      "OptimizationRunResponse": {
+        "description": "GET /v1/optimization-runs/{run_id} - one run's own audit record.\n\nThe immutable counterpart to a job's last_solver_status: that says\nthe CURRENT outcome for one job, overwritten by every later run;\nthis says what one run actually saw and returned. Append-only at the\nSQL layer, with no update or delete path anywhere in the application.\n\nrequest_json / result_json / provenance_snapshot_json are returned as\nthe opaque pre-serialized strings they are stored as, rather than\nre-parsed into a shape this contract would then have to freeze.\n\n`actor` is a bare string here, not an ActorResponse: optimization_runs\npredates the Actor model and stores no role or assurance. It is\nreported as stored rather than upgraded into a richer claim than the\nrecord actually supports.",
+        "properties": {
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "completed_at": {
+            "title": "Completed At",
+            "type": "string"
+          },
+          "corridor_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corridor Id"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "provenance_snapshot_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provenance Snapshot Json"
+          },
+          "request_json": {
+            "title": "Request Json",
+            "type": "string"
+          },
+          "requested_at": {
+            "title": "Requested At",
+            "type": "string"
+          },
+          "result_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Json"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "solve_time_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Solve Time Seconds"
+          },
+          "solver_status": {
+            "title": "Solver Status",
+            "type": "string"
+          },
+          "trigger": {
+            "title": "Trigger",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "actor",
+          "trigger",
+          "requested_at",
+          "completed_at",
+          "solver_status",
+          "request_json"
+        ],
+        "title": "OptimizationRunResponse",
         "type": "object"
       },
       "PossessionWindow": {
@@ -2880,6 +3201,85 @@
         ]
       }
     },
+    "/v1/jobs/{job_id}/obligation": {
+      "get": {
+        "description": "The one current obligation for one job. Derived, never stored.\n\n200 with obligation_type NONE - never a 404 and never an empty body -\nwhen the job exists but owes nothing: a completed job, or a reported\none awaiting the next optimization run. `reason_code` says which.\n\"Nobody owes anything\" is an answer, not an error.\n\nState the system withdrew itself reports state MOOT, never OVERDUE:\nan invalidated proposal or a released commitment ended an obligation,\nit did not breach one, and no amount of elapsed time turns that into\nsomebody's failure.\n\n404 only when the job itself does not exist. 409 when the job row and\nits history do not describe a coherent obligation - a read fails\nclosed rather than inventing a deadline.",
+        "operationId": "get_job_obligation_v1_jobs__job_id__obligation_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObligationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Job Obligation",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
     "/v1/jobs/{job_id}/proposal": {
       "get": {
         "description": "The job's current NEW-scheduling proposal (Sprint 3 Slice 2).\n\n409 when the job exists but has no current proposal right now -\nnever yet optimized, considered and left UNSCHEDULED, or already\ncommitted/completed. A proposal is never a commitment: this route\nnever reports is_committed=True (POST /jobs/{job_id}/notify is the\nonly route that commits work).",
@@ -3311,6 +3711,278 @@
         },
         "summary": "Release Committed Block",
         "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/obligations": {
+      "get": {
+        "description": "Derived obligations: who owes an action on which job, and by when.\n\nNothing here is stored. Each obligation is recomputed from the job's\nown committed history plus the SLA policy plus one evaluation moment,\nso it can never disagree with the history it came from, and an\nauditor given the same three inputs recomputes it exactly.\n\n**The SLA values behind every due_at are ASSUMED DEMO ENGINEERING\nVALUES** - not Indian Railways policy, not derived from any IR\nsource, not reviewed by any railway authority. Every item says so in\n`policy_assumed`, and `policy_version` names the exact table of\ndurations used.\n\nPAGING IS OVER CANDIDATE JOBS, NOT OVER OBLIGATIONS. `limit` bounds\nthe jobs scanned; the filters are applied to what that page derives.\nA filtered page may therefore hold fewer than `limit` items - even\nzero - while next_cursor is still set. Follow next_cursor until it is\nnull.",
+        "operationId": "list_obligations_v1_obligations_get",
+        "parameters": [
+          {
+            "description": "Exact obligation state, e.g. 'ESCALATED_L1'. Note that 'OVERDUE' is an exact state, not 'anything late': under the shipped policy the first escalation step is the deadline itself, so late obligations report ESCALATED_L1 upward. Use past_due=true to ask 'which are late?'.",
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact obligation state, e.g. 'ESCALATED_L1'. Note that 'OVERDUE' is an exact state, not 'anything late': under the shipped policy the first escalation step is the deadline itself, so late obligations report ESCALATED_L1 upward. Use past_due=true to ask 'which are late?'.",
+              "title": "State"
+            }
+          },
+          {
+            "description": "Exact obligation type, e.g. 'APPROVAL_PENDING'.",
+            "in": "query",
+            "name": "obligation_type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact obligation type, e.g. 'APPROVAL_PENDING'.",
+              "title": "Obligation Type"
+            }
+          },
+          {
+            "description": "The role that owes the action: AUTHORITY, WORKER or ENGINEER. Obligations are addressed to roles, never to individuals - no recipient directory exists.",
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The role that owes the action: AUTHORITY, WORKER or ENGINEER. Obligations are addressed to roles, never to individuals - no recipient directory exists.",
+              "title": "Role"
+            }
+          },
+          {
+            "description": "true returns only obligations past their deadline.",
+            "in": "query",
+            "name": "past_due",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "true returns only obligations past their deadline.",
+              "title": "Past Due"
+            }
+          },
+          {
+            "description": "true returns only jobs flagged as needing engineer attention.",
+            "in": "query",
+            "name": "attention",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "true returns only jobs flagged as needing engineer attention.",
+              "title": "Attention"
+            }
+          },
+          {
+            "description": "Candidate jobs scanned per page (1-200, default 50).",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Candidate jobs scanned per page (1-200, default 50).",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Opaque cursor: the next_cursor of the previous page, passed back verbatim. Omit for the first page.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque cursor: the next_cursor of the previous page, passed back verbatim. Omit for the first page.",
+              "title": "Cursor"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObligationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Obligations",
+        "tags": [
+          "jobs"
+        ]
+      }
+    },
+    "/v1/optimization-runs/{run_id}": {
+      "get": {
+        "description": "One optimization run's immutable audit record.\n\nEvery proposal and every derived obligation names a run id; this is\nwhere that id resolves. The record holds what the run was asked,\nwhat the solver returned, how long it took, and the four-axis\nprovenance of the data it used.\n\nAppend-only at the SQL layer: there is no route, and no method\nanywhere in this application, that updates or deletes a run.\n\n404 with its own code when the audit trail holds no such run.",
+        "operationId": "get_optimization_run_v1_optimization_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptimizationRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Optimization Run",
+        "tags": [
+          "jobs",
           "jobs"
         ]
       }

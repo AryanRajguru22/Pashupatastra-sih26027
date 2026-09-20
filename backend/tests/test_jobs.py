@@ -25,6 +25,15 @@ from backend.tests.execution_helpers import (
     start_execution,
 )
 
+# Slice 9: approving a proposal requires an identified human actor -
+# accountability, not authentication (see backend.app.jobs.lifecycle.
+# _require_identified_human). An in-process caller must now name one.
+from backend.app.identity.actor import ActorRole as _ActorRole
+from backend.app.identity.actor import human_actor as _human_actor
+
+APPROVING_AUTHORITY = _human_actor("AUTHORITY-017", _ActorRole.AUTHORITY)
+
+
 
 def make_request() -> JobCreateRequest:
 
@@ -84,7 +93,7 @@ def test_job_lifecycle(
 
     # reported -> notified is invalid
     try:
-        service.notify(job_id)
+        service.notify(job_id, actor=APPROVING_AUTHORITY)
         assert False
     except ValueError:
         pass
@@ -102,9 +111,7 @@ def test_job_lifecycle(
     )
 
     # scheduled -> notified
-    notified = service.notify(
-        job_id
-    )
+    notified = service.notify(job_id, actor=APPROVING_AUTHORITY)
 
     assert (
         notified["status"]
@@ -152,7 +159,7 @@ def test_completed_job_is_excluded(
 
     JobOptimizationService(service).optimize_corridor("CORRIDOR_A")
 
-    service.notify(job_id)
+    service.notify(job_id, actor=APPROVING_AUTHORITY)
     execute_to_completion(service, job_id)
 
     candidates = (

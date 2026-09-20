@@ -143,10 +143,22 @@ from backend.app.jobs.models import (
     JobStatus,
 )
 
+from backend.app.jobs.obligations import (
+    OBLIGATION_CANDIDATE_STATUSES,
+    JobObligation,
+    derive_job_obligation,
+    derive_obligations,
+)
+
 from backend.app.jobs.proposal import (
     BlockProposal,
     NoBlockProposalError,
     build_block_proposal,
+)
+
+from backend.app.jobs.sla_policy import (
+    ASSUMED_DEMO_SLA_POLICY,
+    SlaPolicySet,
 )
 
 from backend.app.jobs.repository import (
@@ -526,6 +538,7 @@ class JobService:
         clock: Callable[[], datetime] | None = None,
         asset_policy: AssetAssociationPolicy | None = None,
         duplicate_policy: DuplicatePolicy | None = None,
+        sla_policy: SlaPolicySet | None = None,
     ):
         if horizon_minutes <= 0 or horizon_minutes % 1440 != 0:
             raise InvalidHorizonMinutesError(
@@ -544,11 +557,37 @@ class JobService:
         self.asset_policy = asset_policy or AssetAssociationPolicy()
         self.duplicate_policy = duplicate_policy or DuplicatePolicy()
 
-        # Sprint 3 Slice 5: the one source of "now" for field-execution
-        # observation-time rules (recording moment for EXECUTION_* events;
-        # see plan_execution_start/_complete/_not_completed's own future-
-        # skew checks). Injectable so tests are clock-independent; every
-        # other JobService construction site keeps working unchanged.
+        # Sprint 3 Slice 9: the response-time policy every derived
+        # obligation is timed against. Injectable on the same footing as
+        # the two intake policies above, so a test (or a future
+        # deployment) can substitute a different table of durations
+        # without any caller or any derivation changing.
+        #
+        # ITS VALUES ARE ASSUMED DEMO ENGINEERING VALUES, not Indian
+        # Railways policy. See backend.app.jobs.sla_policy - the policy
+        # itself refuses to be constructed without saying so.
+        self.sla_policy = sla_policy or ASSUMED_DEMO_SLA_POLICY
+
+        # The one source of "now" for this service.
+        #
+        # Slice 5 introduced it for the field-execution observation-time
+        # rules (the recording moment for EXECUTION_* events; see
+        # plan_execution_start/_complete/_not_completed's own future-skew
+        # checks). Slice 9 finished the wiring: EVERY path that mints an
+        # event timestamp now derives it from here - create_job, notify,
+        # reject, postpone, release, set_schedule, the recorded refusal
+        # of a rejected transition, and (through self.service.clock)
+        # JobOptimizationService's three sites.
+        #
+        # That matters because an SLA is a function of "now" measured
+        # against event timestamps this application wrote. With one
+        # injectable clock behind both, an obligation test can place a
+        # proposal at a chosen instant and evaluate it at another without
+        # sleeping, and without monkey-patching a module global -
+        # deterministic by construction rather than by luck.
+        #
+        # Injectable; every existing construction site keeps working
+        # unchanged, because the default is still the real UTC clock.
         self.clock: Callable[[], datetime] = clock or (
             lambda: datetime.now(timezone.utc)
         )
@@ -892,7 +931,7 @@ class JobService:
         #
         # Never blocks, merges or alters this report - it only records
         # which existing jobs look like the same issue.
-        created_at = event_timestamp()
+        created_at = event_timestamp(self.clock())
 
         duplicate_assessment = find_duplicate_candidates(
             DuplicateProbe(
@@ -1381,6 +1420,166 @@ class JobService:
             return None
 
     # -----------------------------------------
+    # Accountability: derived obligations (Sprint 3 Slice 9)
+    #
+    # Read-only, every one of them. There is deliberately no method that
+    # acknowledges, silences, snoozes or clears an obligation: an
+    # obligation is DERIVED from committed history, so the only honest
+    # way to end one is to do the thing it asks for.
+    # -----------------------------------------
+
+    def _evaluation_moment(self, evaluated_at: datetime | None) -> datetime:
+        """The single authoritative "now" for one evaluation.
+
+        Taken from this service's injectable clock unless a caller names
+        a moment. Read ONCE per query and threaded through every
+        obligation in it, so a page of obligations is a snapshot of one
+        instant rather than a smear across however long the query took.
+        """
+
+        moment = self.clock() if evaluated_at is None else evaluated_at
+
+        if moment.tzinfo is None:
+            raise ValueError("evaluated_at must be timezone-aware.")
+
+        return moment
+
+    def job_obligation(
+        self,
+        job_id: str,
+        actor: Actor | None = None,
+        *,
+        evaluated_at: datetime | None = None,
+    ) -> JobObligation:
+        """The one current obligation for one job. Derived, never stored.
+
+        KeyError if the job does not exist. Unlike current_proposal, this
+        never refuses a job that simply owes nothing: a completed job, or
+        a reported one awaiting the next optimization run, returns an
+        obligation of type NONE with the reason it is none. "Nobody owes
+        anything" is an answer, not an error.
+
+        Raises ObligationIntegrityError (or ExecutionIntegrityError) when
+        the row and the history disagree - see
+        backend.app.jobs.obligations. A read fails closed rather than
+        fabricating a deadline over state whose meaning is unknown.
+        """
+
+        reader = self._resolve_actor(actor)
+        self.authorization.authorize(reader, JobAction.READ_JOB_OBLIGATIONS)
+
+        job = self.repository.get(job_id)
+
+        if job is None:
+            raise KeyError(f"Job '{job_id}' not found")
+
+        return derive_job_obligation(
+            job,
+            self.history.list_for_job(job_id),
+            evaluated_at=self._evaluation_moment(evaluated_at),
+            policy=self.sla_policy,
+        )
+
+    def obligations_page(
+        self,
+        *,
+        limit: int,
+        after: tuple[str, str] | None = None,
+        actor: Actor | None = None,
+        evaluated_at: datetime | None = None,
+        statuses: Sequence[str] | None = None,
+    ) -> tuple[list[JobObligation], dict[str, Any] | None, str]:
+        """One page of derived obligations, the row to page after, and
+        the single moment the whole page was evaluated at.
+
+        PAGING IS OVER JOBS, NOT OVER OBLIGATIONS. The keyset cursor is
+        the existing (created_at, job_id) one from list_page, unchanged,
+        because obligations are derived AFTER the page is read and
+        therefore cannot themselves be indexed or seeked. A caller
+        filtering by state or role will see pages shorter than `limit`
+        while next_cursor is still set; that is correct, and the router
+        documents it.
+
+        Returns (obligations, last_row_or_None, evaluated_at). The second
+        value is the candidate row the NEXT page should start after, or
+        None when this was the last page. The third is the canonical
+        timestamp every obligation in the page shares - returned rather
+        than left to the caller to re-read from the clock, which would
+        produce a second, different moment for an empty page.
+
+        Reads each candidate job's history in ONE query
+        (JobHistoryRepository.list_for_jobs) rather than one per job.
+        Scale assumption: O(active jobs) per call with a bounded number
+        of events each, measured at demo and pilot scale only - see that
+        method's docstring.
+        """
+
+        reader = self._resolve_actor(actor)
+        self.authorization.authorize(reader, JobAction.READ_JOB_OBLIGATIONS)
+
+        moment = self._evaluation_moment(evaluated_at)
+        candidates = (
+            list(OBLIGATION_CANDIDATE_STATUSES) if statuses is None else list(statuses)
+        )
+
+        # One extra row tells us whether another page exists - the same
+        # idiom GET /v1/jobs already uses.
+        rows = self.repository.list_page(
+            limit=limit + 1,
+            statuses=candidates,
+            after=after,
+        )
+
+        page, more = rows[:limit], len(rows) > limit
+        history = self.history.list_for_jobs([row["job_id"] for row in page])
+
+        obligations = derive_obligations(
+            ((row, history[row["job_id"]]) for row in page),
+            evaluated_at=moment,
+            policy=self.sla_policy,
+        )
+
+        return (
+            obligations,
+            (page[-1] if more and page else None),
+            event_timestamp(moment),
+        )
+
+    def optimization_run(
+        self,
+        run_id: str,
+        actor: Actor | None = None,
+    ) -> "OptimizationRunRecord":
+        """One optimization run's own audit record. Read-only (Slice 9).
+
+        Closes the gap that optimization_runs - which already holds every
+        run's request, result, provenance snapshot and solver status -
+        was readable only in process. Every derived obligation and every
+        proposal names a run id; without this there was no way to look
+        one up.
+
+        KeyError if the audit trail holds no such run. Exposes the stored
+        record as recorded; there is no update or delete path to it
+        anywhere in this application, and this adds none.
+        """
+
+        reader = self._resolve_actor(actor)
+        self.authorization.authorize(reader, JobAction.READ_OPTIMIZATION_RUN)
+
+        # Local import for the same circular-import reason documented on
+        # _build_current_proposal: backend.app.audit.repository imports
+        # backend.app.jobs.repository, and the jobs package __init__
+        # eagerly imports this module.
+        from backend.app.audit.repository import AuditRepository
+
+        run = AuditRepository(self.repository.db_path).get(run_id)
+
+        if run is None:
+            raise KeyError(f"Optimization run '{run_id}' not found")
+
+        return run
+
+    # -----------------------------------------
     # scheduled -> notified
     # -----------------------------------------
 
@@ -1415,7 +1614,7 @@ class JobService:
             plan_commit(
                 job_id,
                 actor=committer,
-                at=event_timestamp(),
+                at=event_timestamp(self.clock()),
                 expected_proposal_run_id=expected_proposal_run_id,
             ),
         )
@@ -1491,7 +1690,7 @@ class JobService:
             plan_reject(
                 job_id,
                 actor=rejecter,
-                at=event_timestamp(),
+                at=event_timestamp(self.clock()),
                 reason=reason,
                 expected_proposal_run_id=expected_proposal_run_id,
             ),
@@ -1559,7 +1758,7 @@ class JobService:
             plan_postpone(
                 job_id,
                 actor=postponer,
-                at=event_timestamp(),
+                at=event_timestamp(self.clock()),
                 reason=reason,
                 selected_date=selected_date,
                 not_before_minute=not_before_minute,
@@ -1935,7 +2134,7 @@ class JobService:
     ) -> None:
         """Append TRANSITION_REJECTED for each existing job. Changes no state."""
 
-        at = event_timestamp()
+        at = event_timestamp(self.clock())
         events = []
 
         for job_id in job_ids:
@@ -2023,7 +2222,7 @@ class JobService:
                 start_minute,
                 end_minute,
                 actor=assigner,
-                at=event_timestamp(),
+                at=event_timestamp(self.clock()),
             ),
         )
 

@@ -26,6 +26,15 @@ from backend.app.jobs.repository import DEFAULT_DB_PATH, JobRepository
 from backend.app.jobs.service import JobService
 from backend.tests.execution_helpers import EXECUTION_WORKER, execute_to_completion
 
+# Slice 9: approving a proposal requires an identified human actor -
+# accountability, not authentication (see backend.app.jobs.lifecycle.
+# _require_identified_human). An in-process caller must now name one.
+from backend.app.identity.actor import ActorRole as _ActorRole
+from backend.app.identity.actor import human_actor as _human_actor
+
+APPROVING_AUTHORITY = _human_actor("AUTHORITY-017", _ActorRole.AUTHORITY)
+
+
 
 def make_request() -> JobCreateRequest:
     return JobCreateRequest(
@@ -98,7 +107,7 @@ def test_repository_does_not_leak_connections(tmp_path):
     service.list_jobs()
     service.set_schedule(job["job_id"], 100, 160)
     JobOptimizationService(service).optimize_corridor("CORRIDOR_A")
-    service.notify(job["job_id"])
+    service.notify(job["job_id"], actor=APPROVING_AUTHORITY)
     execute_to_completion(service, job["job_id"])
     service.get_execution(job["job_id"], actor=EXECUTION_WORKER)
 

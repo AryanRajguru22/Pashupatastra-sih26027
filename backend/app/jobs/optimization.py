@@ -470,7 +470,7 @@ class JobOptimizationService:
             attempt = OptimizationAttempt(
                 corridor_id=target,
                 requester=requester,
-                requested_at=event_timestamp(),
+                requested_at=event_timestamp(self.service.clock()),
                 run_id=new_run_id(),
                 horizon_start=horizon_start,
             )
@@ -573,7 +573,7 @@ class JobOptimizationService:
                 scheduled, candidates, committed, possession
             )
 
-            generated_at = event_timestamp()
+            generated_at = event_timestamp(self.service.clock())
 
             # One transaction for the whole batch: every job's new state
             # and every lifecycle event, or none of them.
@@ -647,7 +647,7 @@ class JobOptimizationService:
                 plan_optimization_failure(
                     job_ids,
                     attempt=attempt,
-                    failed_at=event_timestamp(),
+                    failed_at=event_timestamp(self.service.clock()),
                     reason=f"{type(error).__name__}: {error}",
                     outcome_label=outcome_label,
                 ),

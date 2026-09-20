@@ -82,6 +82,20 @@ class ErrorCode(str, Enum):
     # route re-trusts a stored asset_id); carried so any that does maps to
     # a stable code.
     ASSET_REFERENCE_INVALID = "ASSET_REFERENCE_INVALID"
+    # Slice 9. A job row and its history do not describe a coherent
+    # obligation (see backend.app.jobs.obligations.
+    # ObligationIntegrityError). The read fails closed rather than
+    # fabricating a deadline over state whose meaning is unknown.
+    OBLIGATION_STATE_INCONSISTENT = "OBLIGATION_STATE_INCONSISTENT"
+    # Slice 9, an SLA policy that cannot be resolved for a job - e.g. a
+    # stored reported_severity outside DefectSeverity.
+    SLA_POLICY_UNRESOLVABLE = "SLA_POLICY_UNRESOLVABLE"
+
+    # 404
+    # Slice 9. GET /v1/optimization-runs/{run_id} names a run the audit
+    # trail does not hold. Its own code, not JOB_NOT_FOUND, because the
+    # thing that was not found is not a job.
+    OPTIMIZATION_RUN_NOT_FOUND = "OPTIMIZATION_RUN_NOT_FOUND"
 
 
 class ApiError(HTTPException):

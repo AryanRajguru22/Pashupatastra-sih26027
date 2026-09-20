@@ -420,6 +420,7 @@ class JobRepository:
         *,
         limit: int,
         status: Optional[str] = None,
+        statuses: Optional[Sequence[str]] = None,
         after: Optional[tuple[str, str]] = None,
     ) -> list[dict[str, Any]]:
         """One keyset page of jobs, newest first (Slice 7).
@@ -431,7 +432,21 @@ class JobRepository:
         of the last row of the previous page. Returns up to `limit` rows;
         the caller asks for limit + 1 to learn whether another page
         exists. A read-only query: no schema change, no new index.
+
+        `statuses` (Slice 9) filters on SEVERAL statuses in one page,
+        which `status` cannot do. An accountability view's candidate set
+        spans reported/scheduled/notified/in_progress, and paging it as
+        four separate single-status queries would need four cursors and
+        could not produce one coherently ordered page. Additive: `status`
+        keeps working exactly as before, and passing both is refused
+        rather than silently resolved in one of two plausible ways.
         """
+
+        if status is not None and statuses is not None:
+            raise ValueError(
+                "Pass status or statuses, not both; which one wins would "
+                "otherwise be a silent convention."
+            )
 
         clauses = []
         params: list[Any] = []
@@ -439,6 +454,17 @@ class JobRepository:
         if status is not None:
             clauses.append("status = ?")
             params.append(status)
+
+        if statuses is not None:
+            chosen = list(statuses)
+
+            if not chosen:
+                # An empty filter means "no status qualifies", which is an
+                # empty page - never "no filter at all".
+                return []
+
+            clauses.append(f"status IN ({','.join('?' for _ in chosen)})")
+            params.extend(chosen)
 
         if after is not None:
             clauses.append("(created_at < ? OR (created_at = ? AND job_id < ?))")

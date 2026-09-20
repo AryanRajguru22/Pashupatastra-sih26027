@@ -47,6 +47,15 @@ from contracts import BlockCandidate, OptimizationResult, ScheduledBlock
 
 from backend.tests.execution_helpers import execute_to_completion
 
+# Slice 9: approving a proposal requires an identified human actor -
+# accountability, not authentication (see backend.app.jobs.lifecycle.
+# _require_identified_human). An in-process caller must now name one.
+from backend.app.identity.actor import ActorRole as _ActorRole
+from backend.app.identity.actor import human_actor as _human_actor
+
+APPROVING_AUTHORITY = _human_actor("AUTHORITY-017", _ActorRole.AUTHORITY)
+
+
 
 SAFETY_REFUSAL = "refused for safety"
 
@@ -445,7 +454,7 @@ def test_unknown_corridor_is_rejected(optimizer: JobOptimizationService):
 def complete_a_job(service: JobService, optimizer) -> dict:
     job = report(service)
     optimizer.optimize_corridor("CORRIDOR_A")
-    service.notify(job["job_id"])
+    service.notify(job["job_id"], actor=APPROVING_AUTHORITY)
     execute_to_completion(service, job["job_id"])
     return job
 
@@ -552,7 +561,7 @@ def test_notifying_marks_the_persisted_block_committed(
     job = report(service)
     optimizer.optimize_corridor("CORRIDOR_A")
 
-    service.notify(job["job_id"])
+    service.notify(job["job_id"], actor=APPROVING_AUTHORITY)
 
     stored = service.repository.get(job["job_id"])
     assert stored["status"] == JobStatus.NOTIFIED.value
@@ -579,7 +588,7 @@ def test_future_optimization_preserves_notified_work(
         service, track_id="UP-1", job_type="TRACK_RENEWAL"
     )
     optimizer.optimize_corridor("CORRIDOR_A")
-    service.notify(job["job_id"])
+    service.notify(job["job_id"], actor=APPROVING_AUTHORITY)
 
     pinned = service.repository.get(job["job_id"])
     original = (
@@ -645,7 +654,7 @@ def test_possession_uncovered_committed_work_uses_sprint1_safety(
         service.set_schedule(
             block.block_id, block.start_minute, block.end_minute
         )
-    service.notify(committed_job["job_id"])
+    service.notify(committed_job["job_id"], actor=APPROVING_AUTHORITY)
 
     # Now UP-1 loses every possession window.
     candidates, committed = service.classify_for_optimization()
@@ -790,6 +799,7 @@ CREATE TABLE maintenance_jobs (
     created_at TEXT NOT NULL,
     block_candidate_json TEXT NOT NULL
 )
+
 """
 
 

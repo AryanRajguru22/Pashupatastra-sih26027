@@ -73,6 +73,15 @@ from contracts import BlockCandidate, OptimizationRequest, PossessionWindow
 
 from backend.tests.execution_helpers import execute_to_completion
 
+# Slice 9: approving a proposal requires an identified human actor -
+# accountability, not authentication (see backend.app.jobs.lifecycle.
+# _require_identified_human). An in-process caller must now name one.
+from backend.app.identity.actor import ActorRole as _ActorRole
+from backend.app.identity.actor import human_actor as _human_actor
+
+APPROVING_AUTHORITY = _human_actor("AUTHORITY-017", _ActorRole.AUTHORITY)
+
+
 
 HORIZON_START = "2026-09-10T00:00:00+05:30"
 HORIZON_MINUTES = 1440
@@ -827,7 +836,7 @@ def test_notified_job_keeps_its_resolved_section_across_reoptimization(
     outcome = optimizer.optimize_corridor("CORR-NDLS-AGC")
     assert outcome["counts"]["scheduled"] == 1
 
-    service.notify(job["job_id"])
+    service.notify(job["job_id"], actor=APPROVING_AUTHORITY)
 
     pinned = service.repository.get(job["job_id"])
     assert pinned["block_candidate"]["section_id"] == "NDLS-NZM"
@@ -857,7 +866,7 @@ def test_completed_job_stays_terminal_with_a_resolved_section(
     )
 
     optimizer.optimize_corridor("CORR-NDLS-AGC")
-    service.notify(job["job_id"])
+    service.notify(job["job_id"], actor=APPROVING_AUTHORITY)
     execute_to_completion(service, job["job_id"])
 
     service.create_job(

@@ -25,6 +25,10 @@ from backend.tests.execution_helpers import (
 client = TestClient(app)
 
 WORKER_HEADERS = {"X-Actor-Id": "WORKER-042", "X-Actor-Role": "WORKER"}
+# Slice 9: approving a proposal requires an identified human actor
+# (accountability, not authentication - see lifecycle.
+# _require_identified_human).
+AUTHORITY_HEADERS = {"X-Actor-Id": "AUTHORITY-017", "X-Actor-Role": "AUTHORITY"}
 
 
 @pytest.fixture(autouse=True)
@@ -207,6 +211,7 @@ def notify_over_http(job_id: str, run_id: str | None = None):
     return client.post(
         f"/v1/jobs/{job_id}/notify",
         json={"expected_proposal_run_id": run_id},
+        headers=AUTHORITY_HEADERS,
     )
 
 
