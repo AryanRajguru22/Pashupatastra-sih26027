@@ -31,7 +31,11 @@ from fastapi.testclient import TestClient
 from contracts import DEFAULT_HORIZON_START
 
 from backend.app.identity.actor import ActorRole, human_actor
-from backend.app.identity.authorization import AuthorizationDenied, JobAction
+from backend.app.identity.authorization import (
+    AuthorizationDenied,
+    JobAction,
+    RoleActionOnlyPolicy,
+)
 from backend.app.jobs.events import JobEventType
 from backend.app.jobs.lifecycle import proposal_run_id_of
 from backend.app.jobs.models import JobCreateRequest
@@ -584,8 +588,10 @@ def test_the_obligation_names_a_run_that_actually_resolves(client, clock):
 # ----------------------------------------------------------------------
 
 
-class DenyPolicy:
-    enforcing = True
+class DenyPolicy(RoleActionOnlyPolicy):
+    # Slice 10.1D.1: a role/action-seam double, not a deployment's
+    # authorization control. It answers no resource question, so it
+    # declares enforcing = False - see RoleActionOnlyPolicy.
 
     def __init__(self, *denied):
         self.denied = set(denied)

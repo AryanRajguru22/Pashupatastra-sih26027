@@ -423,6 +423,19 @@ class JobOptimizationService:
                 f"corridor '{self.service.corridor.corridor_id}'."
             )
 
+        # Resource authorization (Slice 10.1D), through the same seam the
+        # job service uses. An optimization run's resource IS the
+        # corridor - it has no single section, and inventing one would be
+        # the corridor-wide wildcard the scope model refuses to have - so
+        # it takes the corridor rule. Placed after the corridor is
+        # validated and before any job is read or any run is recorded, so
+        # an unauthorized request runs and records nothing.
+        self.service.authorize_corridor(
+            requester,
+            JobAction.REQUEST_OPTIMIZATION,
+            target,
+        )
+
         # Single-flight across every lifecycle transition: two
         # authorities pressing "optimize", or one optimizing while
         # another commits, must not read the same active set and

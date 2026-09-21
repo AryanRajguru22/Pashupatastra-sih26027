@@ -32,7 +32,7 @@ import backend.app.jobs.lifecycle as lifecycle
 from contracts import DEFAULT_HORIZON_START
 
 from backend.app.identity.actor import ActorRole, human_actor
-from backend.app.identity.authorization import JobAction
+from backend.app.identity.authorization import JobAction, RoleActionOnlyPolicy
 from backend.app.jobs.events import JobEventType, JobStateSnapshot, event_timestamp, make_event
 from backend.app.jobs.execution import EXECUTION_ID_KEY, new_execution_id
 from backend.app.jobs.lifecycle import (
@@ -666,8 +666,10 @@ def test_an_execution_id_from_another_job_is_rejected(service, optimizer, db_pat
 # ----------------------------------------------------------------------
 
 
-class CountingPolicy:
-    enforcing = True
+class CountingPolicy(RoleActionOnlyPolicy):
+    # Slice 10.1D.1: a role/action-seam double, not a deployment's
+    # authorization control. It answers no resource question, so it
+    # declares enforcing = False - see RoleActionOnlyPolicy.
 
     def __init__(self):
         self.calls = []

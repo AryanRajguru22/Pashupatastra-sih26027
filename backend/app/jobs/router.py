@@ -18,7 +18,10 @@ from backend.app.api.errors import V1_PREFIX, ApiError, ErrorCode
 
 from backend.app.identity.actor import Actor
 
-from backend.app.identity.authorization import AuthorizationDenied
+from backend.app.identity.authorization import (
+    AuthorizationDenied,
+    require_resource_aware,
+)
 
 from backend.app.jobs.asset_association import (
     AssetAssociationError,
@@ -111,6 +114,18 @@ router = APIRouter(
 )
 
 service = JobService()
+
+# Slice 10.1D wiring guard, kept as DEFENCE IN DEPTH after 10.1D.1.
+#
+# Since 10.1D.1 the guarantee lives at the service's own construction
+# boundary: JobService installs every policy through require_resource_aware
+# (see its `authorization` property), so the call below can no longer be
+# the thing that catches a half-built policy - the line above would have
+# raised first. It stays because this is where THIS deployment chooses its
+# policy, and the requirement belongs in sight of that choice: an enforcing
+# policy that cannot answer the resource question would skip every railway
+# scope check while still calling itself enforcing.
+require_resource_aware(service.authorization)
 
 # Shares the JobService above so both routers see the same repository,
 # corridor and lifecycle lock (JobService.lifecycle_lock).
@@ -308,6 +323,7 @@ def list_jobs(
             "back verbatim. Omit for the first page."
         ),
     ),
+    actor: Actor = Depends(request_actor),
 ) -> JobListResponse:
     """One page of jobs, newest first: {items, next_cursor}.
 
@@ -316,14 +332,25 @@ def list_jobs(
     the last page.
     """
 
+    # Slice 10.1D: this route reached JobRepository directly, with no
+    # actor and no authorization call, while every other read in the
+    # application already passed the seam. It now passes it too. The
+    # actor stays optional exactly as it is on every other route -
+    # sending no headers is still the UNIDENTIFIED actor - so no existing
+    # caller changes.
     after = _decode_cursor(cursor) if cursor is not None else None
 
-    # One extra row tells us whether another page exists.
-    rows = service.repository.list_page(
-        limit=limit + 1,
-        status=status.value if status is not None else None,
-        after=after,
-    )
+    try:
+        # One extra row tells us whether another page exists.
+        rows = service.jobs_page(
+            limit=limit + 1,
+            status=status.value if status is not None else None,
+            after=after,
+            actor=actor,
+        )
+
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     page, more = rows[:limit], len(rows) > limit
 
@@ -343,16 +370,26 @@ def list_jobs(
 )
 def get_job(
     job_id: str,
+    actor: Actor = Depends(request_actor),
 ) -> JobResponse:
 
-    job = service.repository.get(job_id)
+    # Slice 10.1D: like GET /v1/jobs above, this route reached
+    # JobRepository directly with no actor and no authorization call. It
+    # is now role/action AND resource authorized - a job outside the
+    # reader's railway scope is refused with the same 403 as any other
+    # authorization failure, so a refusal never says which it was.
+    try:
+        job = service.job_detail(job_id, actor=actor)
 
-    if job is None:
+    except KeyError as exc:
         raise ApiError(
             404,
             ErrorCode.JOB_NOT_FOUND,
             f"Job '{job_id}' not found",
-        )
+        ) from exc
+
+    except _HANDLED as exc:
+        raise _api_error(exc) from exc
 
     return JobResponse(
         **as_public_job(job)

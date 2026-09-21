@@ -2537,6 +2537,42 @@
               "description": "Opaque cursor: the next_cursor of the previous page, passed back verbatim. Omit for the first page.",
               "title": "Cursor"
             }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
           }
         ],
         "responses": {
@@ -2656,6 +2692,42 @@
             "schema": {
               "title": "Job Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
             }
           }
         ],

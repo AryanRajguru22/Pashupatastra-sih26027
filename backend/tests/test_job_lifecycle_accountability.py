@@ -40,7 +40,11 @@ from backend.app.identity.actor import (
     ActorRole,
     human_actor,
 )
-from backend.app.identity.authorization import AuthorizationDenied, JobAction
+from backend.app.identity.authorization import (
+    AuthorizationDenied,
+    JobAction,
+    RoleActionOnlyPolicy,
+)
 from backend.app.jobs.events import (
     JobEvent,
     JobEventType,
@@ -1265,8 +1269,10 @@ def test_directly_assigned_schedule_claims_no_optimization_run(service):
 # ----------------------------------------------------------------------
 
 
-class DenyPolicy:
-    enforcing = True
+class DenyPolicy(RoleActionOnlyPolicy):
+    # Slice 10.1D.1: a role/action-seam double, not a deployment's
+    # authorization control. It answers no resource question, so it
+    # declares enforcing = False - see RoleActionOnlyPolicy.
 
     def __init__(self, *denied: JobAction):
         self.denied = set(denied)

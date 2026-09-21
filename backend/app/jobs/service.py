@@ -62,10 +62,18 @@ from backend.app.identity.actor import (
 )
 
 from backend.app.identity.authorization import (
+    AuthorizationDenied,
     AuthorizationPolicy,
     JobAction,
+    PolicyConfigurationError,
     UnenforcedPolicy,
+    is_resource_aware,
+    require_resource_aware,
 )
+
+from backend.app.identity.resource import ResourceLocation, location_of
+
+from backend.app.identity.scope import ScopeError
 
 from backend.app.jobs.asset_association import (
     ASSET_REFERENCE_UNFINGERPRINTED,
@@ -480,6 +488,33 @@ class JobService:
         before reading or writing anything. The default policy enforces
         nothing - see backend.app.identity.authorization.
 
+        self.authorization is a guarded property (Slice 10.1D.1), not a
+        plain attribute: a policy declaring enforcing = True that cannot
+        answer the resource question below is refused at construction and
+        on reassignment, so no entrypoint can build a JobService whose
+        railway scope checks are silently skipped.
+
+        Slice 10.1D added the second half. Where an action names a
+        railway resource, the method ALSO calls
+        self.authorization.authorize_resource(actor, action, location)
+        once the resource has been loaded and resolved to a
+        ResourceLocation - via _authorize_job_resource below. The order
+        is deliberate and is the whole point:
+
+            role/action authorize   (cheap, no I/O - an actor holding no
+                                     such permission causes no database
+                                     work at all)
+                -> load the resource
+                -> resolve its (corridor_id, section_id)
+                -> resource authorize
+                -> lifecycle validates STATE
+                -> mutation
+
+        Loading the resource between the two checks is safe and is what
+        the original seam contract actually promised: a denial must leave
+        no state change and no event, which a read cannot cause. Nothing
+        is written before both checks have passed.
+
     LIFECYCLE LOCK
         lifecycle_lock serializes every transition that can change an
         existing job - optimization (JobOptimizationService acquires this
@@ -550,6 +585,17 @@ class JobService:
 
         self.horizon_minutes = horizon_minutes
 
+        # Assigned THROUGH the guarded property below, so the
+        # construction-time guard runs on the policy this service is
+        # BUILT with and not only on one assigned later.
+        #
+        # First, before the repository is opened or any other
+        # collaborator is built: a policy this service may not hold is
+        # refused before the constructor has had any side effect at all.
+        # UnenforcedPolicy is still the default and is resource-aware, so
+        # the shipped application is unaffected.
+        self.authorization = authorization or UnenforcedPolicy()
+
         # Sprint 3 Slice 8: the two intake policies. Explicit, injectable
         # and documented (see backend.app.jobs.asset_association and
         # backend.app.jobs.duplicate_detection) so no threshold is a
@@ -601,10 +647,6 @@ class JobService:
         # isolated test database keeps its history isolated too.
         self.history = JobHistoryRepository(self.repository.db_path)
 
-        self.authorization: AuthorizationPolicy = (
-            authorization or UnenforcedPolicy()
-        )
-
         self.lifecycle_lock = threading.RLock()
 
         # A dataset corridor carries its own topology, section registry
@@ -635,6 +677,45 @@ class JobService:
             self.corridor, self.registry = (
                 self._build_default_corridor_and_registry()
             )
+
+    # -----------------------------------------
+    # The authorization policy, and the construction-time guarantee
+    # (Sprint 3 Slice 10.1D.1)
+    # -----------------------------------------
+
+    @property
+    def authorization(self) -> AuthorizationPolicy:
+        """The policy every action passes. Never a bare attribute.
+
+        THE INVARIANT THIS PROPERTY EXISTS FOR
+            No JobService can ever hold a policy that declares
+            enforcing = True and implements no authorize_resource. Such
+            a policy claims to restrict which railway resources an actor
+            may reach and would then decide none of them, so every scope
+            check would be skipped with no error anywhere.
+
+        WHY HERE AND NOT ONLY AT THE ROUTE WIRING
+            This is the construction boundary of the object that ASKS
+            the question. Guarding the router guards the one service the
+            routes build today; guarding this guards every service any
+            entrypoint will ever build - a new API app, a CLI, a worker,
+            a script - without that entrypoint having to remember a
+            thing. Assignment goes through the same guard as
+            construction, so a policy swapped in after the fact is
+            checked on exactly the same terms.
+
+        It is deliberately a SETTER guard rather than a read-only
+        attribute: the suite legitimately swaps policies on a live
+        service, and taking that away would be a refactor, not a
+        security fix.
+        """
+
+        return self._authorization
+
+    @authorization.setter
+    def authorization(self, policy: AuthorizationPolicy) -> None:
+        require_resource_aware(policy)
+        self._authorization = policy
 
     @staticmethod
     def _load_default_dataset() -> CorridorDataset | None:
@@ -774,6 +855,15 @@ class JobService:
             replay = self._idempotent_replay(*idempotency)
 
             if replay is not None:
+                # A replay HANDS BACK a job, so it is a resource read and
+                # is authorized as one. Without this an actor outside the
+                # section could retrieve a job it may not see by replaying
+                # the creation key, and the resource check below - which
+                # only runs on the create path - would never fire.
+                self._authorize_job_resource(
+                    reporter, JobAction.REPORT_JOB, replay
+                )
+
                 return CreateJobOutcome(job=replay, replayed=True)
 
         # ---------------------------------
@@ -864,6 +954,35 @@ class JobService:
             )
         except JobResourceResolutionError as exc:
             raise ValueError(str(exc)) from exc
+
+        # ---------------------------------
+        # 3.5a. Resource authorization (Slice 10.1D)
+        # ---------------------------------
+        #
+        # REPORT_JOB is the one action whose section is not known when its
+        # role/action check runs: step 3.5 above is the ONE place a job's
+        # section is derived, so this is the earliest point a railway
+        # scope can be evaluated at all.
+        #
+        # It is still before EVERYTHING that persists: the asset
+        # association, the duplicate assessment, the BlockCandidate, the
+        # scoring and the repository write all come after. An
+        # unauthorized field report therefore creates no job, writes no
+        # event and leaves nothing behind - exactly what the role/action
+        # denial at the top of this method guarantees.
+        #
+        # The location is built from this deployment's corridor and the
+        # section the RESOLVER derived, never from the request: a caller
+        # supplies a track and two distances, so it cannot choose the
+        # section its job is filed against.
+        self._authorize_resource(
+            reporter,
+            JobAction.REPORT_JOB,
+            ResourceLocation(
+                corridor_id=self.corridor.corridor_id,
+                section_id=resource.section_id,
+            ),
+        )
 
         # ---------------------------------
         # 3.6. Human field location, when given (Slice 8)
@@ -1283,11 +1402,75 @@ class JobService:
 
     # -----------------------------------------
     # GET /jobs support
+    #
+    # Slice 10.1D: these are the reads the architecture gate found
+    # reaching JobRepository with no actor and no authorization call at
+    # all, while every other read in this application already passed the
+    # seam. They pass it now.
+    #
+    # A single job is GATED - out of scope is a refusal. A page is
+    # FILTERED: a collection must neither answer 403 because it happens
+    # to contain a job the caller may not see, nor hand that job over.
+    # The role/action gate is the half that belongs to this slice.
+    # Per-row scope filtering of a page - with the over-fetching a keyset
+    # page needs in order to stay full - is deliberately separated as
+    # 10.1D.2 rather than mixed into the seam. Until it lands, a
+    # deployment installing an ENFORCING policy must treat a page as
+    # role-gated only, which is why no such policy is wired.
     # -----------------------------------------
 
-    def list_jobs(self) -> list[dict[str, Any]]:
+    def list_jobs(self, actor: Actor | None = None) -> list[dict[str, Any]]:
+        """Every job. Role/action authorized; not scope-filtered (see above)."""
+
+        reader = self._resolve_actor(actor)
+        self.authorization.authorize(reader, JobAction.READ_JOB)
 
         return self.repository.list_all()
+
+    def jobs_page(
+        self,
+        *,
+        limit: int,
+        status: str | None = None,
+        after: tuple[str, str] | None = None,
+        actor: Actor | None = None,
+    ) -> list[dict[str, Any]]:
+        """One keyset page of jobs, role/action authorized.
+
+        Paging is the repository's and is unchanged, including the
+        caller's "ask for limit + 1 to learn whether another page exists"
+        idiom. Not scope-filtered (see above).
+        """
+
+        reader = self._resolve_actor(actor)
+        self.authorization.authorize(reader, JobAction.READ_JOB)
+
+        return self.repository.list_page(limit=limit, status=status, after=after)
+
+    def job_detail(
+        self,
+        job_id: str,
+        actor: Actor | None = None,
+    ) -> dict[str, Any]:
+        """One job, role/action AND resource authorized.
+
+        KeyError if the job does not exist. A job outside the reader's
+        scope raises AuthorizationDenied - the same single authorization
+        failure every other refusal in this service raises, so no caller
+        can tell one kind of denial from another.
+        """
+
+        reader = self._resolve_actor(actor)
+        self.authorization.authorize(reader, JobAction.READ_JOB)
+
+        job = self.repository.get(job_id)
+
+        if job is None:
+            raise KeyError(f"Job '{job_id}' not found")
+
+        self._authorize_job_resource(reader, JobAction.READ_JOB, job)
+
+        return job
 
     # -----------------------------------------
     # Lifecycle history
@@ -1307,8 +1490,12 @@ class JobService:
         reader = self._resolve_actor(actor)
         self.authorization.authorize(reader, JobAction.READ_JOB_HISTORY)
 
-        if self.repository.get(job_id) is None:
+        job = self.repository.get(job_id)
+
+        if job is None:
             raise KeyError(f"Job '{job_id}' not found")
+
+        self._authorize_job_resource(reader, JobAction.READ_JOB_HISTORY, job)
 
         return self.history.list_for_job(job_id)
 
@@ -1340,9 +1527,25 @@ class JobService:
         reader = self._resolve_actor(actor)
         self.authorization.authorize(reader, JobAction.READ_BLOCK_PROPOSAL)
 
-        return self._build_current_proposal(job_id)
+        job = self.repository.get(job_id)
 
-    def _build_current_proposal(self, job_id: str) -> BlockProposal:
+        if job is None:
+            raise KeyError(f"Job '{job_id}' not found")
+
+        # Authorized on the job's own section BEFORE the proposal is
+        # derived. _build_current_proposal's refusals name the job's
+        # status and who put it there, so deciding scope first is what
+        # keeps that out of an out-of-scope caller's error message.
+        # The row is passed down rather than re-read.
+        self._authorize_job_resource(reader, JobAction.READ_BLOCK_PROPOSAL, job)
+
+        return self._build_current_proposal(job_id, job=job)
+
+    def _build_current_proposal(
+        self,
+        job_id: str,
+        job: dict[str, Any] | None = None,
+    ) -> BlockProposal:
         """The build logic behind current_proposal, with no authorization call.
 
         Split out so approve_proposal/reject_proposal/postpone_proposal
@@ -1351,9 +1554,15 @@ class JobService:
         OWN action's authorization check, without a second
         READ_BLOCK_PROPOSAL authorization firing for one caller-visible
         action. See current_proposal for what each exception means.
+
+        `job`, when given, is a row the caller has ALREADY read and
+        already resource-authorized (current_proposal). It is passed in
+        rather than re-read so one caller-visible read stays one database
+        read; every other caller omits it and this reads the row itself.
         """
 
-        job = self.repository.get(job_id)
+        if job is None:
+            job = self.repository.get(job_id)
 
         if job is None:
             raise KeyError(f"Job '{job_id}' not found")
@@ -1473,6 +1682,8 @@ class JobService:
         if job is None:
             raise KeyError(f"Job '{job_id}' not found")
 
+        self._authorize_job_resource(reader, JobAction.READ_JOB_OBLIGATIONS, job)
+
         return derive_job_obligation(
             job,
             self.history.list_for_job(job_id),
@@ -1499,6 +1710,16 @@ class JobService:
         filtering by state or role will see pages shorter than `limit`
         while next_cursor is still set; that is correct, and the router
         documents it.
+
+        SCOPE (Slice 10.1D). This is a COLLECTION read, so it is
+        role/action authorized above but not scope-filtered: a page must
+        neither refuse because it happens to contain a job the caller may
+        not see, nor hand that job over. Per-row scope filtering of a
+        page is 10.1D.2, alongside the same work for list_jobs and
+        jobs_page, and is deliberately kept out of the seam slice. Until
+        it lands, a deployment installing an ENFORCING policy must treat
+        every collection read here as role-gated only - which is one
+        reason no such policy is wired.
 
         Returns (obligations, last_row_or_None, evaluated_at). The second
         value is the candidate row the NEXT page should start after, or
@@ -1577,6 +1798,17 @@ class JobService:
         if run is None:
             raise KeyError(f"Optimization run '{run_id}' not found")
 
+        # Corridor-scoped, not section-scoped: a run names a corridor and
+        # never a section, so section matching would call every run
+        # UNRESOLVED and refuse every reader. A run whose corridor_id is
+        # absent cannot be matched against any scope and is refused
+        # rather than guessed - see EnforcingPolicy._require_corridor.
+        self.authorize_corridor(
+            reader,
+            JobAction.READ_OPTIMIZATION_RUN,
+            run.corridor_id,
+        )
+
         return run
 
     # -----------------------------------------
@@ -1606,6 +1838,8 @@ class JobService:
 
         committer = self._resolve_actor(actor)
         self.authorization.authorize(committer, JobAction.COMMIT_BLOCK)
+
+        self._authorize_existing_job(committer, JobAction.COMMIT_BLOCK, job_id)
 
         return self._transition(
             job_id,
@@ -1675,6 +1909,8 @@ class JobService:
         rejecter = self._resolve_actor(actor)
         self.authorization.authorize(rejecter, JobAction.REJECT_PROPOSAL)
 
+        self._authorize_existing_job(rejecter, JobAction.REJECT_PROPOSAL, job_id)
+
         if not expected_proposal_run_id or not expected_proposal_run_id.strip():
             raise ValueError(
                 "expected_proposal_run_id is required to reject a proposal"
@@ -1736,6 +1972,10 @@ class JobService:
 
         postponer = self._resolve_actor(actor)
         self.authorization.authorize(postponer, JobAction.POSTPONE_PROPOSAL)
+
+        self._authorize_existing_job(
+            postponer, JobAction.POSTPONE_PROPOSAL, job_id
+        )
 
         if not expected_proposal_run_id or not expected_proposal_run_id.strip():
             raise ValueError(
@@ -1799,6 +2039,10 @@ class JobService:
 
         releaser = self._resolve_actor(actor)
         self.authorization.authorize(releaser, JobAction.RELEASE_COMMITTED_BLOCK)
+
+        self._authorize_existing_job(
+            releaser, JobAction.RELEASE_COMMITTED_BLOCK, job_id
+        )
 
         if not expected_proposal_run_id or not expected_proposal_run_id.strip():
             raise ValueError(
@@ -1901,6 +2145,15 @@ class JobService:
             if job is None:
                 raise KeyError(f"Job '{job_id}' not found")
 
+            # Resource authorization (Slice 10.1D) on the row this method
+            # was already going to read. It sits inside the lock only
+            # because that existing read does: no second read is taken,
+            # and nothing is written until lifecycle has also validated
+            # the state - which is a separate question this never asks.
+            self._authorize_job_resource(
+                starter, JobAction.START_EXECUTION, job
+            )
+
             previous = tuple(
                 build_execution_records(job, self.history.list_for_job(job_id))
             )
@@ -1973,6 +2226,15 @@ class JobService:
             if job is None:
                 raise KeyError(f"Job '{job_id}' not found")
 
+            # Resource authorization (Slice 10.1D) on the row this method
+            # was already going to read. It sits inside the lock only
+            # because that existing read does: no second read is taken,
+            # and nothing is written until lifecycle has also validated
+            # the state - which is a separate question this never asks.
+            self._authorize_job_resource(
+                completer, JobAction.COMPLETE_JOB, job
+            )
+
             open_execution = self._current_open_execution(job, job_id)
 
             updated = self._transition(
@@ -2027,6 +2289,15 @@ class JobService:
 
             if job is None:
                 raise KeyError(f"Job '{job_id}' not found")
+
+            # Resource authorization (Slice 10.1D) on the row this method
+            # was already going to read. It sits inside the lock only
+            # because that existing read does: no second read is taken,
+            # and nothing is written until lifecycle has also validated
+            # the state - which is a separate question this never asks.
+            self._authorize_job_resource(
+                reporter, JobAction.REPORT_EXECUTION_NOT_COMPLETED, job
+            )
 
             open_execution = self._current_open_execution(job, job_id)
 
@@ -2087,6 +2358,15 @@ class JobService:
 
             if job is None:
                 raise KeyError(f"Job '{job_id}' not found")
+
+            # Resource authorization (Slice 10.1D) on the row this method
+            # was already going to read. It sits inside the lock only
+            # because that existing read does: no second read is taken,
+            # and nothing is written until lifecycle has also validated
+            # the state - which is a separate question this never asks.
+            self._authorize_job_resource(
+                reader, JobAction.READ_JOB_EXECUTION, job
+            )
 
             return build_execution_records(job, self.history.list_for_job(job_id))
 
@@ -2159,6 +2439,135 @@ class JobService:
         return actor if actor is not None else unidentified_actor()
 
     # -----------------------------------------
+    # Resource authorization (Sprint 3 Slice 10.1D)
+    # -----------------------------------------
+
+    def _authorize_resource(
+        self,
+        actor: Actor,
+        action: JobAction,
+        location: ResourceLocation,
+    ) -> None:
+        """Ask the policy the resource question. Never skip it silently.
+
+        A policy implementing only the two-argument authorize() is a
+        pre-10.1D role/action-seam policy
+        (backend.app.identity.authorization.RoleActionOnlyPolicy). It
+        cannot be asked this question, so it is not asked it - and it
+        declares enforcing = False, which is precisely the claim that it
+        governs no resource and that nothing here is being bypassed.
+
+        WHAT MAKES THAT SAFE (Slice 10.1D.1)
+            The construction boundary, not this method. A policy that
+            declares enforcing = True and cannot answer this question can
+            no longer reach a JobService at all: the `authorization`
+            property refuses it, in __init__ and on reassignment alike.
+            The skip below is therefore reachable ONLY for a policy that
+            has declared it restricts nothing.
+
+            The enforcing branch is unreachable by construction and is
+            kept as the last fail-closed backstop - if some future path
+            ever does install such a policy (a direct write to the
+            private attribute, a policy that deletes its own method after
+            construction), this raises rather than quietly permitting
+            every railway section in the deployment.
+        """
+
+        policy = self.authorization
+
+        if not is_resource_aware(policy):
+            if getattr(policy, "enforcing", False):
+                raise PolicyConfigurationError(
+                    f"{type(policy).__name__} declares enforcing=True but "
+                    "implements no authorize_resource, so this railway "
+                    f"scope check for {action.value} cannot be made. "
+                    "Refusing to decide it as permitted."
+                )
+            return
+
+        policy.authorize_resource(actor, action, location)
+
+    def _authorize_job_resource(
+        self,
+        actor: Actor,
+        action: JobAction,
+        job: dict[str, Any],
+    ) -> None:
+        """Resource-authorize one job row: resolve its section, then decide.
+
+        The job's own block_candidate.section_id is the single scope key
+        for every job-shaped action; a proposal or an execution derives
+        from that same block and is never a second source of truth. An
+        absent section - the shape of the one legacy row in the live
+        database - resolves to None, which the scope matcher reports as
+        UNRESOLVED and no policy may read as permission.
+
+        A row whose corridor contradicts this deployment's is a DENIAL,
+        not an unhandled error: location_of refuses to resolve it, and
+        that refusal is translated here into the same 403 any other
+        authorization failure produces.
+
+        Reads no status and passes none on: state is lifecycle's question.
+        """
+
+        try:
+            location = location_of(job, corridor_id=self.corridor.corridor_id)
+        except ScopeError as exc:
+            raise AuthorizationDenied(actor, action, str(exc)) from exc
+
+        self._authorize_resource(actor, action, location)
+
+    def authorize_corridor(
+        self,
+        actor: Actor,
+        action: JobAction,
+        corridor_id: str | None,
+    ) -> None:
+        """Resource-authorize a corridor-shaped action (Slice 10.1D).
+
+        For the two actions whose resource names a corridor and no
+        section at all - requesting an optimization, reading a run. They
+        must NOT go through section matching, which would call every one
+        of them UNRESOLVED and refuse everybody. A corridor of None stays
+        unmatched and is refused by the policy, never widened.
+
+        Public because JobOptimizationService is a separate object that
+        shares this service's one authorization seam.
+        """
+
+        self._authorize_resource(
+            actor,
+            action,
+            ResourceLocation(corridor_id=corridor_id, section_id=None),
+        )
+
+    def _authorize_existing_job(
+        self,
+        actor: Actor,
+        action: JobAction,
+        job_id: str,
+    ) -> None:
+        """Load one job and resource-authorize it.
+
+        For the transition methods whose own body does not otherwise read
+        the row (commit, reject, postpone, release): the read happens
+        inside the transactional mutation, which is too late to decide
+        who may attempt it.
+
+        A job that does not exist is left to the transition that follows,
+        which raises the not-found every caller already expects. There is
+        no resource to authorize, and inventing a denial here would turn a
+        404 into a 403.
+        """
+
+        job = self.repository.get(job_id)
+
+        if job is None:
+            return
+
+        self._authorize_job_resource(actor, action, job)
+
+    # -----------------------------------------
     # Used by Archit for optimization
     # -----------------------------------------
 
@@ -2202,10 +2611,14 @@ class JobService:
         assigner = self._resolve_actor(actor)
         self.authorization.authorize(assigner, JobAction.ASSIGN_SCHEDULE)
 
-        if self.repository.get(job_id) is None:
+        job = self.repository.get(job_id)
+
+        if job is None:
             raise KeyError(
                 f"Job '{job_id}' not found"
             )
+
+        self._authorize_job_resource(assigner, JobAction.ASSIGN_SCHEDULE, job)
 
         if end_minute <= start_minute:
             raise ValueError(

@@ -27,7 +27,11 @@ from fastapi.testclient import TestClient
 import backend.app.jobs.optimization as optimization_module
 from backend.app.data.horizon_anchor import horizon_relative_minutes
 from backend.app.identity.actor import ActorRole, human_actor
-from backend.app.identity.authorization import AuthorizationDenied, JobAction
+from backend.app.identity.authorization import (
+    AuthorizationDenied,
+    JobAction,
+    RoleActionOnlyPolicy,
+)
 from backend.app.jobs.events import JobEventType
 from backend.app.jobs.lifecycle import (
     InvalidTransitionError,
@@ -179,8 +183,9 @@ def test_approve_uses_commit_block_authorization_not_a_second_action(service, op
     job, run_id = schedule_job(service, optimizer)
     seen = []
 
-    class RecordingPolicy:
-        enforcing = True
+    class RecordingPolicy(RoleActionOnlyPolicy):
+        # A role/action-seam double (Slice 10.1D.1): it asks no resource
+        # question, so it is not an enforcing authorization control.
 
         def authorize(self, actor, action):
             seen.append(action)
@@ -885,8 +890,8 @@ def test_approve_then_postpone_same_proposal_fails_closed(service, optimizer):
 def test_authorization_denial_blocks_review_actions_before_any_state_change(service, optimizer):
     job, run_id = schedule_job(service, optimizer)
 
-    class DenyingPolicy:
-        enforcing = True
+    class DenyingPolicy(RoleActionOnlyPolicy):
+        # A role/action-seam double (Slice 10.1D.1). See RecordingPolicy above.
 
         def authorize(self, actor, action):
             if action in (

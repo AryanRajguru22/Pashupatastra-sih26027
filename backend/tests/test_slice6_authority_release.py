@@ -45,7 +45,11 @@ import backend.app.jobs.lifecycle as lifecycle
 from contracts import DEFAULT_HORIZON_START
 
 from backend.app.identity.actor import ActorRole, human_actor, unidentified_actor
-from backend.app.identity.authorization import AuthorizationDenied, JobAction
+from backend.app.identity.authorization import (
+    AuthorizationDenied,
+    JobAction,
+    RoleActionOnlyPolicy,
+)
 from backend.app.jobs.events import (
     JobEventType,
     JobStateSnapshot,
@@ -467,8 +471,10 @@ def test_release_requires_an_identified_human_actor(
 # ----------------------------------------------------------------------
 
 
-class DenyPolicy:
-    enforcing = True
+class DenyPolicy(RoleActionOnlyPolicy):
+    # Slice 10.1D.1: a role/action-seam double, not a deployment's
+    # authorization control. It answers no resource question, so it
+    # declares enforcing = False - see RoleActionOnlyPolicy.
 
     def __init__(self, *denied):
         self.denied = set(denied)
@@ -478,8 +484,10 @@ class DenyPolicy:
             raise AuthorizationDenied(actor, action)
 
 
-class RecordingPolicy:
-    enforcing = False
+class RecordingPolicy(RoleActionOnlyPolicy):
+    # Slice 10.1D.1: a role/action-seam double, not a deployment's
+    # authorization control. It answers no resource question, so it
+    # declares enforcing = False - see RoleActionOnlyPolicy.
 
     def __init__(self):
         self.calls = []

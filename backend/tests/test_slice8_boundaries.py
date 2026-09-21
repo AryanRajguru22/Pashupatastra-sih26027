@@ -89,6 +89,13 @@ def test_no_new_authorization_action():
         # was added, renamed or removed.
         "READ_JOB_OBLIGATIONS",
         "READ_OPTIMIZATION_RUN",
+        # Slice 10.1D added exactly ONE, a READ, and only because the
+        # architecture gate proved it missing from code rather than from
+        # a wish list: GET /v1/jobs and GET /v1/jobs/{job_id} reached
+        # JobRepository directly, with no actor and no authorization
+        # call, while every other read already passed this seam. Still no
+        # write action added, renamed or removed.
+        "READ_JOB",
     ]
 
 
