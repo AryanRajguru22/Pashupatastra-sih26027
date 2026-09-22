@@ -59,6 +59,16 @@ Lifecycle: `scheduled` —approve→ `notified` —start→ `in_progress` —com
 `scheduled` —reject/postpone→ `reported`; `notified` —release→ `reported`;
 `in_progress` —not-completed→ `reported`. `completed` is terminal.
 
+**`GET /v1/jobs` may return a short or empty page with `next_cursor` still set (Slice
+10.1D.2).** A row is filtered out of a page for the same reason it would refuse a single
+`GET /v1/jobs/{id}`: it is outside the reader's railway scope, or its location cannot be
+resolved. `next_cursor` non-null never promises that a further visible row exists, only
+that scanning stopped; `next_cursor: null` is the only signal that no further row remains.
+Clients must follow `next_cursor` until it is `null` rather than stopping at a short or
+empty page — the same rule `GET /v1/obligations` already documents below. Under the
+policy this deployment ships today, no scope filtering is applied, so a short page is not
+observed in practice; it becomes reachable once an enforcing policy is installed.
+
 ## Field intake (Slice 8) — optional additions to `POST /v1/jobs`
 
 Nothing here is required, so `JobCreateRequest.required` is unchanged and every request

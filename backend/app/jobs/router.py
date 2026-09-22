@@ -338,12 +338,17 @@ def list_jobs(
     # actor stays optional exactly as it is on every other route -
     # sending no headers is still the UNIDENTIFIED actor - so no existing
     # caller changes.
+    #
+    # Slice 10.1D.2: service.jobs_page is now itself scope-filtered and
+    # bounded, and owns the "ask past the page to know whether more
+    # exists" idiom internally - this route no longer over-fetches or
+    # slices. next_cursor is exactly the scan position jobs_page hands
+    # back; it never names a job the caller was refused (ScopedPage).
     after = _decode_cursor(cursor) if cursor is not None else None
 
     try:
-        # One extra row tells us whether another page exists.
-        rows = service.jobs_page(
-            limit=limit + 1,
+        page = service.jobs_page(
+            limit=limit,
             status=status.value if status is not None else None,
             after=after,
             actor=actor,
@@ -352,14 +357,10 @@ def list_jobs(
     except _HANDLED as exc:
         raise _api_error(exc) from exc
 
-    page, more = rows[:limit], len(rows) > limit
-
     return JobListResponse(
-        items=[JobResponse(**as_public_job(job)) for job in page],
+        items=[JobResponse(**as_public_job(job)) for job in page.items],
         next_cursor=(
-            _encode_cursor(page[-1]["created_at"], page[-1]["job_id"])
-            if more
-            else None
+            _encode_cursor(*page.next_after) if page.next_after is not None else None
         ),
     )
 
@@ -921,10 +922,16 @@ def list_obligations(
     null.
     """
 
+    # Slice 10.1D.2: service.obligations_page resource-authorizes each
+    # candidate job BEFORE deriving its obligation, so next_after is a
+    # scan position that never names a job the caller was refused. The
+    # state/obligation_type/role/past_due/attention filters below are
+    # applied AFTER that scope decision and narrow the already-authorized
+    # result only - they never expand it and never affect the cursor.
     after = _decode_cursor(cursor) if cursor is not None else None
 
     try:
-        obligations, last_row, evaluated_at = service.obligations_page(
+        obligations, next_after, evaluated_at = service.obligations_page(
             limit=limit,
             after=after,
             actor=actor,
@@ -961,9 +968,7 @@ def list_obligations(
     return ObligationListResponse(
         items=[_obligation_response(o) for o in items],
         next_cursor=(
-            _encode_cursor(last_row["created_at"], last_row["job_id"])
-            if last_row is not None
-            else None
+            _encode_cursor(*next_after) if next_after is not None else None
         ),
         evaluated_at=evaluated_at,
         policy_version=service.sla_policy.version,

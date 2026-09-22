@@ -253,7 +253,9 @@ def test_the_default_policy_still_permits_a_whole_report_and_read(
 
     assert job["status"] == "reported"
     assert service.job_detail(job["job_id"], actor=WORKER)["job_id"] == job["job_id"]
-    assert service.jobs_page(limit=10, actor=WORKER)
+    assert [j["job_id"] for j in service.jobs_page(limit=10, actor=WORKER).items] == [
+        job["job_id"]
+    ]
 
 
 def test_the_shipped_application_still_enforces_nothing():

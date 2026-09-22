@@ -471,6 +471,78 @@ class CreateJobOutcome:
     replayed: bool
 
 
+# ----------------------------------------------------------------------
+# Collection scope filtering (Slice 10.1D.2)
+#
+# GET /v1/jobs and GET /v1/obligations page over rows that may span
+# every railway section in the corridor; a reader's scope must filter
+# them the same way _authorize_job_resource already gates one job. This
+# is NOT a new authorization mechanism - JobService._job_resource_permitted
+# below re-decides each scanned row through the existing single-resource
+# seam and keeps only what that seam would have permitted, so a
+# collection can never disagree with GET /v1/jobs/{id} for the same
+# actor. See docs/SLICE10_1D2_COLLECTION_SCOPE_ARCHITECTURE.md.
+# ----------------------------------------------------------------------
+
+#: Maximum rows a single collection request will EXAMINE while scanning
+#: for in-scope rows - not merely return - before stopping at a
+#: created_at boundary and handing back a continuation cursor instead of
+#: scanning further. The default is instance-overridable
+#: (self.collection_scan_budget) so a test can exercise budget
+#: exhaustion without a thousand rows. Chosen large enough that, at the
+#: demo/pilot scale this application assumes (tens to low thousands of
+#: jobs - see JobHistoryRepository.list_for_jobs), a single request
+#: reaches the end of the table rather than stopping mid-scan.
+COLLECTION_SCAN_BUDGET = 1000
+
+#: Size of each keyset chunk fetched once a scan needs to look past its
+#: first page. Equal to the router's MAX_PAGE_SIZE (backend.app.jobs.
+#: router) so a saturated scan never asks the repository for a chunk
+#: larger than any single client page could be; kept as its own literal
+#: here rather than imported, since router.py imports this module and a
+#: reverse import would cycle.
+COLLECTION_SCAN_CHUNK = 200
+
+#: How many EXTRA rows beyond the budget a scan may examine solely to
+#: finish a created_at tie group before giving up. A budget stop must
+#: land on an EXACT boundary - either a returned row's own position, or
+#: (created_at, "") once every row sharing that created_at has been
+#: examined (see _scan_boundary) - and this bounds how far a tie group
+#: is allowed to run past the budget while that boundary is sought.
+COLLECTION_TIE_CEILING = 200
+
+
+class CollectionScanLimitError(RuntimeError):
+    """A collection scan could not find a safe created_at boundary.
+
+    Raised only when a single created_at value is shared by more than
+    COLLECTION_SCAN_BUDGET + COLLECTION_TIE_CEILING rows at the exact
+    point a scan would otherwise stop. Unreachable with the real
+    microsecond-resolution clock (backend.app.jobs.events.
+    event_timestamp mints every created_at), reachable only with an
+    injected constant clock in a test. Fails the whole request rather
+    than stopping mid-tie-group: a mid-group stop has no exact boundary
+    position and could silently skip or repeat a row on the next page.
+    """
+
+
+@dataclass(frozen=True)
+class ScopedPage:
+    """One scope-filtered page of job rows, and where to resume from.
+
+    `items` are rows JobService._job_resource_permitted approved for the
+    requesting actor, in the same (created_at, job_id) descending order
+    the repository returns them. `next_after` is a scan position - a
+    plain (created_at, job_id) tuple, NEVER the identifier of a row the
+    caller was refused - or None when the underlying table was
+    exhausted, meaning no further row of any kind remains. Callers
+    encode it into next_cursor unchanged; it carries no other meaning.
+    """
+
+    items: list[dict[str, Any]]
+    next_after: Optional[tuple[str, str]]
+
+
 class JobService:
     """Maintenance job reporting, lifecycle and optimization input.
 
@@ -613,6 +685,15 @@ class JobService:
         # Railways policy. See backend.app.jobs.sla_policy - the policy
         # itself refuses to be constructed without saying so.
         self.sla_policy = sla_policy or ASSUMED_DEMO_SLA_POLICY
+
+        # Slice 10.1D.2: the per-request row-examination budget for
+        # scope-filtered collection scans (jobs_page, obligations_page,
+        # list_jobs). Instance-overridable, on the same footing as
+        # sla_policy above, so a test can exercise budget exhaustion
+        # (test_slice10_1d_2_collection_scope.py) without a thousand
+        # rows in a scratch database. See COLLECTION_SCAN_BUDGET's own
+        # module-level comment for why the default is what it is.
+        self.collection_scan_budget = COLLECTION_SCAN_BUDGET
 
         # The one source of "now" for this service.
         #
@@ -1409,23 +1490,34 @@ class JobService:
     # seam. They pass it now.
     #
     # A single job is GATED - out of scope is a refusal. A page is
-    # FILTERED: a collection must neither answer 403 because it happens
-    # to contain a job the caller may not see, nor hand that job over.
-    # The role/action gate is the half that belongs to this slice.
-    # Per-row scope filtering of a page - with the over-fetching a keyset
-    # page needs in order to stay full - is deliberately separated as
-    # 10.1D.2 rather than mixed into the seam. Until it lands, a
-    # deployment installing an ENFORCING policy must treat a page as
-    # role-gated only, which is why no such policy is wired.
+    # FILTERED (Slice 10.1D.2): a collection must neither answer 403
+    # because it happens to contain a job the caller may not see, nor
+    # hand that job over. Each candidate row is resource-authorized
+    # through _job_resource_permitted - the SAME seam job_detail uses -
+    # so a row appears in a page iff that actor's own GET /v1/jobs/{id}
+    # would return it. See
+    # docs/SLICE10_1D2_COLLECTION_SCOPE_ARCHITECTURE.md.
     # -----------------------------------------
 
     def list_jobs(self, actor: Actor | None = None) -> list[dict[str, Any]]:
-        """Every job. Role/action authorized; not scope-filtered (see above)."""
+        """Every job the actor may see. Role/action AND resource authorized.
+
+        Unlike jobs_page this has no page boundary or scan budget: every
+        row of repository.list_all() is resource-authorized before being
+        included. In-process only - no route reaches this method (see
+        test_slice10_1d_security.py's router-source assertions) - so its
+        O(all rows) scan is never a public collection endpoint's
+        contract.
+        """
 
         reader = self._resolve_actor(actor)
         self.authorization.authorize(reader, JobAction.READ_JOB)
 
-        return self.repository.list_all()
+        return [
+            job
+            for job in self.repository.list_all()
+            if self._job_resource_permitted(reader, JobAction.READ_JOB, job)
+        ]
 
     def jobs_page(
         self,
@@ -1434,18 +1526,35 @@ class JobService:
         status: str | None = None,
         after: tuple[str, str] | None = None,
         actor: Actor | None = None,
-    ) -> list[dict[str, Any]]:
-        """One keyset page of jobs, role/action authorized.
+    ) -> ScopedPage:
+        """One scope-filtered keyset page of jobs.
 
-        Paging is the repository's and is unchanged, including the
-        caller's "ask for limit + 1 to learn whether another page exists"
-        idiom. Not scope-filtered (see above).
+        Role/action authorized before any read. Each candidate row is
+        then resource-authorized through the same seam a single
+        GET /v1/jobs/{id} uses, so a row appears here iff that same
+        actor's single-job read of it would succeed (see
+        _job_resource_permitted / _scoped_scan).
+
+        Bounded: examines at most
+        max(self.collection_scan_budget, limit + 1) rows - plus a small
+        allowance to finish a created_at tie group - over a handful of
+        keyset queries, never the whole table. Under UnenforcedPolicy
+        every row is permitted, so this reduces to exactly the single
+        "ask for limit + 1" query this method issued before Slice
+        10.1D.2 - see test_slice10_1d_2_collection_scope.py's
+        UnenforcedPolicy-equivalence tests.
         """
 
         reader = self._resolve_actor(actor)
         self.authorization.authorize(reader, JobAction.READ_JOB)
 
-        return self.repository.list_page(limit=limit, status=status, after=after)
+        return self._scoped_scan(
+            actor=reader,
+            action=JobAction.READ_JOB,
+            limit=limit,
+            status=status,
+            after=after,
+        )
 
     def job_detail(
         self,
@@ -1699,40 +1808,41 @@ class JobService:
         actor: Actor | None = None,
         evaluated_at: datetime | None = None,
         statuses: Sequence[str] | None = None,
-    ) -> tuple[list[JobObligation], dict[str, Any] | None, str]:
-        """One page of derived obligations, the row to page after, and
-        the single moment the whole page was evaluated at.
+    ) -> tuple[list[JobObligation], Optional[tuple[str, str]], str]:
+        """One scope-filtered page of derived obligations, a continuation
+        scan position, and the single moment the page was evaluated at.
 
-        PAGING IS OVER JOBS, NOT OVER OBLIGATIONS. The keyset cursor is
-        the existing (created_at, job_id) one from list_page, unchanged,
-        because obligations are derived AFTER the page is read and
-        therefore cannot themselves be indexed or seeked. A caller
-        filtering by state or role will see pages shorter than `limit`
-        while next_cursor is still set; that is correct, and the router
-        documents it.
+        PAGING IS OVER CANDIDATE JOBS, NOT OVER OBLIGATIONS (unchanged
+        since Slice 9). A caller filtering by state or role will see
+        pages shorter than `limit` while next_cursor is still set; that
+        is correct, and the router documents it.
 
-        SCOPE (Slice 10.1D). This is a COLLECTION read, so it is
-        role/action authorized above but not scope-filtered: a page must
-        neither refuse because it happens to contain a job the caller may
-        not see, nor hand that job over. Per-row scope filtering of a
-        page is 10.1D.2, alongside the same work for list_jobs and
-        jobs_page, and is deliberately kept out of the seam slice. Until
-        it lands, a deployment installing an ENFORCING policy must treat
-        every collection read here as role-gated only - which is one
-        reason no such policy is wired.
+        SCOPE (Slice 10.1D.2). Each candidate job is resource-authorized
+        through _scoped_scan - the SAME seam jobs_page uses -
+        BEFORE its history is read or its obligation is derived, never
+        after. This is not an incidental ordering: an out-of-scope job
+        whose stored state is incoherent (derive_job_obligation would
+        raise ObligationIntegrityError/ExecutionIntegrityError for it)
+        can therefore never surface as a 409, or any other response, to
+        a reader who is not authorized to see that job. Only an IN-SCOPE
+        job's own integrity failure can still do that - unchanged Slice 9
+        behavior. See
+        docs/SLICE10_1D2_COLLECTION_SCOPE_ARCHITECTURE.md Sec.7 (U2).
 
-        Returns (obligations, last_row_or_None, evaluated_at). The second
-        value is the candidate row the NEXT page should start after, or
-        None when this was the last page. The third is the canonical
-        timestamp every obligation in the page shares - returned rather
-        than left to the caller to re-read from the clock, which would
-        produce a second, different moment for an empty page.
+        Returns (obligations, next_after, evaluated_at). next_after is a
+        scan position - never a full row, and never an out-of-scope
+        job_id (see ScopedPage) - or None when the underlying table is
+        exhausted. The router encodes it into next_cursor unchanged. The
+        third value is the canonical timestamp every obligation in the
+        page shares - returned rather than left to the caller to re-read
+        from the clock, which would produce a second, different moment
+        for an empty page.
 
-        Reads each candidate job's history in ONE query
+        Reads each KEPT candidate job's history in ONE query
         (JobHistoryRepository.list_for_jobs) rather than one per job.
-        Scale assumption: O(active jobs) per call with a bounded number
-        of events each, measured at demo and pilot scale only - see that
-        method's docstring.
+        Scale assumption: O(in-scope candidates) per call with a bounded
+        number of events each, measured at demo and pilot scale only -
+        see that method's docstring.
         """
 
         reader = self._resolve_actor(actor)
@@ -1743,28 +1853,28 @@ class JobService:
             list(OBLIGATION_CANDIDATE_STATUSES) if statuses is None else list(statuses)
         )
 
-        # One extra row tells us whether another page exists - the same
-        # idiom GET /v1/jobs already uses.
-        rows = self.repository.list_page(
-            limit=limit + 1,
+        page = self._scoped_scan(
+            actor=reader,
+            action=JobAction.READ_JOB_OBLIGATIONS,
+            limit=limit,
             statuses=candidates,
             after=after,
         )
 
-        page, more = rows[:limit], len(rows) > limit
-        history = self.history.list_for_jobs([row["job_id"] for row in page])
+        # Batched history read and derivation run ONLY over page.items -
+        # the rows _scoped_scan already resource-authorized. An
+        # out-of-scope row's history is never read and never derived.
+        history = self.history.list_for_jobs(
+            [row["job_id"] for row in page.items]
+        )
 
         obligations = derive_obligations(
-            ((row, history[row["job_id"]]) for row in page),
+            ((row, history[row["job_id"]]) for row in page.items),
             evaluated_at=moment,
             policy=self.sla_policy,
         )
 
-        return (
-            obligations,
-            (page[-1] if more and page else None),
-            event_timestamp(moment),
-        )
+        return obligations, page.next_after, event_timestamp(moment)
 
     def optimization_run(
         self,
@@ -2516,6 +2626,176 @@ class JobService:
             raise AuthorizationDenied(actor, action, str(exc)) from exc
 
         self._authorize_resource(actor, action, location)
+
+    def _job_resource_permitted(
+        self,
+        actor: Actor,
+        action: JobAction,
+        job: Mapping[str, Any],
+    ) -> bool:
+        """Whether `job` would pass the single-resource seam for this actor.
+
+        THE COLLECTION PREDICATE (Slice 10.1D.2): a row belongs in a
+        scope-filtered page if and only if this same actor's single-
+        resource read of that same row would be permitted. Reuses
+        _authorize_job_resource verbatim - the exact method job_detail,
+        job_history, current_proposal, job_obligation and get_execution
+        already call - rather than re-deriving location_of/match_scope
+        here, so the collection and single-resource answers can never
+        drift apart.
+
+        Only AuthorizationDenied is caught and turned into a boolean.
+        Anything else - a PolicyConfigurationError from an enforcing
+        policy with no authorize_resource, a directory failure, a
+        TypeError - propagates and fails the WHOLE request closed,
+        exactly as a single-resource read would. A denial's own message
+        (which may name the section and corridor - see
+        backend.app.identity.policy) is discarded here, never surfaced.
+        """
+
+        try:
+            self._authorize_job_resource(actor, action, job)
+        except AuthorizationDenied:
+            return False
+
+        return True
+
+    @staticmethod
+    def _scan_position(row: dict[str, Any]) -> tuple[str, str]:
+        """The exact (created_at, job_id) keyset position of one row.
+
+        Internal only: used to ask the repository to resume after a row,
+        never returned to a caller. Safe to be exact regardless of that
+        row's authorization outcome, because it never leaves this
+        method's own follow-up repository.list_page call.
+        """
+
+        return (row["created_at"], row["job_id"])
+
+    @staticmethod
+    def _scan_boundary(
+        row: Optional[dict[str, Any]], *, kept: bool
+    ) -> Optional[tuple[str, str]]:
+        """The PUBLIC continuation position for a budget-exhausted scan.
+
+        `row` is the last row _scoped_scan examined. When that row was
+        itself returned to the caller (`kept=True`) its own job_id is
+        already visible in `items`, so naming it again in the cursor
+        discloses nothing new. When it was NOT returned (out of scope,
+        unresolved, or simply not yet decided as far as this call is
+        concerned), the position carries an empty job_id instead: no
+        out-of-scope identifier is ever emitted. See
+        docs/SLICE10_1D2_COLLECTION_SCOPE_ARCHITECTURE.md Sec.10.
+
+        None only when no row was examined at all (an empty table).
+        """
+
+        if row is None:
+            return None
+
+        return (row["created_at"], row["job_id"] if kept else "")
+
+    def _scoped_scan(
+        self,
+        *,
+        actor: Actor,
+        action: JobAction,
+        limit: int,
+        status: Optional[str] = None,
+        statuses: Optional[Sequence[str]] = None,
+        after: Optional[tuple[str, str]] = None,
+    ) -> ScopedPage:
+        """Bounded, scope-filtered keyset scan shared by every collection read.
+
+        Over-fetches in keyset order, deciding each row through
+        _job_resource_permitted as it is read, and stops as soon as
+        either:
+
+          - `limit` permitted rows are kept AND one further permitted row
+            is proven to exist (today's "ask for limit + 1" idiom,
+            generalised past a single chunk); or
+          - the underlying table is exhausted (next_after = None); or
+          - the per-request scan budget is exhausted, at an EXACT
+            created_at boundary (next_after names a scan position, never
+            an out-of-scope job_id - see _scan_boundary).
+
+        Never loads more than a bounded number of rows: the budget is
+        max(self.collection_scan_budget, limit + 1), plus at most
+        COLLECTION_TIE_CEILING extra rows to finish one created_at tie
+        group exactly. A tie group larger than that ceiling at a budget
+        boundary raises CollectionScanLimitError rather than guessing an
+        inexact stopping point - unreachable with the real
+        microsecond-resolution clock.
+
+        Under a policy that permits every row (UnenforcedPolicy, or any
+        RoleActionOnlyPolicy that reaches this point at all), the first
+        chunk of limit + 1 rows always contains the answer, so this
+        issues exactly the ONE repository query jobs_page issued before
+        Slice 10.1D.2 - see
+        test_slice10_1d_2_collection_scope.py's UnenforcedPolicy-
+        equivalence tests.
+        """
+
+        budget = max(self.collection_scan_budget, limit + 1)
+
+        kept: list[dict[str, Any]] = []
+        examined = 0
+        last_row: Optional[dict[str, Any]] = None
+        last_row_kept = False
+        position = after
+        chunk = limit + 1
+
+        while True:
+            rows = self.repository.list_page(
+                limit=chunk,
+                status=status,
+                statuses=statuses,
+                after=position,
+            )
+
+            for row in rows:
+                at_tie_boundary = (
+                    last_row is None or row["created_at"] != last_row["created_at"]
+                )
+
+                if examined >= budget and at_tie_boundary:
+                    return ScopedPage(
+                        kept, self._scan_boundary(last_row, kept=last_row_kept)
+                    )
+
+                if examined >= budget + COLLECTION_TIE_CEILING:
+                    raise CollectionScanLimitError(
+                        "More than COLLECTION_TIE_CEILING rows share one "
+                        "created_at value at a scan boundary; refusing to "
+                        "guess a safe continuation position rather than "
+                        "risk skipping or repeating a row."
+                    )
+
+                examined += 1
+
+                if self._job_resource_permitted(actor, action, row):
+                    if len(kept) == limit:
+                        # The (budget-th-or-earlier) row that PROVES
+                        # another permitted row exists past the page we
+                        # already have. Its own position is never used:
+                        # the cursor names the last row actually
+                        # returned, exactly as before Slice 10.1D.2.
+                        return ScopedPage(kept, self._scan_position(kept[-1]))
+
+                    kept.append(row)
+                    last_row_kept = True
+                else:
+                    last_row_kept = False
+
+                last_row = row
+
+            if len(rows) < chunk:
+                # The table (under the SQL-level status/statuses filter)
+                # is exhausted: no further row of any kind remains.
+                return ScopedPage(kept, None)
+
+            position = self._scan_position(rows[-1])
+            chunk = COLLECTION_SCAN_CHUNK + 1
 
     def authorize_corridor(
         self,

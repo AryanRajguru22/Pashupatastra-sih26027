@@ -351,13 +351,16 @@ def test_the_page_follows_the_existing_keyset_cursor(service, optimizer, clock):
     after = None
 
     while True:
-        page, next_row, _ = service.obligations_page(limit=2, after=after)
+        page, next_after, _ = service.obligations_page(limit=2, after=after)
         seen.extend(o.job_id for o in page)
 
-        if next_row is None:
+        if next_after is None:
             break
 
-        after = (next_row["created_at"], next_row["job_id"])
+        # Slice 10.1D.2: obligations_page now returns a scan POSITION
+        # (created_at, job_id) directly - never a full row - so it is
+        # passed straight back as the next request's `after`.
+        after = next_after
 
     assert len(seen) == 5
     assert len(set(seen)) == 5
