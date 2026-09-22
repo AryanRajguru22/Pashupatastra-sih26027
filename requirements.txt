@@ -7,3 +7,8 @@ pytest>=8.0
 fastapi>=0.110
 uvicorn>=0.29
 httpx>=0.27
+# Slice 10.2a: ECDSA P-256 verification of NovaForge ES256 identity
+# assertions and JWK public-key parsing (backend/app/identity/). The
+# standard library has no elliptic-curve primitives; JOSE parsing is done
+# in-house, so no JWT framework is added.
+cryptography>=44
