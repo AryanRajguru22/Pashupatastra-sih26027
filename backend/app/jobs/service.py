@@ -1912,7 +1912,9 @@ class JobService:
         # never a section, so section matching would call every run
         # UNRESOLVED and refuse every reader. A run whose corridor_id is
         # absent cannot be matched against any scope and is refused
-        # rather than guessed - see EnforcingPolicy._require_corridor.
+        # rather than guessed. Since Slice 10.1D.3 this also requires
+        # corridor-COMPLETE scope, not merely a scope somewhere in the
+        # corridor - see EnforcingPolicy._require_corridor.
         self.authorize_corridor(
             reader,
             JobAction.READ_OPTIMIZATION_RUN,
@@ -2809,7 +2811,11 @@ class JobService:
         section at all - requesting an optimization, reading a run. They
         must NOT go through section matching, which would call every one
         of them UNRESOLVED and refuse everybody. A corridor of None stays
-        unmatched and is refused by the policy, never widened.
+        unmatched and is refused by the policy, never widened. Since
+        Slice 10.1D.3 the policy requires corridor-COMPLETE scope for
+        both actions (see EnforcingPolicy._require_corridor); this method
+        itself is unchanged, it still only builds the ResourceLocation
+        and defers the whole scope question to the policy.
 
         Public because JobOptimizationService is a separate object that
         shares this service's one authorization seam.

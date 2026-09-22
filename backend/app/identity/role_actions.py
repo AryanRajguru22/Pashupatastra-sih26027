@@ -45,13 +45,23 @@ FAIL CLOSED BY OMISSION
     the fail-closed answer while nothing needs it.
 
 UNRESOLVED QUESTIONS, ANSWERED WITH THE NARROW DEFAULT
-    OQ-1 (may ENGINEER or AUTHORITY report a job?) and OQ-2 (does holding
-    one section permit corridor-wide actions?) are recorded as open in
-    docs/SLICE10_1D_RESOURCE_AUTHORIZATION_ARCHITECTURE.md. Nothing in
-    the code base answers either. Both take the narrowest reading here -
-    REPORT_JOB is WORKER-only, READ_OPTIMIZATION_RUN is ENGINEER-only -
-    because widening a grant later is a decision, while narrowing one
-    that has already shipped is a regression.
+    OQ-1 (may ENGINEER or AUTHORITY report a job?) is recorded as open in
+    docs/SLICE10_1D_RESOURCE_AUTHORIZATION_ARCHITECTURE.md. Nothing in the
+    code base answers it. It takes the narrowest reading here -
+    REPORT_JOB is WORKER-only - because widening a grant later is a
+    decision, while narrowing one that has already shipped is a
+    regression.
+
+    OQ-2 (does holding one section permit corridor-wide actions?) is
+    ANSWERED by Slice 10.1D.3: no. A corridor-scoped action requires
+    scope that, under the acting role, names EVERY section of the
+    corridor - see backend.app.identity.policy's "CORRIDOR-SCOPED MEANS
+    CORRIDOR-COMPLETE" and
+    docs/SLICE10_1D3_CORRIDOR_AUTHORIZATION_ARCHITECTURE.md. That answer
+    does not change which role holds which action below:
+    READ_OPTIMIZATION_RUN stays ENGINEER-only (10.1D.3 D-2 - AUTHORITY is
+    not granted this read even with corridor-complete scope), it changes
+    what "holds it" requires of that role's scope.
 """
 
 from __future__ import annotations

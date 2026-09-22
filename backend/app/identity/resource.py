@@ -47,7 +47,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Mapping, Optional
+from typing import Any, Iterable, Mapping, Optional
 
 from backend.app.identity.scope import RailwayScope, ScopeError
 
@@ -176,9 +176,83 @@ def match_scope(scope: Optional[RailwayScope], location: ResourceLocation) -> Sc
     return ScopeMatch.NO_MATCH
 
 
+def covers_corridor(
+    scopes: Iterable[RailwayScope],
+    corridor_id: Optional[str],
+    corridor_section_ids: Optional[Iterable[str]],
+) -> ScopeMatch:
+    """Whether `scopes`, TOGETHER, name every section of one corridor.
+
+    Answers the corridor-wide question 10.1D.3 adds alongside match_scope's
+    single-resource one: not "does some scope touch this corridor" but
+    "do these scopes, combined, cover ALL of it". Same three-valued,
+    fail-closed shape as match_scope, and the same rule that UNRESOLVED is
+    never a grant:
+
+        MATCH       corridor_id and corridor_section_ids are both usable,
+                    corridor_section_ids is non-empty, and the union of
+                    every scope's own section_ids IN THAT CORRIDOR is a
+                    superset of it
+        NO_MATCH    corridor_id and corridor_section_ids are known, but
+                    the union falls short
+        UNRESOLVED  corridor_id is missing/blank, or corridor_section_ids
+                    is missing, not iterable, or empty (or empty after
+                    dropping unusable entries) - there is no proven
+                    topology to satisfy, so completeness cannot be shown
+
+    `corridor_section_ids` is the CALLER's own server-side topology (e.g.
+    a SectionRegistry's section_ids()) for the one corridor being asked
+    about - never derived from a scope, a request or a resource. No
+    wildcard, no adjacency inference, no "missing section is covered
+    anyway": every section named in corridor_section_ids must be named by
+    the union to count as covered.
+
+    `scopes` is normally the RailwayScope tuple
+    ScopeDirectory.scopes_for_actor(actor_id, role) returns for ONE role.
+    Passing scopes gathered from more than one role would silently let a
+    role that lacks the action complete another role's coverage; callers
+    must never do that (see EnforcingPolicy._require_corridor, which
+    always calls this with one role's own scopes). A scope naming a
+    different corridor is ignored, not an error - it simply contributes
+    nothing to the union.
+    """
+
+    if not _usable(corridor_id):
+        return ScopeMatch.UNRESOLVED
+
+    if corridor_section_ids is None or isinstance(corridor_section_ids, (str, bytes)):
+        return ScopeMatch.UNRESOLVED
+
+    try:
+        required = frozenset(
+            section_id
+            for section_id in corridor_section_ids
+            if _usable(section_id)
+        )
+    except TypeError:
+        return ScopeMatch.UNRESOLVED
+
+    if not required:
+        return ScopeMatch.UNRESOLVED
+
+    held: set[str] = set()
+
+    for scope in scopes:
+        if not isinstance(scope, RailwayScope):
+            raise TypeError(
+                f"scope must be a RailwayScope; got {type(scope).__name__}."
+            )
+
+        if scope.corridor_id == corridor_id:
+            held.update(scope.section_ids)
+
+    return ScopeMatch.MATCH if required <= held else ScopeMatch.NO_MATCH
+
+
 __all__ = [
     "ResourceLocation",
     "ScopeMatch",
+    "covers_corridor",
     "location_of",
     "match_scope",
 ]

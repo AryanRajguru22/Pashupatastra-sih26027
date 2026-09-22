@@ -138,10 +138,32 @@ def assignment(
     )
 
 
-def enforcing(*assignments: RoleScopeAssignment) -> EnforcingPolicy:
-    """A real enforcing policy over an in-memory directory."""
+# CORRIDOR's own topology (Slice 10.1D.3): the three sections a
+# corridor-scoped action must be covered on ALL of to pass
+# _require_corridor. This is what enforcing() supplies by default, so
+# every existing full-scope fixture stays corridor-complete without
+# every call site having to say so. A test proving the "no topology
+# configured" fail-closed case passes its own `topology=()` instead.
+CORRIDOR_TOPOLOGY: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (CORRIDOR, (S_XY, S_YZ, S_ZW)),
+)
 
-    return EnforcingPolicy(directory(*assignments))
+
+def enforcing(
+    *assignments: RoleScopeAssignment,
+    topology: Iterable[tuple[str, Iterable[str]]] | None = None,
+) -> EnforcingPolicy:
+    """A real enforcing policy over an in-memory directory.
+
+    `topology` defaults to CORRIDOR_TOPOLOGY. Pass `topology=()`
+    explicitly to exercise the "no topology known for this corridor"
+    fail-closed path, or a custom topology to exercise expansion/shrink.
+    """
+
+    return EnforcingPolicy(
+        directory(*assignments),
+        topology=CORRIDOR_TOPOLOGY if topology is None else topology,
+    )
 
 
 def fully_scoped() -> EnforcingPolicy:

@@ -27,9 +27,22 @@ TWO SCOPE RULES, CHOSEN BY THE ACTION
     through backend.app.identity.resource.match_scope. Corridor-scoped
     actions (optimization request and run read) have no section at all,
     so section matching would report them UNRESOLVED and deny everything;
-    they ask the narrower question "does this actor hold any scope in
-    this corridor?" instead. Both fail closed, and neither invents a
-    wildcard: an action classified as neither is denied.
+    they ask a different question instead. Both fail closed, and neither
+    invents a wildcard: an action classified as neither is denied.
+
+    CORRIDOR-SCOPED MEANS CORRIDOR-COMPLETE (Slice 10.1D.3, answering OQ-2)
+        The question a corridor-scoped action asks is NOT "does this
+        actor hold any scope in this corridor" - that let one held
+        section stand in for the whole corridor, which is exactly the
+        wildcard-by-accident this module elsewhere refuses. It is "do
+        this actor's OWN-ROLE scopes, taken together, name EVERY section
+        of this corridor" - see
+        backend.app.identity.resource.covers_corridor. `_require_corridor`
+        answers it against this policy's own `topology` (server-side
+        configuration, exactly like the scope directory below - never the
+        request), and denies when no topology is known for a corridor:
+        absence is never a grant. See
+        docs/SLICE10_1D3_CORRIDOR_AUTHORIZATION_ARCHITECTURE.md.
 
 NO STATE, NO HISTORY, NO IDENTITY COMPARISON
     Nothing here reads a job status, an execution, evidence or the event
@@ -42,7 +55,7 @@ NO STATE, NO HISTORY, NO IDENTITY COMPARISON
 
 from __future__ import annotations
 
-from typing import Iterable, Mapping, Protocol, Tuple
+from typing import Dict, FrozenSet, Iterable, Mapping, Protocol, Tuple
 
 from backend.app.identity.actor import HUMAN_ROLES, Actor, ActorRole
 from backend.app.identity.authorization import (
@@ -51,7 +64,12 @@ from backend.app.identity.authorization import (
     ResourceAwarePolicy,
 )
 from backend.app.identity.person import Person
-from backend.app.identity.resource import ResourceLocation, ScopeMatch, match_scope
+from backend.app.identity.resource import (
+    ResourceLocation,
+    ScopeMatch,
+    covers_corridor,
+    match_scope,
+)
 from backend.app.identity.role_actions import (
     CORRIDOR_SCOPED_ACTIONS,
     SECTION_SCOPED_ACTIONS,
@@ -139,7 +157,12 @@ class EnforcingPolicy(ResourceAwarePolicy):
 
     enforcing = True
 
-    def __init__(self, directory: ScopeDirectory) -> None:
+    def __init__(
+        self,
+        directory: ScopeDirectory,
+        *,
+        topology: Iterable[Tuple[str, Iterable[str]]] = (),
+    ) -> None:
         if not callable(getattr(directory, "scopes_for_actor", None)):
             raise TypeError(
                 "EnforcingPolicy needs a ScopeDirectory exposing "
@@ -147,6 +170,53 @@ class EnforcingPolicy(ResourceAwarePolicy):
             )
 
         self._directory = directory
+        self._topology = self._build_topology(topology)
+
+    @staticmethod
+    def _build_topology(
+        topology: Iterable[Tuple[str, Iterable[str]]],
+    ) -> Mapping[str, FrozenSet[str]]:
+        """Server-side corridor -> section-set data (Slice 10.1D.3).
+
+        The ONLY source `_require_corridor` may consult for "which
+        sections make up this corridor" - never the resource, the
+        request, a header or a scope. Each entry is a (corridor_id,
+        section_ids) pair, e.g. (registry.corridor_id,
+        registry.section_ids()) for a deployment's own SectionRegistry.
+        A duplicate corridor_id is refused rather than silently
+        overwritten: last-write-wins would let a later entry silently
+        redefine an earlier one's completeness. A corridor with no entry
+        here has no PROVEN topology, and every corridor-scoped action
+        against it fails closed - see covers_corridor's UNRESOLVED case.
+        Frozen (a plain dict of frozensets) so nothing can mutate a
+        policy's topology after construction.
+        """
+
+        by_corridor: Dict[str, FrozenSet[str]] = {}
+
+        for entry in topology:
+            try:
+                corridor_id, section_ids = entry
+            except (TypeError, ValueError) as exc:
+                raise TypeError(
+                    "topology entries must be (corridor_id, section_ids) "
+                    f"pairs; got {entry!r}."
+                ) from exc
+
+            if not isinstance(corridor_id, str) or not corridor_id.strip():
+                raise ValueError(
+                    "topology corridor_id must be a non-blank string; got "
+                    f"{corridor_id!r}."
+                )
+
+            if corridor_id in by_corridor:
+                raise ValueError(
+                    f"Duplicate topology for corridor {corridor_id!r}."
+                )
+
+            by_corridor[corridor_id] = frozenset(section_ids)
+
+        return by_corridor
 
     # ------------------------------------------------------------------
     # 1. Role / action. No repository read, no resource, no state.
@@ -242,14 +312,22 @@ class EnforcingPolicy(ResourceAwarePolicy):
             f"outside every section {actor.actor_id!r} is scoped to",
         )
 
-    @staticmethod
     def _require_corridor(
+        self,
         actor: Actor,
         action: JobAction,
         location: ResourceLocation,
         scopes: Tuple[RailwayScope, ...],
     ) -> None:
-        """Corridor membership only. Never a claim over any section in it."""
+        """Corridor-COMPLETE membership only (Slice 10.1D.3, OQ-2).
+
+        Holding one section of the corridor is never enough - see the
+        module docstring's "CORRIDOR-SCOPED MEANS CORRIDOR-COMPLETE".
+        Only covers_corridor's MATCH permits; NO_MATCH and UNRESOLVED
+        (no proven topology, blank corridor, empty section set) both
+        deny, with the SAME message, so a caller cannot distinguish
+        "no topology configured" from "topology known but incomplete".
+        """
 
         corridor_id = location.corridor_id
 
@@ -257,17 +335,25 @@ class EnforcingPolicy(ResourceAwarePolicy):
             raise AuthorizationDenied(
                 actor,
                 action,
-                "the resource names no corridor, so it cannot be matched "
-                "against a scope",
+                "the resource names no corridor, so corridor-wide "
+                "authority cannot be shown",
             )
 
-        if any(scope.corridor_id == corridor_id for scope in scopes):
+        section_ids = self._topology.get(corridor_id)
+
+        if covers_corridor(scopes, corridor_id, section_ids) is ScopeMatch.MATCH:
             return
 
+        # Deliberately silent about which sections are missing or held:
+        # this message reaches an HTTP caller verbatim as a 403 body (see
+        # backend.app.jobs.router._api_error), and naming the gap would
+        # hand a partially-scoped actor the map of the corridor it is not
+        # authorized to have.
         raise AuthorizationDenied(
             actor,
             action,
-            f"{actor.actor_id!r} holds no scope in corridor {corridor_id!r}",
+            f"{actor.actor_id!r} does not hold corridor-wide authority "
+            f"for corridor {corridor_id!r}",
         )
 
 

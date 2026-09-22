@@ -228,8 +228,21 @@ def test_admin_cannot_be_given_a_scope_assignment_at_all():
 # ----------------------------------------------------------------------
 
 
-def test_a_corridor_action_is_permitted_by_any_scope_in_that_corridor():
+def test_a_corridor_action_is_denied_by_partial_scope_in_that_corridor():
+    """Slice 10.1D.3 (OQ-2): one section is not corridor-wide authority."""
+
     policy = enforcing(assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY))
+
+    with pytest.raises(AuthorizationDenied):
+        policy.authorize_resource(ENGINEER, A.REQUEST_OPTIMIZATION, _at(None))
+
+
+def test_a_corridor_action_is_permitted_by_corridor_complete_scope():
+    """Slice 10.1D.3: every section of the corridor, held under this role."""
+
+    policy = enforcing(
+        assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY, S_YZ, S_ZW)
+    )
 
     assert (
         policy.authorize_resource(ENGINEER, A.REQUEST_OPTIMIZATION, _at(None))
@@ -237,12 +250,15 @@ def test_a_corridor_action_is_permitted_by_any_scope_in_that_corridor():
     )
 
 
-def test_a_corridor_action_ignores_the_section_entirely():
-    policy = enforcing(assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY))
+def test_a_corridor_action_ignores_the_resources_own_section_entirely():
+    policy = enforcing(
+        assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY, S_YZ, S_ZW)
+    )
 
-    # Holding only X-Y, the engineer may still request an optimization -
-    # the run is a corridor-level thing. Naming a section it does NOT
-    # hold changes nothing, because the section is not what is matched.
+    # Corridor-complete, and the resource names a section - the corridor
+    # rule looks at location.corridor_id only, never location.section_id,
+    # so naming any section (or none, as the test above does) changes
+    # nothing.
     assert (
         policy.authorize_resource(ENGINEER, A.REQUEST_OPTIMIZATION, _at(S_ZW))
         is None
@@ -250,14 +266,16 @@ def test_a_corridor_action_ignores_the_section_entirely():
 
 
 def test_a_corridor_action_in_another_corridor_is_denied():
-    policy = enforcing(assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY))
+    policy = enforcing(
+        assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY, S_YZ, S_ZW)
+    )
 
     with pytest.raises(AuthorizationDenied) as excinfo:
         policy.authorize_resource(
             ENGINEER, A.REQUEST_OPTIMIZATION, _at(None, corridor_id=OTHER_CORRIDOR)
         )
 
-    assert "no scope in corridor" in str(excinfo.value)
+    assert "does not hold corridor-wide authority" in str(excinfo.value)
 
 
 @pytest.mark.parametrize("missing", [None, "", "   "])
@@ -273,19 +291,26 @@ def test_a_corridor_action_with_no_corridor_is_denied(missing):
 
 
 def test_a_corridor_action_never_becomes_a_section_grant():
-    """Corridor membership is not permission over every section in it."""
+    """Corridor-COMPLETE authority for one corridor is not a grant over a
+    resource in a DIFFERENT corridor (Slice 10.1D.3). Holding every
+    section of CORRIDOR says nothing about OTHER_CORRIDOR.
+    """
 
-    policy = enforcing(assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY))
+    policy = enforcing(
+        assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY, S_YZ, S_ZW)
+    )
 
-    # Corridor-scoped: permitted.
+    # Corridor-scoped, corridor-complete: permitted.
     assert (
         policy.authorize_resource(ENGINEER, A.REQUEST_OPTIMIZATION, _at(None))
         is None
     )
 
-    # Section-scoped on a section the engineer does not hold: denied.
+    # Section-scoped, in a different corridor entirely: denied.
     with pytest.raises(AuthorizationDenied):
-        policy.authorize_resource(ENGINEER, A.READ_JOB, _at(S_ZW))
+        policy.authorize_resource(
+            ENGINEER, A.READ_JOB, _at(S_XY, corridor_id=OTHER_CORRIDOR)
+        )
 
 
 # ----------------------------------------------------------------------
@@ -519,6 +544,25 @@ def _record_run(service, run_id: str, corridor_id: str | None) -> None:
     )
 
 
+def test_an_optimization_run_with_partial_scope_is_denied(
+    tmp_path: Path,
+):
+    """Slice 10.1D.3: holding one section of the run's corridor is not
+    corridor-wide authority. See test_an_optimization_run_in_the_
+    engineers_corridor_is_readable below for the corridor-complete case.
+    """
+
+    service = build_service(tmp_path, authorization=fully_scoped())
+    _record_run(service, "RUN-1", CORRIDOR)
+
+    service.authorization = enforcing(
+        assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY)
+    )
+
+    with pytest.raises(AuthorizationDenied):
+        service.optimization_run("RUN-1", actor=ENGINEER)
+
+
 def test_an_optimization_run_in_the_engineers_corridor_is_readable(
     tmp_path: Path,
 ):
@@ -526,7 +570,7 @@ def test_an_optimization_run_in_the_engineers_corridor_is_readable(
     _record_run(service, "RUN-1", CORRIDOR)
 
     service.authorization = enforcing(
-        assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY)
+        assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY, S_YZ, S_ZW)
     )
 
     assert service.optimization_run("RUN-1", actor=ENGINEER).run_id == "RUN-1"
@@ -537,13 +581,13 @@ def test_an_optimization_run_in_another_corridor_is_denied(tmp_path: Path):
     _record_run(service, "RUN-2", OTHER_CORRIDOR)
 
     service.authorization = enforcing(
-        assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY)
+        assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY, S_YZ, S_ZW)
     )
 
     with pytest.raises(AuthorizationDenied) as excinfo:
         service.optimization_run("RUN-2", actor=ENGINEER)
 
-    assert "no scope in corridor" in str(excinfo.value)
+    assert "does not hold corridor-wide authority" in str(excinfo.value)
 
 
 def test_an_optimization_run_naming_no_corridor_fails_closed(tmp_path: Path):
@@ -583,7 +627,33 @@ def test_an_optimization_request_is_corridor_authorized_before_any_work(
     with pytest.raises(AuthorizationDenied) as excinfo:
         JobOptimizationService(service).optimize_corridor(CORRIDOR, actor=ENGINEER)
 
-    assert "no scope in corridor" in str(excinfo.value)
+    assert "does not hold corridor-wide authority" in str(excinfo.value)
+    assert count_events(db) == before
+    assert AuditRepository(service.repository.db_path).list_all() == []
+
+
+def test_an_optimization_request_with_partial_scope_is_denied_before_any_work(
+    tmp_path: Path,
+):
+    """Slice 10.1D.3: holding one section of the corridor is not enough
+    to request an optimization, and the denial writes nothing.
+    """
+
+    from backend.app.audit.repository import AuditRepository
+    from backend.app.jobs.optimization import JobOptimizationService
+
+    service = build_service(tmp_path, authorization=fully_scoped())
+    report(service, IN_XY)
+    db = tmp_path / "jobs.db"
+    before = count_events(db)
+
+    service.authorization = enforcing(
+        assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY)
+    )
+
+    with pytest.raises(AuthorizationDenied):
+        JobOptimizationService(service).optimize_corridor(CORRIDOR, actor=ENGINEER)
+
     assert count_events(db) == before
     assert AuditRepository(service.repository.db_path).list_all() == []
 
@@ -591,7 +661,9 @@ def test_an_optimization_request_is_corridor_authorized_before_any_work(
 def test_an_optimization_request_in_the_engineers_own_corridor_passes_the_seam(
     tmp_path: Path,
 ):
-    """Not an optimizer test: only that authorization lets it through."""
+    """Not an optimizer test: only that authorization lets a corridor-
+    complete engineer through.
+    """
 
     from backend.app.jobs.optimization import JobOptimizationService
 
@@ -599,13 +671,13 @@ def test_an_optimization_request_in_the_engineers_own_corridor_passes_the_seam(
     report(service, IN_XY)
 
     service.authorization = enforcing(
-        assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY)
+        assignment(ENGINEER_ID, ActorRole.ENGINEER, S_XY, S_YZ, S_ZW)
     )
 
     try:
         JobOptimizationService(service).optimize_corridor(CORRIDOR, actor=ENGINEER)
     except AuthorizationDenied:  # pragma: no cover - the thing being refuted
-        pytest.fail("an in-corridor engineer was refused")
+        pytest.fail("a corridor-complete engineer was refused")
     except Exception:
         # Any downstream solver/possession outcome is fine and is not
         # what this test is about; authorization is what must not refuse.
