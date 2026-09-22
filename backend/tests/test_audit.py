@@ -1,10 +1,12 @@
 """Immutable optimization audit trail.
 
-Every optimization execution - through the plain /optimize path, the
-jobs pipeline, or a direct AuditService call - must produce exactly
-one append-only optimization_runs record, whether the solver scheduled
-everything, refused some of it, went INFEASIBLE, or raised. This file
-covers the audit subsystem itself (backend/app/audit/) plus its two
+Every optimization execution - through the jobs pipeline or a direct
+AuditService call - must produce exactly one append-only
+optimization_runs record, whether the solver scheduled everything,
+refused some of it, went INFEASIBLE, or raised. The legacy plain
+/optimize path is the deliberate exception (D-3): it is a stateless
+demo/what-if solver and must produce zero such records. This file
+covers the audit subsystem itself (backend/app/audit/) plus its
 integration points, and confirms the existing maintenance_jobs schema
 and jobs workflow are untouched.
 
@@ -570,21 +572,29 @@ def test_jobs_pipeline_audit_survives_a_second_optimize_call(
 
 
 # ------------------------------------------------------------------
-# HTTP-level integration: POST /optimize is audited end to end
+# HTTP-level integration: legacy POST /optimize writes no audit row
+# (D-3: it is a stateless demo/what-if solver, not an audited path)
 # ------------------------------------------------------------------
 
 
-def test_optimize_endpoint_is_audited(tmp_path: Path, monkeypatch):
-    from backend.app.api.routers import optimize as optimize_router
+def test_legacy_optimize_endpoint_writes_no_audit_row(tmp_path: Path, monkeypatch):
+    """After D-3 the route holds no reference to AuditRepository at all,
+    so there is no repository to point at a scratch database and
+    monkeypatch onto the route (the removed _audit_service seam is
+    gone). Instead this proves the invariant directly: nothing on the
+    request path ever calls AuditRepository.record, on ANY database -
+    a stronger, path-independent guarantee than a row count on one
+    particular file. An isolated scratch database is still exercised
+    and confirmed to stay empty.
+    """
+    from backend.app.api.main import app
 
-    isolated = AuditRepository(tmp_path / "http_audit.db")
+    writes = []
     monkeypatch.setattr(
-        optimize_router,
-        "_audit_service",
-        AuditService(isolated),
+        AuditRepository, "record", lambda self, run: writes.append(run)
     )
 
-    from backend.app.api.main import app
+    scratch = AuditRepository(tmp_path / "scratch_audit.db")
 
     client = TestClient(app)
 
@@ -594,8 +604,7 @@ def test_optimize_endpoint_is_audited(tmp_path: Path, monkeypatch):
     )
 
     assert response.status_code == 200
+    assert response.json()["status"] in {"OPTIMAL", "FEASIBLE"}
 
-    runs = isolated.list_all()
-    assert len(runs) == 1
-    assert runs[0].trigger == "optimize"
-    assert runs[0].solver_status == response.json()["status"]
+    assert writes == []
+    assert scratch.list_all() == []
