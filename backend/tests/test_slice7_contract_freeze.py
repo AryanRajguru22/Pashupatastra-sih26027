@@ -742,13 +742,14 @@ def test_declared_actors_are_recorded_unverified_and_no_headers_as_unidentified(
     assert anonymous["events"]  # readable without identity today (unenforced policy)
 
 
-def test_no_authenticated_assurance_exists():
+def test_assurance_levels_are_the_four_known_members():
     from backend.app.identity.actor import IdentityAssurance
 
     assert {member.value for member in IdentityAssurance} == {
         "SYSTEM_INTERNAL",
         "DECLARED_UNVERIFIED",
         "NONE",
+        "AUTHENTICATED",
     }
 
 

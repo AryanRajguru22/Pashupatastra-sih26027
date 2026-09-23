@@ -83,13 +83,14 @@ def test_unidentified_actor_claims_no_identity():
     assert actor.assurance is IdentityAssurance.NONE
 
 
-def test_no_authenticated_assurance_exists_yet():
-    """Nothing can claim a verified identity while authentication does not exist."""
+def test_assurance_levels_are_the_four_known_members():
+    """AUTHENTICATED exists (10.2c) but is constructible only via the private capability."""
 
     assert {member.value for member in IdentityAssurance} == {
         "SYSTEM_INTERNAL",
         "DECLARED_UNVERIFIED",
         "NONE",
+        "AUTHENTICATED",
     }
 
 

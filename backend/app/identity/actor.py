@@ -29,17 +29,26 @@ HUMAN VS SYSTEM
     system. The HTTP layer additionally refuses a caller-declared
     SYSTEM role (see backend.app.api.deps).
 
-NO AUTHENTICATED VALUE YET
-    IdentityAssurance has no AUTHENTICATED member. Authentication does
-    not exist, so nothing may claim it - the same reasoning that keeps a
-    LIVE member off ProvenanceLevel (backend.app.data.provenance). The
-    security slice adds it together with the code that can justify it.
+AUTHENTICATED (Slice 10.2c)
+    IdentityAssurance.AUTHENTICATED exists, but no ordinary construction
+    path can produce it. A human Actor may carry it only if its
+    constructor is handed the module-private capability below, which
+    only backend.app.identity.authenticated_actor imports. That factory
+    derives the Actor from a cryptographically verified assertion, an
+    enrolled Person and a role that person explicitly holds. A caller
+    can never supply the assurance: human_actor has no assurance
+    parameter, and enum coercion, dataclasses.replace and deserialization
+    (JobEvent.from_dict) all run through the same check and are refused.
+
+    The capability protects against request-borne data and accidental
+    code paths. It is not a defence against hostile code already running
+    in this process (object.__new__, object.__setattr__, pickle).
 """
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import InitVar, dataclass
 from enum import Enum
 from typing import Dict
 
@@ -90,11 +99,17 @@ class IdentityAssurance(str, Enum):
     DECLARED_UNVERIFIED  - the caller asserted an identity and role.
                            Nothing verified it.
     NONE                 - the caller asserted no identity at all.
+    AUTHENTICATED        - a verified external identity, resolved through
+                           the identity directory to an enrolled person
+                           and a role that person holds. Constructible
+                           only through the private capability in this
+                           module (see Actor and authenticated_actor).
     """
 
     SYSTEM_INTERNAL = "SYSTEM_INTERNAL"
     DECLARED_UNVERIFIED = "DECLARED_UNVERIFIED"
     NONE = "NONE"
+    AUTHENTICATED = "AUTHENTICATED"
 
 
 class InvalidActorError(ValueError):
@@ -109,6 +124,13 @@ _ACTOR_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$")
 
 SYSTEM_ACTOR_ID_PREFIX = "SYSTEM"
 
+# Module-private capability for AUTHENTICATED assurance. Deliberately not
+# in __all__. Only backend.app.identity.authenticated_actor may import it
+# (an AST test enforces that). It is passed through Actor's trailing
+# InitVar, so it is never stored, never part of dataclasses.fields(),
+# equality, hashing, repr or to_dict.
+_AUTHENTICATION_CAPABILITY = object()
+
 UNIDENTIFIED_ACTOR_ID = "UNIDENTIFIED"
 
 
@@ -119,13 +141,24 @@ class Actor:
     Prefer the constructors below (human_actor, system_actor,
     unidentified_actor) over calling this directly: they pick the only
     assurance value each role is allowed to carry.
+
+    AUTHENTICATED assurance additionally requires the module-private
+    capability as the trailing `_capability` InitVar (see
+    _AUTHENTICATION_CAPABILITY). It is not a field: it is checked and
+    discarded, so the three-field shape, equality, hashing, repr and
+    to_dict are unchanged. dataclasses.replace re-runs this check with
+    the default (None), so an AUTHENTICATED actor cannot be re-roled or
+    re-identified, and nothing can be upgraded to AUTHENTICATED. A
+    downgrade to DECLARED_UNVERIFIED through replace is allowed; it
+    claims less and escalates nothing.
     """
 
     actor_id: str
     role: ActorRole
     assurance: IdentityAssurance
+    _capability: InitVar[object] = None
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, _capability: object) -> None:
         try:
             role = ActorRole(self.role)
         except ValueError as exc:
@@ -185,12 +218,21 @@ class Actor:
                 )
             return
 
-        # A human operational role. Only DECLARED_UNVERIFIED exists for
-        # humans until authentication does.
+        # A human operational role: DECLARED_UNVERIFIED, or AUTHENTICATED
+        # with the private capability. SYSTEM and UNIDENTIFIED returned
+        # above, so AUTHENTICATED can never reach them.
+        if assurance is IdentityAssurance.AUTHENTICATED:
+            if _capability is not _AUTHENTICATION_CAPABILITY:
+                raise InvalidActorError(
+                    "AUTHENTICATED assurance cannot be constructed directly; "
+                    "it is produced only by the authenticated actor factory."
+                )
+            return
+
         if assurance is not IdentityAssurance.DECLARED_UNVERIFIED:
             raise InvalidActorError(
                 f"A {role.value} actor must carry DECLARED_UNVERIFIED "
-                f"assurance today; got {assurance.value}."
+                f"assurance; got {assurance.value}."
             )
 
     @property

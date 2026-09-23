@@ -608,4 +608,5 @@ def test_actor_and_identity_assurance_are_unchanged():
         "SYSTEM_INTERNAL",
         "DECLARED_UNVERIFIED",
         "NONE",
+        "AUTHENTICATED",
     }

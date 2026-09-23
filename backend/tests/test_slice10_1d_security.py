@@ -486,4 +486,5 @@ def test_declared_headers_are_still_never_treated_as_authenticated():
     actor = request_actor(actor_id="WORKER-042", actor_role="WORKER")
 
     assert actor.assurance is IdentityAssurance.DECLARED_UNVERIFIED
-    assert not hasattr(IdentityAssurance, "AUTHENTICATED")
+    # 10.2c: the level exists, but no header can produce it.
+    assert actor.assurance is not IdentityAssurance.AUTHENTICATED

@@ -365,13 +365,14 @@ def test_an_approval_by_a_named_human_stays_declared_unverified(service, optimiz
     assert committed.actor.assurance.value == "DECLARED_UNVERIFIED"
 
 
-def test_no_authenticated_assurance_level_was_introduced():
+def test_assurance_levels_are_the_four_known_members():
     from backend.app.identity.actor import IdentityAssurance
 
     assert {level.value for level in IdentityAssurance} == {
         "SYSTEM_INTERNAL",
         "DECLARED_UNVERIFIED",
         "NONE",
+        "AUTHENTICATED",
     }
 
 

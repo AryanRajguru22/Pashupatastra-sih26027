@@ -373,4 +373,5 @@ def test_actor_model_is_unchanged_by_this_slice():
         "SYSTEM_INTERNAL",
         "DECLARED_UNVERIFIED",
         "NONE",
+        "AUTHENTICATED",
     }

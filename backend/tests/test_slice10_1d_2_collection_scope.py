@@ -991,7 +991,8 @@ def test_declared_actor_seam_is_unchanged_for_collection_reads(http_service):
 
     actor = request_actor(actor_id=WORKER_ID, actor_role="WORKER")
     assert actor.assurance is IdentityAssurance.DECLARED_UNVERIFIED
-    assert not hasattr(IdentityAssurance, "AUTHENTICATED")
+    # 10.2c: the level exists, but no header can produce it.
+    assert actor.assurance is not IdentityAssurance.AUTHENTICATED
 
     http, service = http_service
     assert isinstance(service.authorization, UnenforcedPolicy)
