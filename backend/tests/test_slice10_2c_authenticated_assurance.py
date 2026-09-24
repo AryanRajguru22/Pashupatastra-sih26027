@@ -732,6 +732,8 @@ def test_directory_changes_take_effect_because_the_factory_holds_no_state(key, v
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
 ALLOWED_CAPABILITY_MODULES = {"identity/actor.py", "identity/authenticated_actor.py"}
+# Slice 10.2d: the enforcing policy READS the value (never mints it), so it may name it.
+ALLOWED_VALUE_NAMING_MODULES = ALLOWED_CAPABILITY_MODULES | {"identity/authenticated_policy.py"}
 
 
 def references_capability(source: str) -> bool:
@@ -811,7 +813,7 @@ def test_no_other_production_module_names_the_authenticated_value():
     offenders = [
         rel
         for rel, src in production_sources()
-        if rel not in ALLOWED_CAPABILITY_MODULES and mentions_authenticated_value(src)
+        if rel not in ALLOWED_VALUE_NAMING_MODULES and mentions_authenticated_value(src)
     ]
     assert offenders == []
 

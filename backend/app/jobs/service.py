@@ -71,6 +71,10 @@ from backend.app.identity.authorization import (
     require_resource_aware,
 )
 
+from backend.app.identity.authenticated_policy import (
+    AuthenticatedEnforcingPolicy,
+)
+
 from backend.app.identity.resource import ResourceLocation, location_of
 
 from backend.app.identity.scope import ScopeError
@@ -796,6 +800,20 @@ class JobService:
     @authorization.setter
     def authorization(self, policy: AuthorizationPolicy) -> None:
         require_resource_aware(policy)
+
+        # Sticky (Slice 10.2d): once a service holds the authenticated-
+        # enforcing policy, only that exact type may replace it, so an
+        # unenforced or merely enforcing policy cannot be assigned in.
+        current = getattr(self, "_authorization", None)
+        if isinstance(current, AuthenticatedEnforcingPolicy) and (
+            type(policy) is not AuthenticatedEnforcingPolicy
+        ):
+            raise PolicyConfigurationError(
+                "A JobService holding an AuthenticatedEnforcingPolicy "
+                "accepts only an AuthenticatedEnforcingPolicy as a "
+                f"replacement; got {type(policy).__name__}."
+            )
+
         self._authorization = policy
 
     @staticmethod

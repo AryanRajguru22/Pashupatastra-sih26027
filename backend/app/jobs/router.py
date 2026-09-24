@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+import os
 from typing import Optional
 
 from fastapi import (
@@ -11,6 +12,8 @@ from fastapi import (
     Query,
     Response,
 )
+
+from backend.app.api.composition import compose_http_jobs
 
 from backend.app.api.deps import request_actor
 
@@ -113,7 +116,12 @@ router = APIRouter(
     tags=["jobs"],
 )
 
-service = JobService()
+# Slice 10.2d: the composition root chooses the policy from
+# PASHUPAT_AUTH_MODE (demo when unset). The names below stay module-level
+# because tests replace them.
+_composition = compose_http_jobs(os.environ)
+
+service = _composition.service
 
 # Slice 10.1D wiring guard, kept as DEFENCE IN DEPTH after 10.1D.1.
 #
@@ -129,7 +137,7 @@ require_resource_aware(service.authorization)
 
 # Shares the JobService above so both routers see the same repository,
 # corridor and lifecycle lock (JobService.lifecycle_lock).
-optimization_service = JobOptimizationService(service)
+optimization_service = _composition.optimization_service
 
 
 # Refusals that are conflicts with the job's current state rather than
