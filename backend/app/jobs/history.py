@@ -31,6 +31,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from backend.app.identity.actor import Actor
 from backend.app.jobs.events import JobEvent
 from backend.app.persistence.append_only import install_append_only_guards
 
@@ -102,7 +103,20 @@ def append_events(conn: sqlite3.Connection, events: Iterable[JobEvent]) -> None:
 
     Plain INSERT: a duplicate event_id raises IntegrityError rather than
     overwriting an existing record.
+
+    Every event's actor must be exactly an Actor. A RecordedActor (a
+    historical record rebuilt from storage) can never be written back as
+    a new event; the whole batch is refused before any row is inserted.
     """
+
+    events = tuple(events)
+
+    for event in events:
+        if type(event.actor) is not Actor:
+            raise TypeError(
+                "append_events accepts only events whose actor is exactly "
+                f"an Actor; got {type(event.actor).__name__}."
+            )
 
     for event in events:
         record = event.to_dict()

@@ -632,11 +632,14 @@ def test_job_event_from_dict_still_rebuilds_declared_actors():
     assert rebuilt.actor == human_actor("P-1", W)
 
 
-def test_job_event_from_dict_fails_closed_for_an_authenticated_record():
-    """Sanctioned authenticated rehydration is deferred to 10.2f (blocking there)."""
+def test_job_event_from_dict_rebuilds_an_authenticated_record_as_a_record_only_actor():
+    """Slice 10.2d.1: history stays readable, and never yields a live Actor."""
 
-    with pytest.raises(InvalidActorError):
-        JobEvent.from_dict(_event_dict("AUTHENTICATED"))
+    from backend.app.identity.recorded_actor import RecordedActor
+
+    rebuilt = JobEvent.from_dict(_event_dict("AUTHENTICATED"))
+    assert type(rebuilt.actor) is RecordedActor
+    assert not isinstance(rebuilt.actor, Actor)
 
 
 def test_an_authenticated_actor_cannot_be_rebuilt_from_its_dict():
@@ -733,7 +736,11 @@ def test_directory_changes_take_effect_because_the_factory_holds_no_state(key, v
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
 ALLOWED_CAPABILITY_MODULES = {"identity/actor.py", "identity/authenticated_actor.py"}
 # Slice 10.2d: the enforcing policy READS the value (never mints it), so it may name it.
-ALLOWED_VALUE_NAMING_MODULES = ALLOWED_CAPABILITY_MODULES | {"identity/authenticated_policy.py"}
+ALLOWED_VALUE_NAMING_MODULES = ALLOWED_CAPABILITY_MODULES | {
+    "identity/authenticated_policy.py",
+    # Slice 10.2d.1: reads the value to rebuild a record-only actor; never mints.
+    "identity/recorded_actor.py",
+}
 
 
 def references_capability(source: str) -> bool:

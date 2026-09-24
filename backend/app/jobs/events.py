@@ -54,7 +54,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import InitVar, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, Mapping, Optional
@@ -63,8 +63,15 @@ from backend.app.identity.actor import (
     Actor,
     ActorKind,
     ActorRole,
-    IdentityAssurance,
 )
+from backend.app.identity.recorded_actor import RecordedActor, rehydrate_actor
+
+# Events-module-private (Slice 10.2d.1). The only way a JobEvent may carry a
+# RecordedActor is JobEvent.from_dict, which passes this through the
+# trailing InitVar. It is not a field, so it is never stored, compared,
+# repr'd or serialized. Direct construction cannot supply it, so a
+# RecordedActor can be read from history but never placed in a new event.
+_REHYDRATION_TOKEN = object()
 
 
 EVENT_SCHEMA_VERSION = 1
@@ -265,15 +272,16 @@ class JobEvent:
     job_id: str
     event_type: JobEventType
     occurred_at: str
-    actor: Actor
+    actor: Actor | RecordedActor
     reason: Optional[str] = None
     optimization_run_id: Optional[str] = None
     before_state: Optional[JobStateSnapshot] = None
     after_state: Optional[JobStateSnapshot] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
     schema_version: int = EVENT_SCHEMA_VERSION
+    _rehydration: InitVar[object] = None
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, _rehydration: object) -> None:
         object.__setattr__(self, "event_type", JobEventType(self.event_type))
 
         if not self.event_id or not self.job_id:
@@ -285,7 +293,15 @@ class JobEvent:
                 "event format; build it with event_timestamp()."
             )
 
-        if not isinstance(self.actor, Actor):
+        # A recorded (historical) actor is accepted only on the private
+        # rehydration path; every other event needs a real Actor.
+        if type(self.actor) is RecordedActor:
+            if _rehydration is not _REHYDRATION_TOKEN:
+                raise TypeError(
+                    "A RecordedActor is a historical record and cannot be "
+                    "used to construct an event."
+                )
+        elif not isinstance(self.actor, Actor):
             raise TypeError("actor must be an Actor.")
 
         # Metadata must already be plain JSON. Round-tripping it proves
@@ -342,10 +358,10 @@ class JobEvent:
             job_id=data["job_id"],
             event_type=JobEventType(data["event_type"]),
             occurred_at=data["occurred_at"],
-            actor=Actor(
-                actor_id=actor["actor_id"],
-                role=ActorRole(actor["role"]),
-                assurance=IdentityAssurance(actor["assurance"]),
+            actor=rehydrate_actor(
+                actor["actor_id"],
+                ActorRole(actor["role"]),
+                actor["assurance"],
             ),
             reason=data.get("reason"),
             optimization_run_id=data.get("optimization_run_id"),
@@ -353,6 +369,7 @@ class JobEvent:
             after_state=None if after is None else JobStateSnapshot.from_dict(after),
             metadata=dict(data.get("metadata") or {}),
             schema_version=int(data.get("schema_version", EVENT_SCHEMA_VERSION)),
+            _rehydration=_REHYDRATION_TOKEN,
         )
 
         # kind is derived from role; a stored kind that disagrees is
