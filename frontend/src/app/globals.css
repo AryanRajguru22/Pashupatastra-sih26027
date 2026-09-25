@@ -251,3 +251,57 @@ body {
 ::-webkit-scrollbar {
   display: none;
 }
+
+/* ── Stitch motion: orbital rings and "laser" rail pulses (decorative) ── */
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes orbit-spin-rev {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+.orbit-slow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: orbit-spin 120s linear infinite;
+}
+.orbit-slower {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: orbit-spin-rev 180s linear infinite;
+}
+@keyframes laserDashForward {
+  to {
+    stroke-dashoffset: -400;
+  }
+}
+@keyframes laserDashReverse {
+  to {
+    stroke-dashoffset: 400;
+  }
+}
+.animate-laser-fast {
+  stroke-dasharray: 28 120;
+  animation: laserDashForward 3.8s linear infinite;
+}
+.animate-laser-counter {
+  stroke-dasharray: 20 90;
+  animation: laserDashReverse 4.4s linear infinite;
+}
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translate3d(6px, -10px, 0);
+    opacity: 0.7;
+  }
+}
+.particle {
+  animation: drift 7s ease-in-out infinite;
+}

@@ -1,177 +1,85 @@
-# Pashupatastra Frontend — Block Planning Command Center
+# Pashupatastra frontend
 
-**AI-powered automatic block planning and recovery system for Indian Railways (SIH 2026, Problem Statement SIH26027).**
+Next.js 16 (App Router) + React 19 + Tailwind 4 console for the frozen
+Pashupatastra backend. **Stitch is the visual source of truth; the backend is
+the functional source of truth.** The frontend adapts to the backend and never
+invents backend behaviour.
 
-This frontend is a Next.js (App Router) + React + TypeScript + Tailwind CSS command-center dashboard designed for railway section controllers and traffic planners.
+All data is **synthetic and illustrative** (NDLS–AGC demo corridor, synthetic
+planning horizon 10–11 Sep 2026). Identity is declared through request headers
+and recorded as `DECLARED_UNVERIFIED`; there is no login. The risk scorer is a
+deterministic baseline, not a trained model.
 
----
+## Run
 
-## 🏗️ Architecture & Data Flow
+```powershell
+# backend + seed (repo root, see docs/demo-runbook.md and scripts/seed_demo.py)
+$env:PASHUPAT_CORRIDOR_ID = "CORR-NDLS-AGC"
+$env:PASHUPAT_JOBS_DB     = "D:\Pashupatastra\demo\jobs.db"   # or any dedicated demo DB
+python scripts/seed_demo.py
+python -m uvicorn backend.app.api.main:app --host 127.0.0.1 --port 8000
 
-```
-+-----------------------------------------------------------------------------------+
-|                                 DATA FLOW ARCHITECTURE                            |
-+-----------------------------------------------------------------------------------+
-|                                                                                   |
-|  [ Track Infrastructure & Block Candidates ]  -->  [ Python Backend (FastAPI) ]   |
-|                                                                 |                 |
-|                                                                 v                 |
-|                                                     [ OptimizationRequest ]       |
-|                                                                 |                 |
-|                                                                 v                 |
-|                                                  [ OR-Tools CP-SAT Solver ]       |
-|                                                  [ + Candidate Objective Weights ]|
-|                                                                 |                 |
-|                                                                 v                 |
-|                                                     [ OptimizationResult ]        |
-|                                                                 |                 |
-|       +---------------------------------------------------------+                 |
-|       |                                                                           |
-|       v (HTTP POST /optimize, POST /recover, OR Canonical JSON Fixtures)          |
-|  +-----------------------------------------------------------------------------+  |
-|  | Frontend Data Layer (`src/lib/data.ts`, `src/lib/recoveryComparison.ts`)    |  |
-|  | - Mirrors backend dataclass contracts (`src/types/contracts.ts`)            |  |
-|  | - Enriches result with candidate metadata & solver explainability           |  |
-|  | - Classifies recovery changes: PRESERVED / MOVED / NEW / DROPPED            |  |
-|  +-----------------------------------------------------------------------------+  |
-|       |                                                                           |
-|       v                                                                           |
-|  [ DashboardClient ] -- orchestrates stage (PLAN / DISRUPT / RECOVER) --          |
-|       |                                                                           |
-|       +-------------------+--------------------+                                 |
-|       |                   |                    |                                 |
-|       v                   v                    v                                 |
-|  [ AppHeader ]      [ PlanView ]       [ DisruptRecoverView ]                    |
-|  (nav + stage)   (corridor stage,    (disruption trigger +                       |
-|                   block inspector,    before/after recovery                      |
-|                   ML scoring)         comparison)                                |
-+-----------------------------------------------------------------------------------+
-```
-
----
-
-## 📦 Key Components
-
-The presentation layer is built to the Google Stitch "Aether Void" design
-export (`stitch/screen-{1,2,3}/`), ported literally (Tailwind token system,
-layout structure, typography) rather than reinterpreted — every visual
-element that had no real backing (SCADA telemetry, live train tracking,
-signaling/interlocking control, fake solver alternatives) was replaced with
-real backend data in the same UI slot, or removed if there was no real
-equivalent.
-
-1. **`src/components/AppHeader.tsx`**
-   - Shared top navigation: wordmark, build/version badge, the
-     Maintenance Planning / Disruption Simulation nav pills (the only two
-     real stages), and the live-backend/solver-time status pills.
-
-2. **`src/components/PlanView.tsx`**
-   - The PLAN stage: SVG dual-track corridor stage (real bezier lane
-     curves, ported from the Stitch export, shared with
-     `DisruptRecoverView` via `src/lib/corridorGeometry.ts`).
-   - Real work-type filter row, KM ruler derived from real candidate
-     asset metadata, and a right-hand inspector drawer showing a
-     selected block's real headway constraint, constraint-conflict
-     count, priority score, CP-SAT reasoning text, and all 7 real ML
-     scoring features.
-   - Bottom schedule-overview strip with a real selected-block time
-     marker and corridor capacity/risk-neutralized stats.
-
-3. **`src/components/DisruptRecoverView.tsx`**
-   - The DISRUPT and RECOVER stages combined (mirroring the Stitch
-     export's own dual-state screen): the four real disruption types
-     (Asset Breakdown, Track Unavailable, Emergency Work, Possession
-     Curtailment), each with only the inputs that actually affect the
-     disruption logic.
-   - Calls the live `POST /recover` endpoint. The hero corridor stage
-     renders the actual current schedule at all times (baseline
-     pre-trigger, recovered post-trigger) with real dropped/moved block
-     markers and reroute paths layered on top — never an empty stage.
-   - Renders the resulting BEFORE → AFTER comparison (status,
-     scheduled/unscheduled counts, preserved count, and a list of
-     moved/dropped/newly-scheduled blocks) with a "Return to Original
-     Plan" action.
-
-4. **`src/types/contracts.ts`**
-   - TypeScript mirror of the Python dataclass contracts in `contracts/`:
-     - `BlockCandidate`
-     - `ScheduledBlock`
-     - `OptimizationRequest`
-     - `OptimizationResult`
-     - `DisruptionEvent`
-     - `RecoveryRequest` / `RecoveryResponse`
-
-5. **`src/lib/data.ts`** / **`src/lib/recoveryComparison.ts`**
-   - Data access layer supporting both canonical static fixtures
-     (`corridor_a_blocks.json`, `milestone1_result.json`) and live
-     FastAPI endpoint queries (`POST /optimize`, `POST /recover`).
-   - `recoveryComparison.ts` computes the client-side before/after
-     block classification from the two real results returned by
-     `/recover` — never fabricated, and reusing real solver rejection
-     reasons where a block is dropped by the solver rather than by the
-     disruption itself.
-
-6. **`src/lib/corridorGeometry.ts`** / **`src/lib/format.ts`** / **`src/lib/stage.ts`**
-   - `corridorGeometry.ts`: the shared bezier lane-curve geometry (ported
-     from the Stitch export) that `PlanView` and `DisruptRecoverView`
-     both draw the corridor SVG from, so the same track renders
-     identically in both stages.
-   - `format.ts`: shared `formatHHMM` / `formatWorkType` display helpers.
-   - `stage.ts`: the `OperationalStage` ("PLAN" | "DISRUPT" | "RECOVER")
-     type shared by `DashboardClient` and `AppHeader`.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js 18+ (Node 20+ recommended)
-- npm or yarn or pnpm
-
-### Installation
-
-```bash
-# Navigate to frontend directory
+# frontend
 cd frontend
-
-# Install dependencies
-npm install
+$env:NEXT_PUBLIC_API_URL = "http://127.0.0.1:8000"   # inlined at build time
+npm run build ; npm run start                         # http://localhost:3000
 ```
 
-### Development Server
+`npm run lint` and `npx tsc --noEmit` must stay clean.
 
-```bash
-npm run dev
-```
+## Screens
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Verification & Production Build
-
-```bash
-# Run linting
-npm run lint
-
-# Build production bundle
-npm run build
-
-# Start production server
-npm run start
-```
-
----
-
-## ⚙️ Environment Configuration
-
-| Variable | Default | Description |
+| Route | Screen | Backend it uses |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | `http://127.0.0.1:8000` | Base URL for the FastAPI backend optimizer service |
+| `/` | Command Center | `GET /v1/jobs`, `/v1/obligations`, `/v1/optimization-runs/{id}` |
+| `/inspection` | Field Inspection | `POST /v1/jobs` (idempotency key, `field_location` cross-check) |
+| `/jobs`, `/jobs/[jobId]` | Maintenance Jobs, job detail (overview, scoring, proposal, execution, audit, obligation) | `GET /v1/jobs*`, `/history`, `/proposal`, `/execution`, `/obligation` |
+| `/planning` | Planning (CP-SAT) | `POST /v1/corridors/CORR-NDLS-AGC/optimize-jobs`, `GET /v1/optimization-runs/{id}` |
+| `/review` | Authority Review | `POST /v1/jobs/{id}/proposal/{approve,postpone,reject,release}` |
+| `/execution` | Execution | `POST /v1/jobs/{id}/execution/{start,complete,not-completed}` |
+| `/audit` | Audit Trail | `GET /v1/jobs/{id}/history` |
+| `/obligations` | Obligations (SLA) | `GET /v1/obligations`, `/v1/jobs/{id}/obligation` |
+| `/simulation` | Disruption Simulation | legacy stateless `POST /optimize`, `POST /recover` (Corridor A fixture) |
+| `/about` | About This Demo | none |
 
----
+## Backend capability → screen → control
 
-## 📋 Milestone Progression
+| Backend capability | Screen | Control |
+|---|---|---|
+| Health | shell | connectivity pill (15 s poll); offline disables every mutation |
+| Field intake / job creation | Field Inspection | Submit report |
+| Idempotent replay | Field Inspection | key kept across retries; "Submit as new report" on conflict |
+| Job list / retrieval | Jobs, Command Center, Job detail | queue, filters, row click |
+| Deterministic scoring | Job detail → Scoring, Jobs, Field Inspection result | scores, ranked contributors, raw inputs |
+| Optimization | Planning | RUN OPTIMIZATION (confirm dialog) |
+| Proposal + explanation | Authority Review, Job detail → Proposal | proposal card (codes verbatim) |
+| Approve / postpone / reject / release | Authority Review, Job detail | decision bar + dialogs (proposal re-fetched, stale-run protected) |
+| Re-optimization, committed preservation | Planning | re-optimization comparison (session diff + job history) |
+| Execution start / complete / not-completed | Execution, Job detail | dialogs with evidence-reference editor |
+| Evidence | Execution | reference, kind, capture time, optional coordinates (no upload) |
+| History / audit | Audit Trail, Job detail → Audit | grouped timeline, per-event details, raw JSON |
+| Obligations / SLA | Obligations, Command Center, Job detail | table, filters, assumed-SLA disclosure |
+| Optimization run record | Planning | Run audit record |
+| Legacy disruption simulation | Simulation | four disruption types + baseline/recovered comparison |
 
-- [x] **Stage 1**: TypeScript data contract layer & corridor fixtures.
-- [x] **Stage 2**: Command-center UI, SVG Multi-track timeline, KPI metrics, and solver explainability audit panel.
-- [x] **Milestone 2**: Live backend integration (`POST /optimize` wire-up with live FastAPI backend) & re-optimization dispatch.
-- [x] **Milestone 3**: Disruption injection UI (`DisruptionControls`) & live `POST /recover` schedule recovery view, with before/after comparison.
+Backend capabilities with no user-facing purpose are deliberately not exposed
+(`POST /v1/jobs/{id}/notify` duplicates approve; there is no notification API).
+
+## Stitch elements removed or reworded (unsupported by the backend)
+
+Fake live train counts and on-time percentages, GPS/elevation/gradient
+telemetry, "4-track trunk", cryptographic digest / Merkle / tamper-proof audit
+claims, ML/AI verification claims, geodetic anchors, radar telemetry nodes,
+"SEC-LEVEL", "commit recovered plan to operations", profile avatar (implied
+login), the CRIS/IR badge in the logo (emblem only is kept). The orbital rings,
+glow and laser pulses are retained as decoration and are labelled as such.
+
+## Notes
+
+- `src/lib/api.ts` mirrors `docs/openapi-v1.json`; `block_candidate` and event
+  `metadata` are outside the frozen contract and are always parsed defensively.
+- `src/lib/fieldLocation.ts` mirrors `backend/app/jobs/field_location.py`
+  (the backend exposes no topology endpoint). It was checked against the
+  backend converter on 735 station/offset cases with zero mismatches.
+- Three clocks are never mixed: PLAN (horizon minutes), OBSERVED (crew-entered)
+  and RECORDED (server wall clock), each tagged in the UI.

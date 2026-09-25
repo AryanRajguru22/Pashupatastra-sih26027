@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Pashupatastra — Railway Maintenance Intelligence",
+  title: "Pashupatastra — Railway Maintenance Block Planning",
   description:
-    "AI-powered maintenance block planning dashboard for Indian Railways. Optimized schedule visualization, KPIs, and explainability.",
+    "Decision-support console for railway maintenance possession planning: field intake, deterministic risk scoring, CP-SAT block optimization, authority review, execution evidence and audit. Synthetic demo data.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -18,7 +18,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           rel="stylesheet"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
           rel="stylesheet"
         />
       </head>
