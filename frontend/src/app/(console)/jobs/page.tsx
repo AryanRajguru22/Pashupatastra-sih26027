@@ -244,7 +244,7 @@ export default function JobsPage() {
           <div className="p-space-md">
             <Skeleton rows={5} />
           </div>
-        ) : rows.length === 0 ? (
+        ) : rows.length === 0 && !jobs.error ? (
           <div className="p-space-lg">
             <Empty title={all.length === 0 ? "No jobs in the backend" : "No jobs match these filters"}>
               {all.length === 0 ? (

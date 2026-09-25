@@ -656,6 +656,16 @@ export default function InspectionPage() {
                 Deterministic risk scoring (baseline scorer, not a trained
                 model). Open the job for the ranked explanation.
               </p>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                Next step: the job stays <code className="font-label-mono">reported</code>{" "}
+                with no possession window until a planning engineer runs the
+                optimizer on{" "}
+                <Link href="/planning" className="text-primary underline">
+                  Planning
+                </Link>
+                . Only then does it appear as a pending proposal in Authority
+                Review.
+              </p>
               <div className="flex gap-space-sm">
                 <Link href={`/jobs/${created.job_id}`} className={BTN_PRIMARY}>
                   Open job detail

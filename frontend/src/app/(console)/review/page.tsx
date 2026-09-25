@@ -98,7 +98,7 @@ export default function ReviewPage() {
             </div>
             {jobs.loading && !jobs.data ? (
               <Skeleton rows={4} />
-            ) : queue.length === 0 ? (
+            ) : queue.length === 0 && !jobs.error ? (
               <Empty title="No proposals awaiting a decision">
                 Proposals appear here after an engineer runs the optimizer on{" "}
                 <Link href="/planning" className="text-primary underline">

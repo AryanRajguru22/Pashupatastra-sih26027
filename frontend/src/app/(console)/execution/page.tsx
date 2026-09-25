@@ -103,7 +103,7 @@ export default function ExecutionPage() {
             </div>
             {jobs.loading && !jobs.data ? (
               <Skeleton rows={3} />
-            ) : live.length === 0 ? (
+            ) : live.length === 0 && !jobs.error ? (
               <Empty title="No approved blocks">
                 A block appears here after an authority approves it on{" "}
                 <Link href="/review" className="text-primary underline">Authority Review</Link>.

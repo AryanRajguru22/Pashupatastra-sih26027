@@ -42,8 +42,12 @@ const TYPES: { key: DType; label: string; icon: string; blurb: string }[] = [
   { key: "POSSESSION_CURTAILMENT", label: "Possession curtailment", icon: "content_cut", blurb: "A possession window is cut short." },
 ];
 
+// 1440 is the horizon end (midnight closing the day): show it as 24:00,
+// not the misleading wrapped 00:00. Display only - the minute value is unchanged.
 const hhmm = (m: number) =>
-  `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  m > 0 && m % 1440 === 0
+    ? `${String((m / 1440) * 24).padStart(2, "0")}:00`
+    : `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
 const CAT_STYLE: Record<string, string> = {
   PRESERVED: "bg-surface-container-high text-on-surface-variant",
@@ -215,7 +219,16 @@ export default function SimulationPage() {
                   type="button"
                   role="radio"
                   aria-checked={type === t.key}
-                  onClick={() => setType(t.key)}
+                  onClick={() => {
+                    if (t.key !== type) {
+                      // A result belongs to the scenario that produced it.
+                      setRecovered(null);
+                      setComparison(null);
+                      setEvent(null);
+                      setError(null);
+                    }
+                    setType(t.key);
+                  }}
                   className={`text-left rounded-DEFAULT px-space-md py-space-sm transition-all ${type === t.key ? "bg-surface-container-high ring-1 ring-error/60 shadow-[0_0_20px_rgba(255,180,171,0.15)]" : "bg-surface-container-low hover:bg-surface-container"}`}
                 >
                   <div className="flex items-center gap-2 font-headline-sm text-body-md text-on-surface">

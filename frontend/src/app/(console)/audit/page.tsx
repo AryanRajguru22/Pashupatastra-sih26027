@@ -70,9 +70,10 @@ export default function AuditPage() {
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
+            {jobs.error && <ErrorBox error={jobs.error} title="COULD NOT LOAD JOBS" />}
             {jobs.loading && !jobs.data ? (
               <Skeleton rows={4} />
-            ) : shown.length === 0 ? (
+            ) : shown.length === 0 && !jobs.error ? (
               <Empty title="No jobs" />
             ) : (
               <ul className="flex flex-col gap-1">
