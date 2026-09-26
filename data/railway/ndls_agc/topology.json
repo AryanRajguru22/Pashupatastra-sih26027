@@ -1,0 +1,724 @@
+{
+  "schema_version": 1,
+  "snapshot_id": "ndls-agc-2026-09-26",
+  "corridor_id": "CORR-NDLS-AGC",
+  "name": "New Delhi - Agra Cantt. (via Hazrat Nizamuddin, Faridabad, Palwal, Mathura Jn., Raja Ki Mandi)",
+  "zone": "Northern Railway (NDLS-PWL) / North Central Railway (PWL-AGC)",
+  "division": "Delhi Division (NDLS-PWL) / Agra Division (PWL-AGC)",
+  "distance_unit": "km",
+  "chainage_origin": "NDLS = 0 km (derived origin). Chainage is NDLS-relative, not the railway's own km-post.",
+  "direction_convention": {
+    "UP": "Away from Delhi: NDLS -> AGC.",
+    "DOWN": "Toward Delhi: AGC -> NDLS.",
+    "track_ids": {
+      "UP-1": "Up line - trains running NDLS -> AGC (official UP).",
+      "DOWN-1": "Down line - trains running AGC -> NDLS (official DN)."
+    },
+    "note": "The synthetic fallback dataset uses the opposite meaning for the same identifiers (NDLS->AGC as DOWN-1). Identifiers are kept for contract stability; their meaning is stated per dataset."
+  },
+  "stations": [
+    {
+      "station_id": "NDLS",
+      "name": "New Delhi",
+      "km": 0.0,
+      "km_display": "0",
+      "km_precision": "derived_origin",
+      "km_uncertainty_km": 0.0,
+      "lat": 28.6434826,
+      "lon": 77.2227421,
+      "coordinate_source": {
+        "source_id": "SRC-OSM-STATIONS",
+        "osm_node_id": 554257841,
+        "attribution": "(c) OpenStreetMap contributors, ODbL",
+        "official_railway_coordinate": false
+      }
+    },
+    {
+      "station_id": "NZM",
+      "name": "Hazrat Nizamuddin",
+      "km": 7.0,
+      "km_display": "7",
+      "km_precision": "published_integer_km",
+      "km_uncertainty_km": 1.0,
+      "lat": 28.5889646,
+      "lon": 77.2535202,
+      "coordinate_source": {
+        "source_id": "SRC-OSM-STATIONS",
+        "osm_node_id": 1988585233,
+        "attribution": "(c) OpenStreetMap contributors, ODbL",
+        "official_railway_coordinate": false
+      }
+    },
+    {
+      "station_id": "FDB",
+      "name": "Faridabad",
+      "km": 28.0,
+      "km_display": "28",
+      "km_precision": "published_integer_km",
+      "km_uncertainty_km": 1.0,
+      "lat": 28.4107617,
+      "lon": 77.3070774,
+      "coordinate_source": {
+        "source_id": "SRC-OSM-STATIONS",
+        "osm_node_id": 1572649890,
+        "attribution": "(c) OpenStreetMap contributors, ODbL",
+        "official_railway_coordinate": false
+      }
+    },
+    {
+      "station_id": "PWL",
+      "name": "Palwal",
+      "km": 54.8,
+      "km_display": "~54.8",
+      "km_precision": "derived_from_official_kmposts",
+      "km_uncertainty_km": 3.0,
+      "lat": 28.1515806,
+      "lon": 77.3417952,
+      "coordinate_source": {
+        "source_id": "SRC-OSM-STATIONS",
+        "osm_node_id": 1078916610,
+        "attribution": "(c) OpenStreetMap contributors, ODbL",
+        "official_railway_coordinate": false
+      }
+    },
+    {
+      "station_id": "MTJ",
+      "name": "Mathura Junction",
+      "km": 141.0,
+      "km_display": "141",
+      "km_precision": "published_integer_km",
+      "km_uncertainty_km": 1.0,
+      "lat": 27.4801125,
+      "lon": 77.6737596,
+      "coordinate_source": {
+        "source_id": "SRC-OSM-STATIONS",
+        "osm_node_id": 790920249,
+        "attribution": "(c) OpenStreetMap contributors, ODbL",
+        "official_railway_coordinate": false
+      }
+    },
+    {
+      "station_id": "RKM",
+      "name": "Raja Ki Mandi",
+      "km": 190.9,
+      "km_display": "~190.9",
+      "km_precision": "derived_from_official_kmposts",
+      "km_uncertainty_km": 2.0,
+      "lat": 27.1940261,
+      "lon": 77.9970749,
+      "coordinate_source": {
+        "source_id": "SRC-OSM-STATIONS",
+        "osm_node_id": 301786568,
+        "attribution": "(c) OpenStreetMap contributors, ODbL",
+        "official_railway_coordinate": false
+      }
+    },
+    {
+      "station_id": "AGC",
+      "name": "Agra Cantt.",
+      "km": 194.8,
+      "km_display": "~194.8",
+      "km_precision": "derived_from_official_kmposts",
+      "km_uncertainty_km": 2.0,
+      "lat": 27.1589527,
+      "lon": 77.9900478,
+      "coordinate_source": {
+        "source_id": "SRC-OSM-STATIONS",
+        "osm_node_id": 458972632,
+        "attribution": "(c) OpenStreetMap contributors, ODbL",
+        "official_railway_coordinate": false
+      }
+    }
+  ],
+  "sections": [
+    {
+      "section_id": "NDLS-NZM",
+      "start_station_id": "NDLS",
+      "end_station_id": "NZM",
+      "km_start": 0.0,
+      "km_end": 7.0,
+      "length_km": 7.0,
+      "zone": "Northern Railway",
+      "division": "Delhi Division"
+    },
+    {
+      "section_id": "NZM-FDB",
+      "start_station_id": "NZM",
+      "end_station_id": "FDB",
+      "km_start": 7.0,
+      "km_end": 28.0,
+      "length_km": 21.0,
+      "zone": "Northern Railway",
+      "division": "Delhi Division"
+    },
+    {
+      "section_id": "FDB-PWL",
+      "start_station_id": "FDB",
+      "end_station_id": "PWL",
+      "km_start": 28.0,
+      "km_end": 54.8,
+      "length_km": 26.8,
+      "zone": "Northern Railway",
+      "division": "Delhi Division"
+    },
+    {
+      "section_id": "PWL-MTJ",
+      "start_station_id": "PWL",
+      "end_station_id": "MTJ",
+      "km_start": 54.8,
+      "km_end": 141.0,
+      "length_km": 86.2,
+      "zone": "North Central Railway",
+      "division": "Agra Division"
+    },
+    {
+      "section_id": "MTJ-RKM",
+      "start_station_id": "MTJ",
+      "end_station_id": "RKM",
+      "km_start": 141.0,
+      "km_end": 190.9,
+      "length_km": 49.9,
+      "zone": "North Central Railway",
+      "division": "Agra Division"
+    },
+    {
+      "section_id": "RKM-AGC",
+      "start_station_id": "RKM",
+      "end_station_id": "AGC",
+      "km_start": 190.9,
+      "km_end": 194.8,
+      "length_km": 3.9,
+      "zone": "North Central Railway",
+      "division": "Agra Division"
+    }
+  ],
+  "tracks": [
+    {
+      "track_id": "UP-1",
+      "direction": "UP",
+      "section_name": "NDLS-AGC Up line (away from Delhi)",
+      "km_start": 0.0,
+      "km_end": 194.8,
+      "speed_limit_kmh": 160,
+      "electrified": true,
+      "daily_train_density": 70,
+      "route_classification": "GROUP_A"
+    },
+    {
+      "track_id": "DOWN-1",
+      "direction": "DOWN",
+      "section_name": "AGC-NDLS Down line (toward Delhi)",
+      "km_start": 0.0,
+      "km_end": 194.8,
+      "speed_limit_kmh": 160,
+      "electrified": true,
+      "daily_train_density": 70,
+      "route_classification": "GROUP_A"
+    }
+  ],
+  "provenance": [
+    {
+      "field": "stations.NDLS.name_and_code",
+      "value": "NDLS New Delhi",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2",
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "high",
+      "note": "Station names as printed in TAG; codes agree with the NR annexure (FDB) and OSM 'railway:ref'."
+    },
+    {
+      "field": "stations.NDLS.lat_lon",
+      "value": [
+        28.6434826,
+        77.2227421
+      ],
+      "unit": "degrees",
+      "class": "REAL_DATED_SNAPSHOT",
+      "source_ids": [
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "OpenStreetMap community coordinate, ODbL. Not an official Indian Railways coordinate."
+    },
+    {
+      "field": "stations.NZM.name_and_code",
+      "value": "NZM Hazrat Nizamuddin",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2",
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "high",
+      "note": "Station names as printed in TAG; codes agree with the NR annexure (FDB) and OSM 'railway:ref'."
+    },
+    {
+      "field": "stations.NZM.lat_lon",
+      "value": [
+        28.5889646,
+        77.2535202
+      ],
+      "unit": "degrees",
+      "class": "REAL_DATED_SNAPSHOT",
+      "source_ids": [
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "OpenStreetMap community coordinate, ODbL. Not an official Indian Railways coordinate."
+    },
+    {
+      "field": "stations.FDB.name_and_code",
+      "value": "FDB Faridabad",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2",
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "high",
+      "note": "Station names as printed in TAG; codes agree with the NR annexure (FDB) and OSM 'railway:ref'."
+    },
+    {
+      "field": "stations.FDB.lat_lon",
+      "value": [
+        28.4107617,
+        77.3070774
+      ],
+      "unit": "degrees",
+      "class": "REAL_DATED_SNAPSHOT",
+      "source_ids": [
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "OpenStreetMap community coordinate, ODbL. Not an official Indian Railways coordinate."
+    },
+    {
+      "field": "stations.PWL.name_and_code",
+      "value": "PWL Palwal",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2",
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "high",
+      "note": "Station names as printed in TAG; codes agree with the NR annexure (FDB) and OSM 'railway:ref'."
+    },
+    {
+      "field": "stations.PWL.lat_lon",
+      "value": [
+        28.1515806,
+        77.3417952
+      ],
+      "unit": "degrees",
+      "class": "REAL_DATED_SNAPSHOT",
+      "source_ids": [
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "OpenStreetMap community coordinate, ODbL. Not an official Indian Railways coordinate."
+    },
+    {
+      "field": "stations.MTJ.name_and_code",
+      "value": "MTJ Mathura Junction",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2",
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "high",
+      "note": "Station names as printed in TAG; codes agree with the NR annexure (FDB) and OSM 'railway:ref'."
+    },
+    {
+      "field": "stations.MTJ.lat_lon",
+      "value": [
+        27.4801125,
+        77.6737596
+      ],
+      "unit": "degrees",
+      "class": "REAL_DATED_SNAPSHOT",
+      "source_ids": [
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "OpenStreetMap community coordinate, ODbL. Not an official Indian Railways coordinate."
+    },
+    {
+      "field": "stations.RKM.name_and_code",
+      "value": "RKM Raja Ki Mandi",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2",
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "high",
+      "note": "Station names as printed in TAG; codes agree with the NR annexure (FDB) and OSM 'railway:ref'."
+    },
+    {
+      "field": "stations.RKM.lat_lon",
+      "value": [
+        27.1940261,
+        77.9970749
+      ],
+      "unit": "degrees",
+      "class": "REAL_DATED_SNAPSHOT",
+      "source_ids": [
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "OpenStreetMap community coordinate, ODbL. Not an official Indian Railways coordinate."
+    },
+    {
+      "field": "stations.AGC.name_and_code",
+      "value": "AGC Agra Cantt.",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2",
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "high",
+      "note": "Station names as printed in TAG; codes agree with the NR annexure (FDB) and OSM 'railway:ref'."
+    },
+    {
+      "field": "stations.AGC.lat_lon",
+      "value": [
+        27.1589527,
+        77.9900478
+      ],
+      "unit": "degrees",
+      "class": "REAL_DATED_SNAPSHOT",
+      "source_ids": [
+        "SRC-OSM-STATIONS"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "OpenStreetMap community coordinate, ODbL. Not an official Indian Railways coordinate."
+    },
+    {
+      "field": "stations.NDLS.km",
+      "value": 0.0,
+      "unit": "km",
+      "class": "DERIVED_FROM_REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "derived_from": [
+        "TAG-2026 T-3: New Delhi published km 3"
+      ],
+      "derivation_method": "Origin of the NDLS-relative chainage: published km minus 3. A derived origin, not a railway km-post.",
+      "confidence": "high"
+    },
+    {
+      "field": "stations.NZM.km",
+      "value": 7.0,
+      "unit": "km",
+      "class": "DERIVED_FROM_REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "derived_from": [
+        "TAG-2026 published km 10 (Hazrat Nizamuddin)",
+        "TAG-2026 published km 3 (New Delhi)"
+      ],
+      "derivation_method": "published km minus New Delhi's published km",
+      "confidence": "medium",
+      "note": "Whole kilometres only; +/-1 km."
+    },
+    {
+      "field": "stations.FDB.km",
+      "value": 28.0,
+      "unit": "km",
+      "class": "DERIVED_FROM_REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "derived_from": [
+        "TAG-2026 published km 31 (Faridabad)",
+        "TAG-2026 published km 3 (New Delhi)"
+      ],
+      "derivation_method": "published km minus New Delhi's published km",
+      "confidence": "medium",
+      "note": "Whole kilometres only; +/-1 km."
+    },
+    {
+      "field": "stations.PWL.km",
+      "value": 54.8,
+      "unit": "km",
+      "class": "DERIVED_FROM_REAL",
+      "source_ids": [
+        "SRC-NCR-SIP-RUNDHI",
+        "SRC-NCR-SIP-BAD",
+        "SRC-NCR-SIP-MTJ",
+        "SRC-TAG-2026-T2"
+      ],
+      "derived_from": [
+        "Official km-post Mathura Jn 1397.06",
+        "Official km-post Rundhi 1473.981",
+        "Rundhi SIP: Palwal at Km 9.31",
+        "MTJ chainage 141 km"
+      ],
+      "derivation_method": "MTJ chainage - (Palwal km-post 1483.291 - MTJ km-post 1397.06) = 141 - 86.23",
+      "confidence": "low",
+      "note": "UNRESOLVED CONFLICT: the previously used unsourced value was ~57. The official chain gives the PWL-MTJ distance as ~86.23 km, i.e. ~54.8 km from NDLS. The Rundhi SIP text '(PALWAL SPL CLASS AT Km 9.31)' is read as the Rundhi-Palwal distance. Shown as '~54.8'."
+    },
+    {
+      "field": "stations.MTJ.km",
+      "value": 141.0,
+      "unit": "km",
+      "class": "DERIVED_FROM_REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2",
+        "SRC-NCR-SIP-BAD",
+        "SRC-NCR-SIP-MTJ"
+      ],
+      "derived_from": [
+        "TAG-2026 T-3 published km 144 (Mathura)",
+        "TAG-2026 published km 3 (New Delhi)",
+        "Official km-post 1397.06"
+      ],
+      "derivation_method": "published km minus New Delhi's published km",
+      "confidence": "medium",
+      "note": "TAG T-2 prints 145 (=> 142); T-3 prints 144 (=> 141). +/-1 km. The official km-post 1397.06 is Mumbai-origin, not comparable to the NDLS-relative value."
+    },
+    {
+      "field": "stations.RKM.km",
+      "value": 190.9,
+      "unit": "km",
+      "class": "DERIVED_FROM_REAL",
+      "source_ids": [
+        "SRC-NCR-SIP-RUNAKTA",
+        "SRC-NCR-SIP-RKM",
+        "SRC-NCR-SIP-BAD"
+      ],
+      "derived_from": [
+        "Bilochpura km-post 1348.6 (2025)",
+        "RKM SIP 'BFP 1.45 Km' (2012)",
+        "MTJ chainage 141 km"
+      ],
+      "derivation_method": "MTJ chainage + (MTJ km-post 1397.06 - RKM km-post 1347.15) where RKM km-post = 1348.6 - 1.45",
+      "confidence": "low",
+      "note": "Mixes a 2025 km-post with a 2012 SIP distance (read visually). TAG's own whole-km figure implies ~192; difference recorded in km_uncertainty_km."
+    },
+    {
+      "field": "stations.AGC.km",
+      "value": 194.8,
+      "unit": "km",
+      "class": "DERIVED_FROM_REAL",
+      "source_ids": [
+        "SRC-NCR-SIP-RKM",
+        "SRC-NCR-SIP-RUNAKTA",
+        "SRC-NCR-SIP-AGC"
+      ],
+      "derived_from": [
+        "RKM km-post 1347.15 (derived)",
+        "RKM SIP 'AGC 3.88 Km' (2012)",
+        "MTJ chainage 141 km"
+      ],
+      "derivation_method": "MTJ chainage + (MTJ km-post 1397.06 - AGC km-post 1343.27) where AGC km-post = RKM km-post - 3.88",
+      "confidence": "low",
+      "note": "The AGC SIP prints Km 1343.5 and 1344.100 for yard features, consistent with ~1343.3."
+    },
+    {
+      "field": "stations.*.km_display",
+      "value": {
+        "NDLS": "0",
+        "NZM": "7",
+        "FDB": "28",
+        "PWL": "~54.8",
+        "MTJ": "141",
+        "RKM": "~190.9",
+        "AGC": "~194.8"
+      },
+      "unit": "km",
+      "class": "ENGINEERING_ASSUMPTION",
+      "source_ids": [],
+      "derived_from": null,
+      "derivation_method": "Display precision chosen to be no finer than the least precise input (whole km, or one decimal for values derived from official km-posts).",
+      "confidence": "high"
+    },
+    {
+      "field": "sections.NDLS-NZM.zone_division",
+      "value": "Northern Railway / Delhi Division",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-NR-FDB-NOTICE"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "NR Delhi Division through Palwal (NR notice 2026-08-31 names the Hazrat Nizamuddin-Palwal section 'over Delhi Division'); NCR Agra Division beyond Palwal (NCR Agra SIP index). NDLS-NZM is taken as Delhi Division per the same division's Nizamuddin section."
+    },
+    {
+      "field": "sections.NZM-FDB.zone_division",
+      "value": "Northern Railway / Delhi Division",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-NR-FDB-NOTICE"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "NR Delhi Division through Palwal (NR notice 2026-08-31 names the Hazrat Nizamuddin-Palwal section 'over Delhi Division'); NCR Agra Division beyond Palwal (NCR Agra SIP index). NDLS-NZM is taken as Delhi Division per the same division's Nizamuddin section."
+    },
+    {
+      "field": "sections.FDB-PWL.zone_division",
+      "value": "Northern Railway / Delhi Division",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-NR-FDB-NOTICE"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "NR Delhi Division through Palwal (NR notice 2026-08-31 names the Hazrat Nizamuddin-Palwal section 'over Delhi Division'); NCR Agra Division beyond Palwal (NCR Agra SIP index). NDLS-NZM is taken as Delhi Division per the same division's Nizamuddin section."
+    },
+    {
+      "field": "sections.PWL-MTJ.zone_division",
+      "value": "North Central Railway / Agra Division",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-NCR-SIP-INDEX"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "NR Delhi Division through Palwal (NR notice 2026-08-31 names the Hazrat Nizamuddin-Palwal section 'over Delhi Division'); NCR Agra Division beyond Palwal (NCR Agra SIP index). NDLS-NZM is taken as Delhi Division per the same division's Nizamuddin section."
+    },
+    {
+      "field": "sections.MTJ-RKM.zone_division",
+      "value": "North Central Railway / Agra Division",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-NCR-SIP-INDEX"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "NR Delhi Division through Palwal (NR notice 2026-08-31 names the Hazrat Nizamuddin-Palwal section 'over Delhi Division'); NCR Agra Division beyond Palwal (NCR Agra SIP index). NDLS-NZM is taken as Delhi Division per the same division's Nizamuddin section."
+    },
+    {
+      "field": "sections.RKM-AGC.zone_division",
+      "value": "North Central Railway / Agra Division",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-NCR-SIP-INDEX"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "NR Delhi Division through Palwal (NR notice 2026-08-31 names the Hazrat Nizamuddin-Palwal section 'over Delhi Division'); NCR Agra Division beyond Palwal (NCR Agra SIP index). NDLS-NZM is taken as Delhi Division per the same division's Nizamuddin section."
+    },
+    {
+      "field": "tracks.modelled_lines",
+      "value": 2,
+      "unit": "lines",
+      "class": "ENGINEERING_ASSUMPTION",
+      "source_ids": [
+        "SRC-NCR-SIP-FARAH",
+        "SRC-NCR-SIP-SHOLAKA-RUNDHI"
+      ],
+      "derived_from": null,
+      "derivation_method": "Two running lines (one per direction) are modelled. The real corridor has 2 to 4 running lines depending on the section and date (see infrastructure.json); the 3rd/4th lines are not modelled.",
+      "confidence": "high"
+    },
+    {
+      "field": "tracks.speed_limit_kmh",
+      "value": 160,
+      "unit": "km/h",
+      "class": "ENGINEERING_ASSUMPTION",
+      "source_ids": [],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "low",
+      "note": "Carried over from the existing scoring model (Group A route). No sectional speed limit was established from a public source."
+    },
+    {
+      "field": "tracks.daily_train_density",
+      "value": 70,
+      "unit": "trains per day per direction",
+      "class": "ENGINEERING_ASSUMPTION",
+      "source_ids": [],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "low",
+      "note": "Scoring input. Order of magnitude taken from the 2013 NCR Planning Board description of Delhi-Palwal ('around 70 trains each way'; historical, not stored in sources/). The public passenger timetable alone (about 12 per direction) would understate density because freight and EMU services are not published."
+    },
+    {
+      "field": "tracks.route_classification",
+      "value": "GROUP_A",
+      "unit": null,
+      "class": "ENGINEERING_ASSUMPTION",
+      "source_ids": [],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "low",
+      "note": "Carried over from the existing scoring model."
+    },
+    {
+      "field": "tracks.electrified",
+      "value": true,
+      "unit": null,
+      "class": "REAL_DATED_SNAPSHOT",
+      "source_ids": [
+        "SRC-CBS-2026-27"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "Budget item 217 (Mathura-Dholpur-Antri electric traction upgrade) and the 2013 NCR Planning Board description of Delhi-Faridabad-Palwal as an electrified double line."
+    },
+    {
+      "field": "tracks.direction_convention",
+      "value": "UP = away from Delhi (NDLS->AGC); DN = toward Delhi (AGC->NDLS)",
+      "unit": null,
+      "class": "REAL",
+      "source_ids": [
+        "SRC-NR-FDB-ANNEX",
+        "SRC-NCR-SIP-BAD"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "high",
+      "note": "Annexure A labels 12280 (New Delhi-Jhansi) UP and 12279 (Jhansi-New Delhi) DN; NCR SIPs label the Delhi side 'NDLS END'."
+    }
+  ]
+}

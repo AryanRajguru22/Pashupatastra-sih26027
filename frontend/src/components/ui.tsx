@@ -16,6 +16,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { ApiError, STATUS_LABEL, type JobStatus } from "@/lib/api";
+import { pick } from "@/lib/railwayData";
 
 export const CARD =
   "p-space-lg rounded-DEFAULT bg-surface-container/70 backdrop-blur-2xl shadow-xl";
@@ -188,7 +189,10 @@ export function TimeTag({ kind }: { kind: "PLAN" | "RECORDED" | "OBSERVED" }) {
     kind === "PLAN" ? "cyan" : kind === "RECORDED" ? "amber" : "violet";
   const help =
     kind === "PLAN"
-      ? "Plan time: minutes on the fixed synthetic horizon (10–11 Sep 2026, IST)"
+      ? pick(
+          "Plan time: minutes on the fixed planning horizon (10–11 Sep 2026, IST)",
+          "Plan time: minutes on the fixed synthetic horizon (10–11 Sep 2026, IST)",
+        )
       : kind === "RECORDED"
         ? "Recorded: server wall-clock time, shown in IST"
         : "Observed: time entered by the crew";
@@ -200,7 +204,10 @@ export function TimeTag({ kind }: { kind: "PLAN" | "RECORDED" | "OBSERVED" }) {
 }
 
 export function ProvenanceChip({
-  label = "SYSTEM DERIVED · from SYNTHETIC inputs",
+  label = pick(
+    "SYSTEM DERIVED · public snapshot + DEMO inputs",
+    "SYSTEM DERIVED · from SYNTHETIC inputs",
+  ),
   tone = "amber",
 }: {
   label?: string;
@@ -328,15 +335,22 @@ export function Modal({
   busy?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // Callers pass a fresh onClose every render; keep the latest in a ref so the
+  // effect below runs only on open/close and does not re-focus the dialog on
+  // every keystroke (which stole focus from the inputs).
+  const latest = useRef({ onClose, busy });
+  useEffect(() => {
+    latest.current = { onClose, busy };
+  });
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !busy) onClose();
+      if (e.key === "Escape" && !latest.current.busy) latest.current.onClose();
     };
     window.addEventListener("keydown", onKey);
     ref.current?.focus();
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose, busy]);
+  }, [open]);
   if (!open || typeof document === "undefined") return null;
   // Portalled to <body> so the scrim covers the fixed header and sidebar too.
   return createPortal(

@@ -1,0 +1,310 @@
+{
+  "schema_version": 1,
+  "snapshot_id": "ndls-agc-2026-09-26",
+  "kilometre_post_datum": "Railway km-posts on this route run from the Mumbai end and INCREASE toward Delhi (NDLS end). They are not comparable to the NDLS-relative chainage in topology.json.",
+  "kilometre_posts": [
+    {
+      "place": "Bilochpura",
+      "km_post": 1348.6,
+      "source_id": "SRC-NCR-SIP-RUNAKTA",
+      "document_date": "2025-10-09",
+      "evidence": "Runakta SIP: 'BILOCHPURA STN. AT KM: 1348.60'",
+      "quote_check": "1348.60",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "place": "Runakta",
+      "km_post": 1357.67,
+      "source_id": "SRC-NCR-SIP-RUNAKTA",
+      "document_date": "2025-10-09",
+      "evidence": "Runakta SIP: 'RLY.Km - 1357.670'",
+      "quote_check": "1357.670",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "place": "Kitham",
+      "km_post": 1366.65,
+      "source_id": "SRC-NCR-SIP-KITHAM",
+      "document_date": "2025-10-14",
+      "evidence": "Kitham SIP: 'RLY.Km - 1366.650'",
+      "quote_check": "1366.650",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "place": "Farah",
+      "km_post": 1378.15,
+      "source_id": "SRC-NCR-SIP-FARAH",
+      "document_date": "2025-10-14",
+      "evidence": "Farah SIP: 'FARAH (RLY.KM.1378.15)'",
+      "quote_check": "1378.15",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "place": "Bad",
+      "km_post": 1386.84,
+      "source_id": "SRC-NCR-SIP-FARAH",
+      "document_date": "2025-10-14",
+      "evidence": "Farah SIP: 'BAAD AT KM:1386.84 (DISTANCE 8.69 KMS)'; the Bad SIP prints 1386/797.85 for the station building (42 m apart)",
+      "quote_check": "1386.84",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "place": "Mathura Jn",
+      "km_post": 1397.06,
+      "source_id": "SRC-NCR-SIP-BAD",
+      "document_date": "2025-10-24",
+      "evidence": "Bad SIP: '(MATHURA STN. 10.22Km) KM. 1397.06M'; Mathura Jn SIP (2017): 'AT KM 1397.06 AS PER W.T.T.'",
+      "quote_check": "1397.06",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "place": "Rundhi",
+      "km_post": 1473.981,
+      "source_id": "SRC-NCR-SIP-RUNDHI",
+      "document_date": "2021-12-03",
+      "evidence": "Rundhi SIP: 'RUNDHI STATION ... KM: 1473.981'",
+      "quote_check": "1473.981",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "place": "Palwal",
+      "km_post": 1483.291,
+      "source_id": "SRC-NCR-SIP-RUNDHI",
+      "document_date": "2021-12-03",
+      "evidence": "DERIVED: Rundhi 1473.981 + 9.31 ('PALWAL SPL CLASS AT Km 9.31')",
+      "quote_check": "Km 9.31",
+      "class": "DERIVED_FROM_REAL"
+    },
+    {
+      "place": "Raja Ki Mandi",
+      "km_post": 1347.15,
+      "source_id": "SRC-NCR-SIP-RKM",
+      "document_date": "2012-03-20",
+      "evidence": "DERIVED: Bilochpura 1348.6 - 1.45 (RKM SIP, 2012)",
+      "quote_check": null,
+      "class": "DERIVED_FROM_REAL"
+    },
+    {
+      "place": "Agra Cantt.",
+      "km_post": 1343.27,
+      "source_id": "SRC-NCR-SIP-RKM",
+      "document_date": "2012-03-20",
+      "evidence": "DERIVED: RKM 1347.15 - 3.88 (RKM SIP, 2012); the AGC SIP prints Km 1343.5 / 1344.100 for yard features",
+      "quote_check": null,
+      "class": "DERIVED_FROM_REAL"
+    }
+  ],
+  "level_crossings": [
+    {
+      "lc_no": 514,
+      "class_of_lc": "SPL",
+      "km_post": "1368.60",
+      "source_id": "SRC-NCR-SIP-KITHAM",
+      "document_date": "2025-10-14",
+      "evidence": "LX NO. 514 'SPL' CLASS KM - 1368.60",
+      "quote_check": "1368.60",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "lc_no": 515,
+      "class_of_lc": "C",
+      "km_post": "1370.25",
+      "source_id": "SRC-NCR-SIP-KITHAM-FARAH",
+      "document_date": "2025-10-14",
+      "evidence": "LX NO. 515 'C' CLASS KM - 1370.25",
+      "quote_check": "1370.25",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "lc_no": 523,
+      "class_of_lc": "SPL",
+      "km_post": "1383/25-27",
+      "source_id": "SRC-NCR-SIP-FARAH-BAD",
+      "document_date": "2025-10-14",
+      "evidence": "LX NO. 523 'SPL' CLASS KM - 1383/25-27",
+      "quote_check": "1383/25-27",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "lc_no": 551,
+      "class_of_lc": "SPL",
+      "km_post": "1447.084",
+      "source_id": "SRC-NCR-SIP-HODAL",
+      "document_date": "2021-12-03",
+      "evidence": "LC GATE NO.551 ... KMS 1447.084",
+      "quote_check": "1447.084",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "lc_no": 552,
+      "class_of_lc": "B",
+      "km_post": "1450.082",
+      "source_id": "SRC-NCR-SIP-HODAL",
+      "document_date": "2021-12-03",
+      "evidence": "LC GATE NO.552 ... KMS 1450.082",
+      "quote_check": "1450.082",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "lc_no": 554,
+      "class_of_lc": "SPL/E",
+      "km_post": "1452.576",
+      "source_id": "SRC-NCR-SIP-HODAL",
+      "document_date": "2021-12-03",
+      "evidence": "LC GATE NO.554 ... KMS 1452.576",
+      "quote_check": "1452.576",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "lc_no": 559,
+      "class_of_lc": "C",
+      "km_post": "1463.441",
+      "source_id": "SRC-NCR-SIP-SHOLAKA-RUNDHI",
+      "document_date": "2021-12-03",
+      "evidence": "LC GATE NO.559 ... KMS 1463.441",
+      "quote_check": "1463.441",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "lc_no": 560,
+      "class_of_lc": "SPL",
+      "km_post": "1467.536",
+      "source_id": "SRC-NCR-SIP-SHOLAKA-RUNDHI",
+      "document_date": "2021-12-03",
+      "evidence": "LC GATE NO.560 ... KMS 1467.536",
+      "quote_check": "1467.536",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "lc_no": 561,
+      "class_of_lc": "SPL/T",
+      "km_post": "1470.347",
+      "source_id": "SRC-NCR-SIP-RUNDHI",
+      "document_date": "2021-12-03",
+      "evidence": "LC GATE NO.561 ... KMS 1470.347",
+      "quote_check": "1470.347",
+      "class": "REAL_DATED_SNAPSHOT"
+    }
+  ],
+  "running_lines": [
+    {
+      "location": "Sholaka-Rundhi (block section)",
+      "running_lines": "UP main, DN main, 3rd line, 4th line",
+      "count": 4,
+      "document_date": "2021-12-03",
+      "source_id": "SRC-NCR-SIP-SHOLAKA-RUNDHI",
+      "verification": "text layer: '4TH LINE 3RD LINE DN MN LINE UP MN LINE'",
+      "quote_check": "4TH LINE",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "location": "Kitham / Farah / Bad",
+      "running_lines": "UP main, DN main, 3rd main line",
+      "count": 3,
+      "document_date": "2025-10-14",
+      "source_id": "SRC-NCR-SIP-FARAH",
+      "verification": "text layer: '3rd MAIN LINE'",
+      "quote_check": "3rd MAIN LINE",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "location": "Raja Ki Mandi",
+      "running_lines": "UP main, DN main",
+      "count": 2,
+      "document_date": "2012-03-20",
+      "source_id": "SRC-NCR-SIP-RKM",
+      "verification": "visual reading of a 2012 drawing",
+      "quote_check": null,
+      "class": "REAL_DATED_SNAPSHOT"
+    }
+  ],
+  "automatic_signalling_sections": [
+    {
+      "section": "Bilochpura-Runakta",
+      "evidence": "SIP titled 'BILOCHPURA - RUNAKTA AUTO' on the NCR Agra SIP index",
+      "source_id": "SRC-NCR-SIP-INDEX",
+      "document_date": "2026-09-09",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "section": "Runakta-Kitham",
+      "evidence": "SIP titled 'RUNKUTA -KITHAM AUTO'",
+      "source_id": "SRC-NCR-SIP-INDEX",
+      "document_date": "2026-09-09",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "section": "Hodal-Sholaka",
+      "evidence": "SIP titled 'AUTO HODAL SHOLAKA'",
+      "source_id": "SRC-NCR-SIP-INDEX",
+      "document_date": "2026-09-09",
+      "class": "REAL_DATED_SNAPSHOT"
+    },
+    {
+      "section": "Sholaka-Rundhi",
+      "evidence": "SIP text 'AUTOMATIC SIGNALLING BETWEEN SHOLAKA-RUNDHI SECTION'",
+      "source_id": "SRC-NCR-SIP-SHOLAKA-RUNDHI",
+      "document_date": "2021-12-03",
+      "class": "REAL_DATED_SNAPSHOT",
+      "quote_check": "AUTOMATIC SIGNALLING"
+    },
+    {
+      "section": "Rundhi-Palwal",
+      "evidence": "SIP titled 'AUTO SIG RUNDHI PALWAL'",
+      "source_id": "SRC-NCR-SIP-INDEX",
+      "document_date": "2026-09-09",
+      "class": "REAL_DATED_SNAPSHOT"
+    }
+  ],
+  "kavach": [
+    {
+      "section": "Palwal-Mathura-Nagda (633 route-km)",
+      "commissioned": "Kavach 4.0",
+      "date": "2025-12-05",
+      "source_id": "SRC-PIB-KAVACH",
+      "class": "REAL_DATED_SNAPSHOT",
+      "note": "PIB 2025-12-05 headline: 'Kavach 4.0 Commissioned on 738 Route km Across Palwal-Mathura-Nagda Section (633 Rkm) ... and Howrah-Bardhaman Section (105 Rkm)'."
+    },
+    {
+      "section": "Tughlakabad Jn Cabin-Palwal (35 route-km)",
+      "commissioned": "Kavach 4.0",
+      "date": "2026-01-30",
+      "source_id": "SRC-PIB-KAVACH",
+      "class": "REAL_DATED_SNAPSHOT",
+      "note": "PIB 2026-01-30 headline names 'Tuglakabad Junction Cabin-Palwal (35 km)' on Northern Railway."
+    }
+  ],
+  "electrification": [
+    {
+      "statement": "Delhi-Faridabad-Palwal is a double line electrified section (as described in 2013).",
+      "document_date": "2013-01-10",
+      "source_id": null,
+      "source_ref": "NCR Planning Board, Functional Plan on Transport for NCR-2032, chapter 4",
+      "class": "REAL_DATED_SNAPSHOT",
+      "note": "Historical; not stored in sources/ (public document, https://ncrpb.nic.in/pdf_files/Chapter%204_FNPLTr_Rail.%20Net.pdf)."
+    },
+    {
+      "statement": "Budget item 217: 'Mathura-Dholpur-Antri section - Upgradation work of Electric Traction System' (Rs 498.89 crore), i.e. an electrified section under upgrade.",
+      "document_date": "2026-02-04",
+      "source_id": "SRC-CBS-2026-27",
+      "class": "REAL_DATED_SNAPSHOT"
+    }
+  ],
+  "not_established": [
+    "Number of running lines per section as of today (SIPs are dated 2012-2025; the 4th line Mathura-Palwal and Tughlakabad-Palwal are still listed as sanctioned works in 2026-27).",
+    "Kavach on NDLS-NZM-Tughlakabad and on Mathura-Agra Cantt.",
+    "Sectional speed limits, OHE/bridge inventories, asset condition (see UNAVAILABLE_PUBLICLY)."
+  ],
+  "unavailable_publicly": {
+    "field": "infrastructure.asset_condition_and_inventories",
+    "value": null,
+    "unit": null,
+    "class": "UNAVAILABLE_PUBLICLY",
+    "source_ids": [],
+    "derived_from": null,
+    "derivation_method": null,
+    "confidence": "high",
+    "note": "No public source gives defect-level asset condition, inspection results or asset inventories for this corridor."
+  },
+  "intermediate_stations_note": "About 25 intermediate stations (Bilochpura, Runakta, Kitham, Farah, Bad, Bhuteshwar, Vrindavan, Ajhai, Chhata, Kosi Kalan, Hodal, Sholaka, Rundhi, ... and Okhla, Tughlakabad, Faridabad New Town, Ballabgarh, Asaoti on the NR side) exist. They are reference data only: adding them as registry sections would change every section_id used by jobs, scope and authorization."
+}

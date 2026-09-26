@@ -12,7 +12,8 @@ import {
   severityOf,
   type Job,
 } from "@/lib/api";
-import { durationOf, locationText } from "@/lib/jobView";
+import { durationOf, groundingFor, locationText } from "@/lib/jobView";
+import { absSpanKm, pick, sectionAdmin } from "@/lib/railwayData";
 import { duration, planWindow, recorded, shortId } from "@/lib/time";
 import { useResource } from "@/lib/useResource";
 import AuditTimeline from "@/components/AuditTimeline";
@@ -247,9 +248,28 @@ function Overview({ job }: { job: Job }) {
           <Kv k="SECTION · TRACK">
             {sectionOf(job) ?? "—"} · {job.track_id}
           </Kv>
+          {sectionAdmin(sectionOf(job) ?? "") && (
+            <Kv k="ZONE · DIVISION">{sectionAdmin(sectionOf(job) ?? "")}</Kv>
+          )}
           <Kv k="CORRIDOR CHAINAGE">
-            {Math.round(job.distance_start)}–{Math.round(job.distance_end)} m
+            {absSpanKm(job.distance_start, job.distance_end)} from NDLS{" "}
+            <span className="text-outline">
+              (API/DB metres: {Math.round(job.distance_start)}–{Math.round(job.distance_end)} m)
+            </span>
           </Kv>
+          {groundingFor(job) && (
+            <Kv k="GROUNDING" mono={false}>
+              <span data-testid="job-grounding">
+                <Chip tone="cyan">REAL RAILWAY WORK / PROJECT</Chip>{" "}
+                {groundingFor(job)!.summary} (
+                {groundingFor(job)!.items.map((i) => `${i.zone} budget item ${i.itemNo}, p.${i.page}`).join("; ")}).{" "}
+                <Chip tone="amber">DEMO MAINTENANCE INPUT</Chip>{" "}
+                <span className="text-outline">
+                  The observation is a controlled demo input, not evidence that a defect exists here.
+                </span>
+              </span>
+            </Kv>
+          )}
           <Kv k="LOCATION CHECK">
             {m.location_source === "FIELD_LOCATION_VERIFIED"
               ? "Location cross-check passed"
@@ -294,18 +314,18 @@ function Overview({ job }: { job: Job }) {
           </div>
         </div>
         <div>
-          <h3 className="font-headline-sm text-headline-sm text-primary mb-1">Asset association</h3>
+          <h3 className="font-headline-sm text-headline-sm text-primary mb-1">{pick("Demo asset record", "Asset association")}</h3>
           {assoc ? (
             <div className="rounded-DEFAULT bg-surface-container-lowest px-space-md py-1">
-              <Kv k="NEAREST SYNTHETIC ASSET">{assoc.asset_id}</Kv>
+              <Kv k={pick("DEMO ASSET RECORD", "NEAREST SYNTHETIC ASSET")}>{assoc.asset_id}</Kv>
               <Kv k="DISTANCE">{assoc.distance_km} km</Kv>
-              <Kv k="ASSET SECTION">{assoc.asset_section_id}</Kv>
+              <Kv k={pick("DEMO ASSET SECTION", "ASSET SECTION")}>{assoc.asset_section_id}</Kv>
               <Kv k="SAME SECTION AS JOB">
                 {String(assoc.section_match)}
                 {assoc.section_match === false ? " — nearest asset is in another section" : ""}
               </Kv>
               <p className="font-label-mono text-[11px] text-outline pt-1">
-                Derived, synthetic. This does not mean the named asset was inspected.
+                Derived, {pick("a generated demo asset record. It is not an Indian Railways asset record; its condition, criticality and failure history are demo inputs (DEMO_MAINTENANCE_INPUT)", "synthetic")}. This does not mean the named asset was inspected.
               </p>
             </div>
           ) : (

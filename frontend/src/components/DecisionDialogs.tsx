@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ApiError, api, type Job, type Proposal } from "@/lib/api";
 import { HORIZON_DATES, planWindow, shortId } from "@/lib/time";
 import { useSession } from "@/lib/session";
+import { pick } from "@/lib/railwayData";
 import {
   BTN_DANGER,
   BTN_GHOST,
@@ -286,8 +287,8 @@ export default function DecisionBar({
               ))}
             </div>
             <p className="font-label-mono text-[11px] text-outline">
-              The demo planning horizon is 10–11 Sep 2026 (synthetic
-              timetable). This is the plan date, not today&apos;s date.
+              The demo planning horizon is 10–11 Sep 2026 ({pick("TAG-2026 timetable pattern", "synthetic timetable")}).
+              This is the plan date, not today&apos;s date.
               {date === "2026-09-10" &&
                 " Choosing 10 Sep is allowed but has no scheduling effect (it equals the horizon start)."}
             </p>

@@ -24,6 +24,7 @@ import {
   fmtMetres,
   stationName,
 } from "@/lib/fieldLocation";
+import { absSpanKm, pick, sectionAdmin } from "@/lib/railwayData";
 import { recorded } from "@/lib/time";
 import { useSession } from "@/lib/session";
 import {
@@ -96,8 +97,15 @@ const DEMO_SCRIPT: FormState = {
   severity: "CRITICAL",
   workersMin: 2,
   workersMax: 4,
-  description: "Rail fracture found on patrol; caution order issued.",
-  evidence: "synthetic-demo/inspection/fracture-mtj-rkm.jpg",
+  // Matches scripts/seed_demo.py's LIVE_INTAKE_JOB in each mode.
+  description: pick(
+    "DEMO INPUT: Rail fracture found on patrol; caution order issued.",
+    "Rail fracture found on patrol; caution order issued.",
+  ),
+  evidence: pick(
+    "demo-input/inspection/fracture-mtj-rkm.jpg",
+    "synthetic-demo/inspection/fracture-mtj-rkm.jpg",
+  ),
 };
 
 export default function InspectionPage() {
@@ -206,7 +214,7 @@ export default function InspectionPage() {
         subtitle="Report a defect at a human-readable location. The report becomes a scored, located maintenance job in the backend."
         right={
           <>
-            <ProvenanceChip label="SYNTHETIC TOPOLOGY" />
+            <ProvenanceChip label={pick("DATED SNAPSHOT TOPOLOGY", "SYNTHETIC TOPOLOGY")} />
             <button
               type="button"
               className={BTN_GHOST}
@@ -345,13 +353,17 @@ export default function InspectionPage() {
                     <span className="text-primary font-bold">
                       {conv.section.id}
                     </span>{" "}
-                    · length {fmtMetres(conv.lengthM)} m
+                    · length {(conv.lengthM / 1000).toFixed(1)} km
                   </Kv>
+                  {sectionAdmin(conv.section.id) && (
+                    <Kv k="ZONE · DIVISION">{sectionAdmin(conv.section.id)}</Kv>
+                  )}
                   <Kv k="CORRIDOR CHAINAGE">
-                    {fmtMetres(conv.distanceStart)} –{" "}
-                    {fmtMetres(conv.distanceEnd)} m (km{" "}
-                    {(conv.distanceStart / 1000).toFixed(3)}–
-                    {(conv.distanceEnd / 1000).toFixed(3)})
+                    {absSpanKm(conv.distanceStart, conv.distanceEnd)} from NDLS{" "}
+                    <span className="text-outline">
+                      (the API and database carry metres: {fmtMetres(conv.distanceStart)} –{" "}
+                      {fmtMetres(conv.distanceEnd)} m)
+                    </span>
                   </Kv>
                   <Kv k="TRACK">{f.track}</Kv>
                 </div>
@@ -361,8 +373,8 @@ export default function InspectionPage() {
                 </p>
               )}
               <p className="mt-space-sm font-label-mono text-[11px] text-outline">
-                Derived client-side from a synthetic section table. The
-                backend re-checks it and refuses any mismatch.
+                Derived client-side from the {pick("dated public-snapshot", "synthetic")} section
+                table (km). The backend re-checks it and refuses any mismatch.
               </p>
             </div>
 

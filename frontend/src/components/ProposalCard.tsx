@@ -9,6 +9,8 @@ import {
   shortId,
 } from "@/lib/time";
 import { Chip, ProvenanceChip, Score, TimeTag } from "@/components/ui";
+import { ClassChip } from "@/components/DataBasisPanel";
+import { IS_REAL, dataBasisMismatch, pick } from "@/lib/railwayData";
 
 const MINUTES_RE = /minute\s+(\d+)\s*(?:to|-|–)\s*(\d+)/i;
 
@@ -19,6 +21,20 @@ function withPlanTime(detail: string): string | null {
   return planWindow(Number(m[1]), Number(m[2]));
 }
 
+/**
+ * The four canonical provenance axes of a run. With the real snapshot each axis
+ * is shown with the accurate data class (the coarse backend enum cannot say
+ * "derived" or "demo input"), and the overall result stays SYNTHETIC because the
+ * demo asset condition is one of the inputs (weakest-link rule).
+ */
+const REAL_AXIS_LABEL: Record<string, [string, string]> = {
+  topology: ["dated public snapshot", "REAL_DATED_SNAPSHOT"],
+  timetable: ["TAG-2026 published schedule", "REAL_DATED_SNAPSHOT"],
+  assets: ["demo asset condition", "DEMO_MAINTENANCE_INPUT"],
+  possession: ["candidate windows derived by rule (freight/EMU not included)", "DERIVED_FROM_REAL"],
+  maintenance: ["demo observations grounded in real railway works", "DEMO_MAINTENANCE_INPUT"],
+};
+
 export function ProvenanceStrip({ p }: { p: Provenance }) {
   const items: [string, string][] = [
     ["topology", p.topology],
@@ -26,17 +42,49 @@ export function ProvenanceStrip({ p }: { p: Provenance }) {
     ["assets", p.asset_condition],
     ["possession", p.possession],
   ];
-  return (
-    <div className="flex flex-wrap items-center gap-2 font-label-mono text-[11px] text-outline">
-      {items.map(([k, v]) => (
-        <span key={k}>
-          {k} <span className="text-secondary">{v}</span>
+  const mismatch = dataBasisMismatch(p.timetable);
+  // The real snapshot is recognised by its topology/timetable axes. The possession
+  // axis stays on the conservative coarse tier (SYNTHETIC: a derived window is
+  // never a real possession); its true class is shown from the mapping below.
+  const realSnapshot = IS_REAL && p.topology === "REAL_STATIC" && p.timetable === "REAL_SCHEDULED";
+
+  if (realSnapshot) {
+    return (
+      <div className="flex flex-col gap-1 font-label-mono text-[11px] text-outline" data-testid="provenance-strip">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {[...items.map(([k]) => k), "maintenance"].map((k) => (
+            <span key={k} className="flex items-center gap-1">
+              {k} <span className="text-on-surface-variant">{REAL_AXIS_LABEL[k][0]}</span>
+              <ClassChip cls={REAL_AXIS_LABEL[k][1]} />
+            </span>
+          ))}
+        </div>
+        <span>
+          → effective <span className="text-secondary font-bold">{p.effective}</span>{" "}
+          (weakest link: the demo asset condition). Possession windows are derived candidates, not a real or scheduled possession.
         </span>
-      ))}
-      <span>
-        → effective{" "}
-        <span className="text-secondary font-bold">{p.effective}</span>
-      </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-2 font-label-mono text-[11px] text-outline">
+        {items.map(([k, v]) => (
+          <span key={k}>
+            {k} <span className="text-secondary">{v}</span>
+          </span>
+        ))}
+        <span>
+          → effective{" "}
+          <span className="text-secondary font-bold">{p.effective}</span>
+        </span>
+      </div>
+      {mismatch && (
+        <div role="alert" className="font-label-mono text-[11px] text-error">
+          {mismatch}
+        </div>
+      )}
     </div>
   );
 }
@@ -92,7 +140,7 @@ export default function ProposalCard({
 
       <div className="rounded-DEFAULT bg-surface-container-lowest px-space-md py-space-sm">
         <div className="font-label-caps text-label-caps text-outline flex items-center gap-2">
-          PLACEMENT (synthetic horizon, IST) <TimeTag kind="PLAN" />
+          {pick("PLACEMENT (plan horizon 10–11 Sep 2026, IST)", "PLACEMENT (synthetic horizon, IST)")} <TimeTag kind="PLAN" />
         </div>
         <div className="font-headline-md text-headline-md text-primary tabular-nums">
           {planWindow(proposal.start_minute, proposal.end_minute)}
@@ -121,6 +169,12 @@ export default function ProposalCard({
         <div className="font-label-caps text-label-caps text-outline mb-1">
           WHY THIS PLACEMENT (backend explanation, verbatim)
         </div>
+        {IS_REAL && (
+          <p className="font-label-mono text-[11px] text-secondary mb-1" data-testid="candidate-window-note">
+            Any &quot;possession window&quot; named below is a CANDIDATE window derived from the public passenger
+            timetable — not a real or scheduled possession.
+          </p>
+        )}
         <div className="rounded-DEFAULT bg-surface-container-lowest divide-y divide-outline-variant/15">
           {proposal.explanation.map((x, i) => {
             const conv =

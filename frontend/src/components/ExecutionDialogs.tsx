@@ -16,6 +16,7 @@ import {
   shortId,
 } from "@/lib/time";
 import { useSession } from "@/lib/session";
+import { pick } from "@/lib/railwayData";
 import {
   BTN_GHOST,
   BTN_PRIMARY,
@@ -444,7 +445,7 @@ export default function ExecutionActions({
             />
             <span className="font-label-mono text-[11px] text-outline">
               Default is the planned start + 1 minute in plan time. The demo
-              plan runs on a fixed synthetic horizon (10–11 Sep 2026); the
+              plan runs on a fixed horizon (10–11 Sep 2026){pick("", ", synthetic")}; the
               server records its own recording time separately.
             </span>
           </label>
@@ -488,8 +489,8 @@ export default function ExecutionActions({
             setItems={setItems}
             placeholder={
               mode === "start"
-                ? "synthetic-demo/execution/before-1.jpg"
-                : "synthetic-demo/execution/after-1.jpg"
+                ? `${pick("demo-input", "synthetic-demo")}/execution/before-1.jpg`
+                : `${pick("demo-input", "synthetic-demo")}/execution/after-1.jpg`
             }
           />
         )}

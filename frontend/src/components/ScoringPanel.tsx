@@ -3,6 +3,7 @@
 import type { Job, JobEvent } from "@/lib/api";
 import { scoreBand } from "@/lib/api";
 import { recorded } from "@/lib/time";
+import { pick } from "@/lib/railwayData";
 import { Chip, Kv, ProvenanceChip, Score } from "@/components/ui";
 
 const FEATURE_UNIT: Record<string, string> = {
@@ -11,13 +12,13 @@ const FEATURE_UNIT: Record<string, string> = {
 };
 
 const FEATURE_LABEL: Record<string, string> = {
-  asset_criticality: "Asset criticality",
+  asset_criticality: pick("Asset criticality (demo asset record)", "Asset criticality"),
   defect_severity: "Defect severity",
   days_overdue: "Days overdue",
-  failure_probability: "Failure probability (asset input)",
+  failure_probability: pick("Failure probability (demo asset input)", "Failure probability (asset input)"),
   train_impact: "Train impact",
   maintenance_duration: "Maintenance duration",
-  historical_failure_rate: "Historical failure rate",
+  historical_failure_rate: pick("Historical failure rate (demo asset record)", "Historical failure rate"),
 };
 
 export default function ScoringPanel({
@@ -125,7 +126,7 @@ export default function ScoringPanel({
 
       <p className="font-label-mono text-[11px] text-outline border-l-2 border-secondary/50 pl-2">
         Asset inputs (criticality, failure probability, historical failure
-        rate, overdue days) come from the synthetic generated asset nearest this
+        rate, overdue days) come from the {pick("generated DEMO ASSET RECORD (not Indian Railways asset-condition data)", "synthetic generated asset")} nearest this
         location. Worker-reported severity overrides the asset&apos;s stored
         defect severity for this job.
       </p>

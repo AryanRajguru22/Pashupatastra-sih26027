@@ -12,13 +12,26 @@ Both need, in the environment of this command AND of the backend server:
 
 and no PASHUPAT_AUTH_* / PASHUPAT_IDENTITY_* variables (demo mode).
 
-SYNTHETIC, ILLUSTRATIVE SCENARIO
+SYNTHETIC, ILLUSTRATIVE SCENARIO (default)
     Every job below is invented for the demonstration. The corridor is the
     checked-in NDLS-AGC dataset, which uses real station CODES but
     synthetic topology, timetable, asset condition and possession windows;
     the optimizer already labels every run's provenance SYNTHETIC. Nothing
     here is Indian Railways operational data, and the evidence references
     are placeholders under synthetic-demo/.
+
+REAL PUBLIC SNAPSHOT MODE (PASHUPAT_RAILWAY_DATA=real, in the environment of
+this command AND of the backend server)
+    The corridor is the offline public-railway-data snapshot
+    (data/railway/ndls_agc): published stations, chainage, TAG-2026
+    timetable and dated infrastructure. Possession windows are CANDIDATES
+    derived from that public passenger timetable. The jobs are still
+    DEMO MAINTENANCE INPUTS - real railway work categories on real
+    sections (see works.json), not observed defects - so every description
+    starts "DEMO INPUT:" and the evidence placeholders sit under
+    demo-input/. Placement is decided by the solver's search, so the real
+    mode does not promise that the postponement target starts on day 1;
+    it checks that the authority's not-before date is honoured.
 
 WHAT THE SEED DOES
     Wipes ONLY the dedicated demo database, then reports the seed jobs
@@ -65,7 +78,7 @@ import sqlite3
 import sys
 import tempfile
 from contextlib import closing
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
@@ -78,7 +91,11 @@ if str(REPO_ROOT) not in sys.path:
 # names - or the repository-root jobs.db when it is unset.
 from contracts import DEFAULT_HORIZON_START  # noqa: E402
 
-from backend.app.data.corridor_dataset import load_corridor_dataset  # noqa: E402
+from backend.app.data.dataset_selection import (  # noqa: E402
+    MODE_REAL,
+    load_configured_dataset,
+    railway_data_mode,
+)
 from backend.app.identity.actor import ActorRole, human_actor  # noqa: E402
 from backend.app.jobs.field_location import convert_field_location  # noqa: E402
 from backend.app.jobs.lifecycle import proposal_run_id_of  # noqa: E402
@@ -97,7 +114,18 @@ POSTPONE_DATE = "2026-09-11"  # day 2 of the fixed 2026-09-10 horizon
 AUTHORITY_ID = "AUTHORITY-017"
 CREW_ID = "WORKER-042"
 
-POSTPONE_REASON = "Festival special trains on the RKM-AGC down line on 10 Sep"
+# Which dataset this process was started for. Read once at import, from the same
+# variable the backend reads, so the seed and the server cannot disagree unless
+# the two environments do (the runbook sets both).
+REAL_DATA_MODE = railway_data_mode() == MODE_REAL
+
+PLACEHOLDER_ROOT = "demo-input" if REAL_DATA_MODE else "synthetic-demo"
+
+POSTPONE_REASON = (
+    "Authority defers the work to the next planning day (demo decision)"
+    if REAL_DATA_MODE
+    else "Festival special trains on the RKM-AGC down line on 10 Sep"
+)
 REJECT_REASON = "Covered by the scheduled trolley inspection this week"
 
 
@@ -118,7 +146,7 @@ class DemoJob:
 
     @property
     def evidence_reference(self) -> str:
-        return f"synthetic-demo/inspection/{self.key}.jpg"
+        return f"{PLACEHOLDER_ROOT}/inspection/{self.key}.jpg"
 
     @property
     def idempotency_key(self) -> str:
@@ -194,6 +222,16 @@ LIVE_INTAKE_JOB = DemoJob(
     reporter_id="WORKER-042",
 )
 
+if REAL_DATA_MODE:
+    # The observation is a controlled demo input; only its work category is
+    # grounded in a real sanctioned work (data/railway/ndls_agc/works.json).
+    SEED_JOBS = tuple(
+        replace(job, description=f"DEMO INPUT: {job.description}") for job in SEED_JOBS
+    )
+    LIVE_INTAKE_JOB = replace(
+        LIVE_INTAKE_JOB, description=f"DEMO INPUT: {LIVE_INTAKE_JOB.description}"
+    )
+
 POSTPONE_TARGET = SEED_JOBS[0].key
 REJECT_TARGET = SEED_JOBS[2].key
 APPROVE_TARGET = LIVE_INTAKE_JOB.key
@@ -258,7 +296,7 @@ def build_demo_service(db_path: str | Path) -> JobService:
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     service = JobService(
         repository=JobRepository(db_path),
-        dataset=load_corridor_dataset(),
+        dataset=load_configured_dataset(),
     )
 
     if service.corridor.corridor_id != DEMO_CORRIDOR_ID:
@@ -490,7 +528,7 @@ def rehearse(service: JobService, seed_ids: Mapping[str, str]) -> Rehearsal:
         actual_start_at=_observed_at(start_minute),
         before_work_evidence=[
             {
-                "evidence_reference": "synthetic-demo/execution/before-1.jpg",
+                "evidence_reference": f"{PLACEHOLDER_ROOT}/execution/before-1.jpg",
                 "evidence_kind": "PHOTO",
                 "captured_at": _observed_at(start_minute),
             }
@@ -504,7 +542,7 @@ def rehearse(service: JobService, seed_ids: Mapping[str, str]) -> Rehearsal:
         actual_end_at=_observed_at(end_minute),
         after_work_evidence=[
             {
-                "evidence_reference": "synthetic-demo/execution/after-1.jpg",
+                "evidence_reference": f"{PLACEHOLDER_ROOT}/execution/after-1.jpg",
                 "evidence_kind": "PHOTO",
                 "captured_at": _observed_at(end_minute),
             }
@@ -623,9 +661,12 @@ def check_invariants(service: JobService, rehearsal: Rehearsal) -> List[str]:
 
     target_first = rehearsal.after_first[POSTPONE_TARGET]
     target_second = rehearsal.after_second[POSTPONE_TARGET]
-    if target_first["status"] != "scheduled" or target_first["end_minute"] is None or (
-        target_first["end_minute"] > DAY_MINUTES
-    ):
+    if target_first["status"] != "scheduled" or target_first["end_minute"] is None:
+        failures.append(f"postpone target has no proposal before postponing: {target_first}")
+    elif not REAL_DATA_MODE and target_first["end_minute"] > DAY_MINUTES:
+        # Synthetic scenario only: the search happens to put this job on day 1.
+        # In real mode placement over the derived windows is decided by the
+        # solver's search, so only the not-before date is checked (below).
         failures.append(f"postpone target is not on day 1 before postponing: {target_first}")
     if target_second["status"] != "scheduled" or target_second["start_minute"] is None or (
         target_second["start_minute"] < DAY_MINUTES
@@ -763,7 +804,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    print("SYNTHETIC ILLUSTRATIVE SCENARIO - not Indian Railways operational data.")
+    if REAL_DATA_MODE:
+        print(
+            "REAL PUBLIC SNAPSHOT (offline, dated) + DEMO MAINTENANCE INPUTS - "
+            "possession windows are derived candidates; no live Indian Railways data."
+        )
+    else:
+        print("SYNTHETIC ILLUSTRATIVE SCENARIO - not Indian Railways operational data.")
 
     try:
         db_path = _require_demo_environment(os.environ)
@@ -792,7 +839,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             f"priority {stored['priority_score']:.3f}  {stored['status']}"
         )
     _print_live_intake(service)
-    print("Start the backend with the SAME two environment variables:")
+    extra = " (and PASHUPAT_RAILWAY_DATA=real)" if REAL_DATA_MODE else ""
+    print(f"Start the backend with the SAME environment variables{extra}:")
     print("  python -m uvicorn backend.app.api.main:app --port 8000")
     return 0
 

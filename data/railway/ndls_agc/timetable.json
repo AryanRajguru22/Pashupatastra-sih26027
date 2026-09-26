@@ -1,0 +1,4405 @@
+{
+  "schema_version": 1,
+  "snapshot_id": "ndls-agc-2026-09-26",
+  "timetable_id": "TAG-2026-T2-verified-subset",
+  "source_ids": [
+    "SRC-TAG-2026-T2",
+    "SRC-TAG-2026-T2-EXTRACT",
+    "SRC-NR-FDB-ANNEX"
+  ],
+  "publication": {
+    "title": "Indian Railways Trains at a Glance 2026, Table T-2",
+    "effective": "2026-01-01",
+    "kind": "PUBLIC_PASSENGER_TIMETABLE"
+  },
+  "coverage": {
+    "ingested_trains": 23,
+    "up_trains": 12,
+    "dn_trains": 11,
+    "service_dates": [
+      "2026-09-09",
+      "2026-09-10",
+      "2026-09-11"
+    ],
+    "horizon_dates": [
+      "2026-09-10",
+      "2026-09-11"
+    ],
+    "carry_in_dates": [
+      "2026-09-09"
+    ],
+    "not_included": [
+      "Trains listed only in other TAG tables (T-3, T-8, T-9, ...) that also use NDLS-MTJ or PWL-MTJ",
+      "EMU/MEMU/local trains (the 64xxx services named in Northern Railway notices)",
+      "Freight and light-engine/departmental movements",
+      "The working timetable (WTT) and any as-run movements",
+      "Notices after 2026-01-01 other than the Faridabad block, which is not applied to the timetable"
+    ],
+    "excluded_trains_in_t2": {
+      "20424": "Firozpur-Seoni Patalkot: T-2 prints only MTJ and AGC times; the Delhi-side timing is not in this table.",
+      "20423": "Seoni Patalkot-Firozpur: only AGC and MTJ printed.",
+      "11906": "Hoshiarpur-Agra Cantt.: only MTJ and AGC printed; the corridor entry point is not in this table.",
+      "11905": "Agra Cantt.-Hoshiarpur: only AGC and MTJ printed.",
+      "12172": "Haridwar-LTT AC: non-daily and originates off-corridor; day offset at NZM not established from T-2.",
+      "12171": "LTT-Haridwar: non-daily and originates off-corridor.",
+      "22456/22710/12405/22129": "Non-daily trains originating off the corridor; origin-day offset not established from this table.",
+      "12154/12153/12162/14314/14320/22548": "Touch AGC only (no corridor section traversed), or times printed only at AGC."
+    },
+    "label": "Public passenger timetable subset. NOT complete corridor occupancy."
+  },
+  "derivation": {
+    "record_construction": "Each verified train is expanded to every horizon date it runs on (TAG days-of-departure applied to the calendar date of its first modelled stop).",
+    "carry_in": "A train whose modelled run crosses midnight is also emitted for the day before the horizon so its early-horizon occupancy is present (11057 only).",
+    "passing_times": "Corridor stations with no printed time between two published stops receive a passing time interpolated linearly by chainage between the previous published departure and the next published arrival (time_basis=INTERPOLATED_BY_CHAINAGE). This is an engineering assumption; it is applied so that section occupancy is not overstated by attributing a whole multi-section leg to every section.",
+    "fdb_cross_check": "TAG time at FDB is compared with the PTT time in NR Annexure-A wherever the train appears in both (tests)."
+  },
+  "trains": [
+    {
+      "train_number": "12138",
+      "train_name": "Punjab Mail",
+      "from_station_name": "Firozpur",
+      "to_station_name": "Mumbai CSMT",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 1,
+      "published_stops": [
+        {
+          "station_id": "NDLS",
+          "tag_arrival": "04.55",
+          "tag_departure": "05.10"
+        },
+        {
+          "station_id": "FDB",
+          "tag_arrival": null,
+          "tag_departure": "05.40"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "07.23",
+          "tag_departure": "07.28"
+        },
+        {
+          "station_id": "RKM",
+          "tag_arrival": null,
+          "tag_departure": "07.50"
+        },
+        {
+          "station_id": "AGC",
+          "tag_arrival": "08.10",
+          "tag_departure": "08.15"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "12002",
+      "train_name": "Shatabdi",
+      "from_station_name": "New Delhi",
+      "to_station_name": "Rani Kamalapati",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 1,
+      "published_stops": [
+        {
+          "station_id": "NDLS",
+          "tag_arrival": "06.00",
+          "tag_departure": null
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "07.19",
+          "tag_departure": "07.20"
+        },
+        {
+          "station_id": "AGC",
+          "tag_arrival": "07.50",
+          "tag_departure": "07.55"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "12280",
+      "train_name": "Taj Express",
+      "from_station_name": "New Delhi",
+      "to_station_name": "Virangana Laxmibai Jhansi",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 1,
+      "published_stops": [
+        {
+          "station_id": "NDLS",
+          "tag_arrival": "06.55",
+          "tag_departure": null
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "07.06",
+          "tag_departure": "07.08"
+        },
+        {
+          "station_id": "FDB",
+          "tag_arrival": null,
+          "tag_departure": "07.26"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "08.35",
+          "tag_departure": "08.40"
+        },
+        {
+          "station_id": "RKM",
+          "tag_arrival": null,
+          "tag_departure": "09.10"
+        },
+        {
+          "station_id": "AGC",
+          "tag_arrival": "09.25",
+          "tag_departure": "09.30"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "12050",
+      "train_name": "Gatiman Express",
+      "from_station_name": "Nizamuddin",
+      "to_station_name": "Virangana Laxmibai Jhansi",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "days_of_departure_tag": "Except F",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 1,
+      "published_stops": [
+        {
+          "station_id": "NZM",
+          "tag_arrival": "08.10",
+          "tag_departure": null
+        },
+        {
+          "station_id": "AGC",
+          "tag_arrival": "09.50",
+          "tag_departure": "09.55"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "12618",
+      "train_name": "Mangala Lakshadweep Express",
+      "from_station_name": "Nizamuddin",
+      "to_station_name": "Ernakulam",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 1,
+      "published_stops": [
+        {
+          "station_id": "NZM",
+          "tag_arrival": "05.35",
+          "tag_departure": null
+        },
+        {
+          "station_id": "FDB",
+          "tag_arrival": null,
+          "tag_departure": "05.52"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "07.40",
+          "tag_departure": "07.45"
+        },
+        {
+          "station_id": "AGC",
+          "tag_arrival": "08.20",
+          "tag_departure": "08.25"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "12406",
+      "train_name": "Gondwana Express",
+      "from_station_name": "Nizamuddin",
+      "to_station_name": "Bhusaval",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "days_of_departure_tag": "F,Su",
+      "runs_on": [
+        "F",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 1,
+      "published_stops": [
+        {
+          "station_id": "NZM",
+          "tag_arrival": "15.05",
+          "tag_departure": null
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "16.25",
+          "tag_departure": "16.27"
+        },
+        {
+          "station_id": "AGC",
+          "tag_arrival": "17.15",
+          "tag_departure": "17.20"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "14212",
+      "train_name": "Intercity",
+      "from_station_name": "New Delhi",
+      "to_station_name": "Agra Cantt.",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 1,
+      "published_stops": [
+        {
+          "station_id": "NDLS",
+          "tag_arrival": "17.40",
+          "tag_departure": null
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "18.00",
+          "tag_departure": "18.01"
+        },
+        {
+          "station_id": "FDB",
+          "tag_arrival": null,
+          "tag_departure": "18.25"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "20.13",
+          "tag_departure": "20.18"
+        },
+        {
+          "station_id": "RKM",
+          "tag_arrival": null,
+          "tag_departure": "21.05"
+        },
+        {
+          "station_id": "AGC",
+          "tag_arrival": "22.05",
+          "tag_departure": null
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "11058",
+      "train_name": "Express",
+      "from_station_name": "Amritsar",
+      "to_station_name": "Mumbai CSMT",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 1,
+      "published_stops": [
+        {
+          "station_id": "NDLS",
+          "tag_arrival": "20.25",
+          "tag_departure": "20.40"
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "20.51",
+          "tag_departure": "20.53"
+        },
+        {
+          "station_id": "FDB",
+          "tag_arrival": null,
+          "tag_departure": "21.12"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "22.50",
+          "tag_departure": "22.55"
+        },
+        {
+          "station_id": "AGC",
+          "tag_arrival": "23.45",
+          "tag_departure": "23.50"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "12156",
+      "train_name": "Bhopal Express",
+      "from_station_name": "Nizamuddin",
+      "to_station_name": "Rani Kamalapati",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 1,
+      "published_stops": [
+        {
+          "station_id": "NZM",
+          "tag_arrival": "20.40",
+          "tag_departure": null
+        },
+        {
+          "station_id": "AGC",
+          "tag_arrival": "22.38",
+          "tag_departure": "22.40"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "11842",
+      "train_name": "Express",
+      "from_station_name": "Kurukshetra Jn.",
+      "to_station_name": "Khajuraho Jn.",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 2,
+      "published_stops": [
+        {
+          "station_id": "NDLS",
+          "tag_arrival": "18.05",
+          "tag_departure": "18.20"
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "18.31",
+          "tag_departure": "18.33"
+        },
+        {
+          "station_id": "FDB",
+          "tag_arrival": null,
+          "tag_departure": "18.52"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "20.35",
+          "tag_departure": "20.40"
+        },
+        {
+          "station_id": "AGC",
+          "tag_arrival": "21.25",
+          "tag_departure": "21.30"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "22222",
+      "train_name": "Rajdhani Express",
+      "from_station_name": "Nizamudin",
+      "to_station_name": "Mumbai CSMT",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 2,
+      "published_stops": [
+        {
+          "station_id": "NZM",
+          "tag_arrival": "16.55",
+          "tag_departure": null
+        },
+        {
+          "station_id": "AGC",
+          "tag_arrival": "18.45",
+          "tag_departure": "18.47"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "20172",
+      "train_name": "Vande Bharat Express",
+      "from_station_name": "Nizamuddin",
+      "to_station_name": "Rani Kamalapati",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "days_of_departure_tag": "Except Sa",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 2,
+      "published_stops": [
+        {
+          "station_id": "NZM",
+          "tag_arrival": "14.40",
+          "tag_departure": null
+        },
+        {
+          "station_id": "AGC",
+          "tag_arrival": "16.16",
+          "tag_departure": "16.20"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "14211",
+      "train_name": "Intercity Express",
+      "from_station_name": "Agra Cantt.",
+      "to_station_name": "New Delhi",
+      "direction": "DN",
+      "track_assignment": "DOWN-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 3,
+      "published_stops": [
+        {
+          "station_id": "AGC",
+          "tag_arrival": "05.45",
+          "tag_departure": null
+        },
+        {
+          "station_id": "RKM",
+          "tag_arrival": null,
+          "tag_departure": "05.53"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "06.20",
+          "tag_departure": "06.25"
+        },
+        {
+          "station_id": "FDB",
+          "tag_arrival": null,
+          "tag_departure": "08.51"
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "09.15",
+          "tag_departure": "09.17"
+        },
+        {
+          "station_id": "NDLS",
+          "tag_arrival": "10.00",
+          "tag_departure": null
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "12617",
+      "train_name": "Mangala Lakshadweep Express",
+      "from_station_name": "Ernakulam",
+      "to_station_name": "Nizamuddin",
+      "direction": "DN",
+      "track_assignment": "DOWN-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 3,
+      "published_stops": [
+        {
+          "station_id": "AGC",
+          "tag_arrival": "09.55",
+          "tag_departure": "10.00"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "10.33",
+          "tag_departure": "10.38"
+        },
+        {
+          "station_id": "FDB",
+          "tag_arrival": null,
+          "tag_departure": "12.50"
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "13.35",
+          "tag_departure": null
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "12049",
+      "train_name": "Gatiman Express",
+      "from_station_name": "Virangana Laxmibai Jhansi",
+      "to_station_name": "Nizamuddin",
+      "direction": "DN",
+      "track_assignment": "DOWN-1",
+      "days_of_departure_tag": "Except F",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 3,
+      "published_stops": [
+        {
+          "station_id": "AGC",
+          "tag_arrival": "17.30",
+          "tag_departure": "17.35"
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "19.30",
+          "tag_departure": null
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "12137",
+      "train_name": "Punjab Mail",
+      "from_station_name": "Mumbai CSMT",
+      "to_station_name": "Firozpur",
+      "direction": "DN",
+      "track_assignment": "DOWN-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 3,
+      "published_stops": [
+        {
+          "station_id": "AGC",
+          "tag_arrival": "18.00",
+          "tag_departure": "18.05"
+        },
+        {
+          "station_id": "RKM",
+          "tag_arrival": null,
+          "tag_departure": "18.13"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "18.45",
+          "tag_departure": "18.50"
+        },
+        {
+          "station_id": "FDB",
+          "tag_arrival": null,
+          "tag_departure": "20.35"
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "20.55",
+          "tag_departure": "20.57"
+        },
+        {
+          "station_id": "NDLS",
+          "tag_arrival": "21.25",
+          "tag_departure": "21.40"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "12279",
+      "train_name": "Taj Express",
+      "from_station_name": "Virangana Laxmibai Jhansi",
+      "to_station_name": "New Delhi",
+      "direction": "DN",
+      "track_assignment": "DOWN-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 3,
+      "published_stops": [
+        {
+          "station_id": "AGC",
+          "tag_arrival": "18.15",
+          "tag_departure": "18.20"
+        },
+        {
+          "station_id": "RKM",
+          "tag_arrival": null,
+          "tag_departure": "18.28"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "19.00",
+          "tag_departure": "19.05"
+        },
+        {
+          "station_id": "FDB",
+          "tag_arrival": null,
+          "tag_departure": "20.45"
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "21.05",
+          "tag_departure": "21.07"
+        },
+        {
+          "station_id": "NDLS",
+          "tag_arrival": "21.35",
+          "tag_departure": null
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "12001",
+      "train_name": "Shatabdi Express",
+      "from_station_name": "Rani Kamlapati",
+      "to_station_name": "New Delhi",
+      "direction": "DN",
+      "track_assignment": "DOWN-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 3,
+      "published_stops": [
+        {
+          "station_id": "AGC",
+          "tag_arrival": "21.20",
+          "tag_departure": "21.25"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "22.00",
+          "tag_departure": "22.01"
+        },
+        {
+          "station_id": "NDLS",
+          "tag_arrival": "23.50",
+          "tag_departure": null
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "11057",
+      "train_name": "Express",
+      "from_station_name": "Mumbai CSMT",
+      "to_station_name": "Amritsar",
+      "direction": "DN",
+      "track_assignment": "DOWN-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 3,
+      "published_stops": [
+        {
+          "station_id": "AGC",
+          "tag_arrival": "23.45",
+          "tag_departure": "23.50"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "00.30",
+          "tag_departure": "00.35"
+        },
+        {
+          "station_id": "FDB",
+          "tag_arrival": null,
+          "tag_departure": "02.47"
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "03.07",
+          "tag_departure": "03.09"
+        },
+        {
+          "station_id": "NDLS",
+          "tag_arrival": "03.30",
+          "tag_departure": "03.45"
+        }
+      ],
+      "crosses_midnight_within_corridor": true,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "12155",
+      "train_name": "Bhopal Express",
+      "from_station_name": "Rani Kamlapati",
+      "to_station_name": "Nizamuddin",
+      "direction": "DN",
+      "track_assignment": "DOWN-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 3,
+      "published_stops": [
+        {
+          "station_id": "AGC",
+          "tag_arrival": "05.15",
+          "tag_departure": "05.17"
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "08.00",
+          "tag_departure": null
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "11841",
+      "train_name": "Express",
+      "from_station_name": "Khajuraho Jn.",
+      "to_station_name": "Kurukshetra Jn.",
+      "direction": "DN",
+      "track_assignment": "DOWN-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 4,
+      "published_stops": [
+        {
+          "station_id": "AGC",
+          "tag_arrival": "03.50",
+          "tag_departure": "03.55"
+        },
+        {
+          "station_id": "MTJ",
+          "tag_arrival": "05.00",
+          "tag_departure": "05.05"
+        },
+        {
+          "station_id": "FDB",
+          "tag_arrival": null,
+          "tag_departure": "07.33"
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "08.12",
+          "tag_departure": "08.14"
+        },
+        {
+          "station_id": "NDLS",
+          "tag_arrival": "08.45",
+          "tag_departure": "09.00"
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "22221",
+      "train_name": "Rajdhani Express",
+      "from_station_name": "Mumbai CSMT",
+      "to_station_name": "Nizamudin",
+      "direction": "DN",
+      "track_assignment": "DOWN-1",
+      "days_of_departure_tag": "Daily",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Sa",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 4,
+      "published_stops": [
+        {
+          "station_id": "AGC",
+          "tag_arrival": "07.30",
+          "tag_departure": "07.32"
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "09.55",
+          "tag_departure": null
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    },
+    {
+      "train_number": "20171",
+      "train_name": "Vande Bharat Express",
+      "from_station_name": "Rani Kamalapati",
+      "to_station_name": "Nizamuddin",
+      "direction": "DN",
+      "track_assignment": "DOWN-1",
+      "days_of_departure_tag": "Except Sa",
+      "runs_on": [
+        "M",
+        "Tu",
+        "W",
+        "Th",
+        "F",
+        "Su"
+      ],
+      "origin_day_semantics": "TAG prints days of departure at the ORIGINATING station. For every ingested train the first modelled corridor stop falls on that same calendar day (or the train is daily), so the weekday pattern applies to the date of the first modelled stop (day offset 0).",
+      "tag_table": "T-2",
+      "tag_pdf_page": 4,
+      "published_stops": [
+        {
+          "station_id": "AGC",
+          "tag_arrival": "11.01",
+          "tag_departure": "11.05"
+        },
+        {
+          "station_id": "NZM",
+          "tag_arrival": "13.16",
+          "tag_departure": null
+        }
+      ],
+      "crosses_midnight_within_corridor": false,
+      "verification": "Column located by train-number position in the stored layout extract; every printed time re-checked by tests/test_real_snapshot_sources.py; FDB times cross-checked against NR Annexure-A where the train appears."
+    }
+  ],
+  "service_records": [
+    {
+      "train_number": "11057",
+      "service_date": "2026-09-09",
+      "train_name": "Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Mumbai CSMT",
+      "full_route_to": "Amritsar",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "23:45",
+          "scheduled_departure": "23:50",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "23:53",
+          "scheduled_departure": "23:53",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "00:30",
+          "scheduled_departure": "00:35",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "02:16",
+          "scheduled_departure": "02:16",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "02:47",
+          "scheduled_departure": "02:47",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "03:07",
+          "scheduled_departure": "03:09",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "03:30",
+          "scheduled_departure": "03:45",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": true
+    },
+    {
+      "train_number": "11841",
+      "service_date": "2026-09-10",
+      "train_name": "Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Khajuraho Jn.",
+      "full_route_to": "Kurukshetra Jn.",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "03:50",
+          "scheduled_departure": "03:55",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "04:00",
+          "scheduled_departure": "04:00",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "05:00",
+          "scheduled_departure": "05:05",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "06:58",
+          "scheduled_departure": "06:58",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "07:33",
+          "scheduled_departure": "07:33",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "08:12",
+          "scheduled_departure": "08:14",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "08:45",
+          "scheduled_departure": "09:00",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12155",
+      "service_date": "2026-09-10",
+      "train_name": "Bhopal Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NZM",
+      "full_route_from": "Rani Kamlapati",
+      "full_route_to": "Nizamuddin",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "05:15",
+          "scheduled_departure": "05:17",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "05:20",
+          "scheduled_departure": "05:20",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "06:04",
+          "scheduled_departure": "06:04",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "07:19",
+          "scheduled_departure": "07:19",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "07:42",
+          "scheduled_departure": "07:42",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "08:00",
+          "scheduled_departure": "08:00",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "14211",
+      "service_date": "2026-09-10",
+      "train_name": "Intercity Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Agra Cantt.",
+      "full_route_to": "New Delhi",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "05:45",
+          "scheduled_departure": "05:45",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "05:53",
+          "scheduled_departure": "05:53",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "06:20",
+          "scheduled_departure": "06:25",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "08:16",
+          "scheduled_departure": "08:16",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "08:51",
+          "scheduled_departure": "08:51",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "09:15",
+          "scheduled_departure": "09:17",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "10:00",
+          "scheduled_departure": "10:00",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "22221",
+      "service_date": "2026-09-10",
+      "train_name": "Rajdhani Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NZM",
+      "full_route_from": "Mumbai CSMT",
+      "full_route_to": "Nizamudin",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "07:30",
+          "scheduled_departure": "07:32",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "07:35",
+          "scheduled_departure": "07:35",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "08:13",
+          "scheduled_departure": "08:13",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "09:19",
+          "scheduled_departure": "09:19",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "09:39",
+          "scheduled_departure": "09:39",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "09:55",
+          "scheduled_departure": "09:55",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12617",
+      "service_date": "2026-09-10",
+      "train_name": "Mangala Lakshadweep Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NZM",
+      "full_route_from": "Ernakulam",
+      "full_route_to": "Nizamuddin",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "09:55",
+          "scheduled_departure": "10:00",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "10:02",
+          "scheduled_departure": "10:02",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "10:33",
+          "scheduled_departure": "10:38",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "12:19",
+          "scheduled_departure": "12:19",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "12:50",
+          "scheduled_departure": "12:50",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "13:35",
+          "scheduled_departure": "13:35",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "20171",
+      "service_date": "2026-09-10",
+      "train_name": "Vande Bharat Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NZM",
+      "full_route_from": "Rani Kamalapati",
+      "full_route_to": "Nizamuddin",
+      "days_of_departure_tag": "Except Sa",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "11:01",
+          "scheduled_departure": "11:05",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "11:08",
+          "scheduled_departure": "11:08",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "11:43",
+          "scheduled_departure": "11:43",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "12:43",
+          "scheduled_departure": "12:43",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "13:01",
+          "scheduled_departure": "13:01",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "13:16",
+          "scheduled_departure": "13:16",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12049",
+      "service_date": "2026-09-10",
+      "train_name": "Gatiman Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NZM",
+      "full_route_from": "Virangana Laxmibai Jhansi",
+      "full_route_to": "Nizamuddin",
+      "days_of_departure_tag": "Except F",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "17:30",
+          "scheduled_departure": "17:35",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "17:37",
+          "scheduled_departure": "17:37",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "18:08",
+          "scheduled_departure": "18:08",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "19:01",
+          "scheduled_departure": "19:01",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "19:17",
+          "scheduled_departure": "19:17",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "19:30",
+          "scheduled_departure": "19:30",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12137",
+      "service_date": "2026-09-10",
+      "train_name": "Punjab Mail",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Mumbai CSMT",
+      "full_route_to": "Firozpur",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "18:00",
+          "scheduled_departure": "18:05",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "18:13",
+          "scheduled_departure": "18:13",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "18:45",
+          "scheduled_departure": "18:50",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "20:10",
+          "scheduled_departure": "20:10",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "20:35",
+          "scheduled_departure": "20:35",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "20:55",
+          "scheduled_departure": "20:57",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "21:25",
+          "scheduled_departure": "21:40",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12279",
+      "service_date": "2026-09-10",
+      "train_name": "Taj Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Virangana Laxmibai Jhansi",
+      "full_route_to": "New Delhi",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "18:15",
+          "scheduled_departure": "18:20",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "18:28",
+          "scheduled_departure": "18:28",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "19:00",
+          "scheduled_departure": "19:05",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "20:21",
+          "scheduled_departure": "20:21",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "20:45",
+          "scheduled_departure": "20:45",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "21:05",
+          "scheduled_departure": "21:07",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "21:35",
+          "scheduled_departure": "21:35",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12001",
+      "service_date": "2026-09-10",
+      "train_name": "Shatabdi Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Rani Kamlapati",
+      "full_route_to": "New Delhi",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "21:20",
+          "scheduled_departure": "21:25",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "21:28",
+          "scheduled_departure": "21:28",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "22:00",
+          "scheduled_departure": "22:01",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "23:08",
+          "scheduled_departure": "23:08",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "23:28",
+          "scheduled_departure": "23:28",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "23:45",
+          "scheduled_departure": "23:45",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "23:50",
+          "scheduled_departure": "23:50",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "11057",
+      "service_date": "2026-09-10",
+      "train_name": "Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Mumbai CSMT",
+      "full_route_to": "Amritsar",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "23:45",
+          "scheduled_departure": "23:50",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "23:53",
+          "scheduled_departure": "23:53",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "00:30",
+          "scheduled_departure": "00:35",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "02:16",
+          "scheduled_departure": "02:16",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "02:47",
+          "scheduled_departure": "02:47",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "03:07",
+          "scheduled_departure": "03:09",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "03:30",
+          "scheduled_departure": "03:45",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12138",
+      "service_date": "2026-09-10",
+      "train_name": "Punjab Mail",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "full_route_from": "Firozpur",
+      "full_route_to": "Mumbai CSMT",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "04:55",
+          "scheduled_departure": "05:10",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "05:18",
+          "scheduled_departure": "05:18",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "05:40",
+          "scheduled_departure": "05:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "06:04",
+          "scheduled_departure": "06:04",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "07:23",
+          "scheduled_departure": "07:28",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "07:50",
+          "scheduled_departure": "07:50",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "08:10",
+          "scheduled_departure": "08:15",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12618",
+      "service_date": "2026-09-10",
+      "train_name": "Mangala Lakshadweep Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NZM",
+      "destination": "AGC",
+      "full_route_from": "Nizamuddin",
+      "full_route_to": "Ernakulam",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "05:35",
+          "scheduled_departure": "05:35",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "05:52",
+          "scheduled_departure": "05:52",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "06:18",
+          "scheduled_departure": "06:18",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "07:40",
+          "scheduled_departure": "07:45",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "08:17",
+          "scheduled_departure": "08:17",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "08:20",
+          "scheduled_departure": "08:25",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12002",
+      "service_date": "2026-09-10",
+      "train_name": "Shatabdi",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "full_route_from": "New Delhi",
+      "full_route_to": "Rani Kamalapati",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "06:00",
+          "scheduled_departure": "06:00",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "06:04",
+          "scheduled_departure": "06:04",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "06:16",
+          "scheduled_departure": "06:16",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "06:31",
+          "scheduled_departure": "06:31",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "07:19",
+          "scheduled_departure": "07:20",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "07:48",
+          "scheduled_departure": "07:48",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "07:50",
+          "scheduled_departure": "07:55",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12280",
+      "service_date": "2026-09-10",
+      "train_name": "Taj Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "full_route_from": "New Delhi",
+      "full_route_to": "Virangana Laxmibai Jhansi",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "06:55",
+          "scheduled_departure": "06:55",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "07:06",
+          "scheduled_departure": "07:08",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "07:26",
+          "scheduled_departure": "07:26",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "07:42",
+          "scheduled_departure": "07:42",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "08:35",
+          "scheduled_departure": "08:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "09:10",
+          "scheduled_departure": "09:10",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "09:25",
+          "scheduled_departure": "09:30",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12050",
+      "service_date": "2026-09-10",
+      "train_name": "Gatiman Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NZM",
+      "destination": "AGC",
+      "full_route_from": "Nizamuddin",
+      "full_route_to": "Virangana Laxmibai Jhansi",
+      "days_of_departure_tag": "Except F",
+      "route": [
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "08:10",
+          "scheduled_departure": "08:10",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "08:21",
+          "scheduled_departure": "08:21",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "08:35",
+          "scheduled_departure": "08:35",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "09:21",
+          "scheduled_departure": "09:21",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "09:48",
+          "scheduled_departure": "09:48",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "09:50",
+          "scheduled_departure": "09:55",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "20172",
+      "service_date": "2026-09-10",
+      "train_name": "Vande Bharat Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NZM",
+      "destination": "AGC",
+      "full_route_from": "Nizamuddin",
+      "full_route_to": "Rani Kamalapati",
+      "days_of_departure_tag": "Except Sa",
+      "route": [
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "14:40",
+          "scheduled_departure": "14:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "14:51",
+          "scheduled_departure": "14:51",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "15:04",
+          "scheduled_departure": "15:04",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "15:48",
+          "scheduled_departure": "15:48",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "16:14",
+          "scheduled_departure": "16:14",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "16:16",
+          "scheduled_departure": "16:20",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "22222",
+      "service_date": "2026-09-10",
+      "train_name": "Rajdhani Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NZM",
+      "destination": "AGC",
+      "full_route_from": "Nizamudin",
+      "full_route_to": "Mumbai CSMT",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "16:55",
+          "scheduled_departure": "16:55",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "17:07",
+          "scheduled_departure": "17:07",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "17:23",
+          "scheduled_departure": "17:23",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "18:13",
+          "scheduled_departure": "18:13",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "18:43",
+          "scheduled_departure": "18:43",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "18:45",
+          "scheduled_departure": "18:47",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "14212",
+      "service_date": "2026-09-10",
+      "train_name": "Intercity",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "full_route_from": "New Delhi",
+      "full_route_to": "Agra Cantt.",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "17:40",
+          "scheduled_departure": "17:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "18:00",
+          "scheduled_departure": "18:01",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "18:25",
+          "scheduled_departure": "18:25",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "18:51",
+          "scheduled_departure": "18:51",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "20:13",
+          "scheduled_departure": "20:18",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "21:05",
+          "scheduled_departure": "21:05",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "22:05",
+          "scheduled_departure": "22:05",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "11842",
+      "service_date": "2026-09-10",
+      "train_name": "Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "full_route_from": "Kurukshetra Jn.",
+      "full_route_to": "Khajuraho Jn.",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "18:05",
+          "scheduled_departure": "18:20",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "18:31",
+          "scheduled_departure": "18:33",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "18:52",
+          "scheduled_departure": "18:52",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "19:16",
+          "scheduled_departure": "19:16",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "20:35",
+          "scheduled_departure": "20:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "21:22",
+          "scheduled_departure": "21:22",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "21:25",
+          "scheduled_departure": "21:30",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "11058",
+      "service_date": "2026-09-10",
+      "train_name": "Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "full_route_from": "Amritsar",
+      "full_route_to": "Mumbai CSMT",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "20:25",
+          "scheduled_departure": "20:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "20:51",
+          "scheduled_departure": "20:53",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "21:12",
+          "scheduled_departure": "21:12",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "21:35",
+          "scheduled_departure": "21:35",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "22:50",
+          "scheduled_departure": "22:55",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "23:41",
+          "scheduled_departure": "23:41",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "23:45",
+          "scheduled_departure": "23:50",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12156",
+      "service_date": "2026-09-10",
+      "train_name": "Bhopal Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NZM",
+      "destination": "AGC",
+      "full_route_from": "Nizamuddin",
+      "full_route_to": "Rani Kamalapati",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "20:40",
+          "scheduled_departure": "20:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "20:53",
+          "scheduled_departure": "20:53",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "21:10",
+          "scheduled_departure": "21:10",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "22:04",
+          "scheduled_departure": "22:04",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "22:36",
+          "scheduled_departure": "22:36",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "22:38",
+          "scheduled_departure": "22:40",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "11841",
+      "service_date": "2026-09-11",
+      "train_name": "Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Khajuraho Jn.",
+      "full_route_to": "Kurukshetra Jn.",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "03:50",
+          "scheduled_departure": "03:55",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "04:00",
+          "scheduled_departure": "04:00",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "05:00",
+          "scheduled_departure": "05:05",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "06:58",
+          "scheduled_departure": "06:58",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "07:33",
+          "scheduled_departure": "07:33",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "08:12",
+          "scheduled_departure": "08:14",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "08:45",
+          "scheduled_departure": "09:00",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12155",
+      "service_date": "2026-09-11",
+      "train_name": "Bhopal Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NZM",
+      "full_route_from": "Rani Kamlapati",
+      "full_route_to": "Nizamuddin",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "05:15",
+          "scheduled_departure": "05:17",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "05:20",
+          "scheduled_departure": "05:20",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "06:04",
+          "scheduled_departure": "06:04",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "07:19",
+          "scheduled_departure": "07:19",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "07:42",
+          "scheduled_departure": "07:42",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "08:00",
+          "scheduled_departure": "08:00",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "14211",
+      "service_date": "2026-09-11",
+      "train_name": "Intercity Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Agra Cantt.",
+      "full_route_to": "New Delhi",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "05:45",
+          "scheduled_departure": "05:45",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "05:53",
+          "scheduled_departure": "05:53",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "06:20",
+          "scheduled_departure": "06:25",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "08:16",
+          "scheduled_departure": "08:16",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "08:51",
+          "scheduled_departure": "08:51",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "09:15",
+          "scheduled_departure": "09:17",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "10:00",
+          "scheduled_departure": "10:00",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "22221",
+      "service_date": "2026-09-11",
+      "train_name": "Rajdhani Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NZM",
+      "full_route_from": "Mumbai CSMT",
+      "full_route_to": "Nizamudin",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "07:30",
+          "scheduled_departure": "07:32",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "07:35",
+          "scheduled_departure": "07:35",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "08:13",
+          "scheduled_departure": "08:13",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "09:19",
+          "scheduled_departure": "09:19",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "09:39",
+          "scheduled_departure": "09:39",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "09:55",
+          "scheduled_departure": "09:55",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12617",
+      "service_date": "2026-09-11",
+      "train_name": "Mangala Lakshadweep Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NZM",
+      "full_route_from": "Ernakulam",
+      "full_route_to": "Nizamuddin",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "09:55",
+          "scheduled_departure": "10:00",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "10:02",
+          "scheduled_departure": "10:02",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "10:33",
+          "scheduled_departure": "10:38",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "12:19",
+          "scheduled_departure": "12:19",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "12:50",
+          "scheduled_departure": "12:50",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "13:35",
+          "scheduled_departure": "13:35",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "20171",
+      "service_date": "2026-09-11",
+      "train_name": "Vande Bharat Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NZM",
+      "full_route_from": "Rani Kamalapati",
+      "full_route_to": "Nizamuddin",
+      "days_of_departure_tag": "Except Sa",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "11:01",
+          "scheduled_departure": "11:05",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "11:08",
+          "scheduled_departure": "11:08",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "11:43",
+          "scheduled_departure": "11:43",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "12:43",
+          "scheduled_departure": "12:43",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "13:01",
+          "scheduled_departure": "13:01",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "13:16",
+          "scheduled_departure": "13:16",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12137",
+      "service_date": "2026-09-11",
+      "train_name": "Punjab Mail",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Mumbai CSMT",
+      "full_route_to": "Firozpur",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "18:00",
+          "scheduled_departure": "18:05",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "18:13",
+          "scheduled_departure": "18:13",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "18:45",
+          "scheduled_departure": "18:50",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "20:10",
+          "scheduled_departure": "20:10",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "20:35",
+          "scheduled_departure": "20:35",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "20:55",
+          "scheduled_departure": "20:57",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "21:25",
+          "scheduled_departure": "21:40",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12279",
+      "service_date": "2026-09-11",
+      "train_name": "Taj Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Virangana Laxmibai Jhansi",
+      "full_route_to": "New Delhi",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "18:15",
+          "scheduled_departure": "18:20",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "18:28",
+          "scheduled_departure": "18:28",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "19:00",
+          "scheduled_departure": "19:05",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "20:21",
+          "scheduled_departure": "20:21",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "20:45",
+          "scheduled_departure": "20:45",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "21:05",
+          "scheduled_departure": "21:07",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "21:35",
+          "scheduled_departure": "21:35",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12001",
+      "service_date": "2026-09-11",
+      "train_name": "Shatabdi Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Rani Kamlapati",
+      "full_route_to": "New Delhi",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "21:20",
+          "scheduled_departure": "21:25",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "21:28",
+          "scheduled_departure": "21:28",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "22:00",
+          "scheduled_departure": "22:01",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "23:08",
+          "scheduled_departure": "23:08",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "23:28",
+          "scheduled_departure": "23:28",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "23:45",
+          "scheduled_departure": "23:45",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "23:50",
+          "scheduled_departure": "23:50",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "11057",
+      "service_date": "2026-09-11",
+      "train_name": "Express",
+      "direction": "DOWN",
+      "track_assignment": "DOWN-1",
+      "origin": "AGC",
+      "destination": "NDLS",
+      "full_route_from": "Mumbai CSMT",
+      "full_route_to": "Amritsar",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "AGC",
+        "RKM",
+        "MTJ",
+        "PWL",
+        "FDB",
+        "NZM",
+        "NDLS"
+      ],
+      "station_times": [
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "23:45",
+          "scheduled_departure": "23:50",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "23:53",
+          "scheduled_departure": "23:53",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "00:30",
+          "scheduled_departure": "00:35",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "02:16",
+          "scheduled_departure": "02:16",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "02:47",
+          "scheduled_departure": "02:47",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "03:07",
+          "scheduled_departure": "03:09",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "03:30",
+          "scheduled_departure": "03:45",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12138",
+      "service_date": "2026-09-11",
+      "train_name": "Punjab Mail",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "full_route_from": "Firozpur",
+      "full_route_to": "Mumbai CSMT",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "04:55",
+          "scheduled_departure": "05:10",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "05:18",
+          "scheduled_departure": "05:18",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "05:40",
+          "scheduled_departure": "05:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "06:04",
+          "scheduled_departure": "06:04",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "07:23",
+          "scheduled_departure": "07:28",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "07:50",
+          "scheduled_departure": "07:50",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "08:10",
+          "scheduled_departure": "08:15",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12618",
+      "service_date": "2026-09-11",
+      "train_name": "Mangala Lakshadweep Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NZM",
+      "destination": "AGC",
+      "full_route_from": "Nizamuddin",
+      "full_route_to": "Ernakulam",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "05:35",
+          "scheduled_departure": "05:35",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "05:52",
+          "scheduled_departure": "05:52",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "06:18",
+          "scheduled_departure": "06:18",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "07:40",
+          "scheduled_departure": "07:45",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "08:17",
+          "scheduled_departure": "08:17",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "08:20",
+          "scheduled_departure": "08:25",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12002",
+      "service_date": "2026-09-11",
+      "train_name": "Shatabdi",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "full_route_from": "New Delhi",
+      "full_route_to": "Rani Kamalapati",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "06:00",
+          "scheduled_departure": "06:00",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "06:04",
+          "scheduled_departure": "06:04",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "06:16",
+          "scheduled_departure": "06:16",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "06:31",
+          "scheduled_departure": "06:31",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "07:19",
+          "scheduled_departure": "07:20",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "07:48",
+          "scheduled_departure": "07:48",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "07:50",
+          "scheduled_departure": "07:55",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12280",
+      "service_date": "2026-09-11",
+      "train_name": "Taj Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "full_route_from": "New Delhi",
+      "full_route_to": "Virangana Laxmibai Jhansi",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "06:55",
+          "scheduled_departure": "06:55",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "07:06",
+          "scheduled_departure": "07:08",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "07:26",
+          "scheduled_departure": "07:26",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "07:42",
+          "scheduled_departure": "07:42",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "08:35",
+          "scheduled_departure": "08:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "09:10",
+          "scheduled_departure": "09:10",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "09:25",
+          "scheduled_departure": "09:30",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "20172",
+      "service_date": "2026-09-11",
+      "train_name": "Vande Bharat Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NZM",
+      "destination": "AGC",
+      "full_route_from": "Nizamuddin",
+      "full_route_to": "Rani Kamalapati",
+      "days_of_departure_tag": "Except Sa",
+      "route": [
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "14:40",
+          "scheduled_departure": "14:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "14:51",
+          "scheduled_departure": "14:51",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "15:04",
+          "scheduled_departure": "15:04",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "15:48",
+          "scheduled_departure": "15:48",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "16:14",
+          "scheduled_departure": "16:14",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "16:16",
+          "scheduled_departure": "16:20",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12406",
+      "service_date": "2026-09-11",
+      "train_name": "Gondwana Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NZM",
+      "destination": "AGC",
+      "full_route_from": "Nizamuddin",
+      "full_route_to": "Bhusaval",
+      "days_of_departure_tag": "F,Su",
+      "route": [
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "15:05",
+          "scheduled_departure": "15:05",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "15:18",
+          "scheduled_departure": "15:18",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "15:34",
+          "scheduled_departure": "15:34",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "16:25",
+          "scheduled_departure": "16:27",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "17:12",
+          "scheduled_departure": "17:12",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "17:15",
+          "scheduled_departure": "17:20",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "22222",
+      "service_date": "2026-09-11",
+      "train_name": "Rajdhani Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NZM",
+      "destination": "AGC",
+      "full_route_from": "Nizamudin",
+      "full_route_to": "Mumbai CSMT",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "16:55",
+          "scheduled_departure": "16:55",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "17:07",
+          "scheduled_departure": "17:07",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "17:23",
+          "scheduled_departure": "17:23",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "18:13",
+          "scheduled_departure": "18:13",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "18:43",
+          "scheduled_departure": "18:43",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "18:45",
+          "scheduled_departure": "18:47",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "14212",
+      "service_date": "2026-09-11",
+      "train_name": "Intercity",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "full_route_from": "New Delhi",
+      "full_route_to": "Agra Cantt.",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "17:40",
+          "scheduled_departure": "17:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "18:00",
+          "scheduled_departure": "18:01",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "18:25",
+          "scheduled_departure": "18:25",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "18:51",
+          "scheduled_departure": "18:51",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "20:13",
+          "scheduled_departure": "20:18",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "21:05",
+          "scheduled_departure": "21:05",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "22:05",
+          "scheduled_departure": "22:05",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "11842",
+      "service_date": "2026-09-11",
+      "train_name": "Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "full_route_from": "Kurukshetra Jn.",
+      "full_route_to": "Khajuraho Jn.",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "18:05",
+          "scheduled_departure": "18:20",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "18:31",
+          "scheduled_departure": "18:33",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "18:52",
+          "scheduled_departure": "18:52",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "19:16",
+          "scheduled_departure": "19:16",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "20:35",
+          "scheduled_departure": "20:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "21:22",
+          "scheduled_departure": "21:22",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "21:25",
+          "scheduled_departure": "21:30",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "11058",
+      "service_date": "2026-09-11",
+      "train_name": "Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NDLS",
+      "destination": "AGC",
+      "full_route_from": "Amritsar",
+      "full_route_to": "Mumbai CSMT",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NDLS",
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NDLS",
+          "station_name": "New Delhi",
+          "scheduled_arrival": "20:25",
+          "scheduled_departure": "20:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "20:51",
+          "scheduled_departure": "20:53",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "21:12",
+          "scheduled_departure": "21:12",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "21:35",
+          "scheduled_departure": "21:35",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "22:50",
+          "scheduled_departure": "22:55",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "23:41",
+          "scheduled_departure": "23:41",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "23:45",
+          "scheduled_departure": "23:50",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    },
+    {
+      "train_number": "12156",
+      "service_date": "2026-09-11",
+      "train_name": "Bhopal Express",
+      "direction": "UP",
+      "track_assignment": "UP-1",
+      "origin": "NZM",
+      "destination": "AGC",
+      "full_route_from": "Nizamuddin",
+      "full_route_to": "Rani Kamalapati",
+      "days_of_departure_tag": "Daily",
+      "route": [
+        "NZM",
+        "FDB",
+        "PWL",
+        "MTJ",
+        "RKM",
+        "AGC"
+      ],
+      "station_times": [
+        {
+          "station_id": "NZM",
+          "station_name": "Hazrat Nizamuddin",
+          "scheduled_arrival": "20:40",
+          "scheduled_departure": "20:40",
+          "time_basis": "TAG_PUBLISHED"
+        },
+        {
+          "station_id": "FDB",
+          "station_name": "Faridabad",
+          "scheduled_arrival": "20:53",
+          "scheduled_departure": "20:53",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "PWL",
+          "station_name": "Palwal",
+          "scheduled_arrival": "21:10",
+          "scheduled_departure": "21:10",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "MTJ",
+          "station_name": "Mathura Junction",
+          "scheduled_arrival": "22:04",
+          "scheduled_departure": "22:04",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "RKM",
+          "station_name": "Raja Ki Mandi",
+          "scheduled_arrival": "22:36",
+          "scheduled_departure": "22:36",
+          "time_basis": "INTERPOLATED_BY_CHAINAGE"
+        },
+        {
+          "station_id": "AGC",
+          "station_name": "Agra Cantt.",
+          "scheduled_arrival": "22:38",
+          "scheduled_departure": "22:40",
+          "time_basis": "TAG_PUBLISHED"
+        }
+      ],
+      "delay_minutes": 0,
+      "status": "SCHEDULED_PER_PUBLIC_TIMETABLE",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "carry_in": false
+    }
+  ],
+  "provenance": [
+    {
+      "field": "timetable.published_times",
+      "value": "TAG-2026 T-2 (23 verified trains)",
+      "unit": "HH.MM local",
+      "class": "REAL_DATED_SNAPSHOT",
+      "source_ids": [
+        "SRC-TAG-2026-T2",
+        "SRC-TAG-2026-T2-EXTRACT"
+      ],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "high",
+      "note": "Effective 2026-01-01. A scheduled pattern, not as-run movements."
+    },
+    {
+      "field": "timetable.interpolated_passing_times",
+      "value": "linear by chainage",
+      "unit": "HH:MM",
+      "class": "DERIVED_FROM_REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "derived_from": [
+        "published stop times",
+        "station chainage"
+      ],
+      "derivation_method": "linear interpolation by chainage between adjacent published stops",
+      "confidence": "medium"
+    },
+    {
+      "field": "timetable.service_dates",
+      "value": [
+        "2026-09-10",
+        "2026-09-11"
+      ],
+      "unit": "date",
+      "class": "DERIVED_FROM_REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "derived_from": [
+        "TAG days-of-departure"
+      ],
+      "derivation_method": "weekday pattern applied to the calendar date of the first modelled stop; 2026-09-10 is a Thursday, 2026-09-11 a Friday",
+      "confidence": "medium"
+    },
+    {
+      "field": "timetable.freight_emu_wtt",
+      "value": null,
+      "unit": null,
+      "class": "UNAVAILABLE_PUBLICLY",
+      "source_ids": [],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "high",
+      "note": "Freight schedules, EMU/MEMU timetables and the working timetable are not published; none is invented."
+    }
+  ]
+}

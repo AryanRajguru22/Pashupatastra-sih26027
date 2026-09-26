@@ -13,6 +13,8 @@ import {
   severityOf,
 } from "@/lib/api";
 import { SECTION_IDS } from "@/lib/fieldLocation";
+import { STATIONS, pick } from "@/lib/railwayData";
+import DataBasisPanel from "@/components/DataBasisPanel";
 import { planWindow, recorded, shortId } from "@/lib/time";
 import { useSession } from "@/lib/session";
 import { useLastRun } from "@/lib/useLastRun";
@@ -125,9 +127,14 @@ export default function CommandCenter() {
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <span className="w-2 h-2 rounded-full bg-primary-container animate-ping" />
               <span className="font-label-caps text-label-caps text-primary tracking-widest">
-                COMMAND CENTER // NDLS–AGC SYNTHETIC CORRIDOR
+                {pick(
+                  "CORRIDOR OVERVIEW // NDLS–AGC · DATED PUBLIC SNAPSHOT",
+                  "CORRIDOR OVERVIEW // NDLS–AGC SYNTHETIC CORRIDOR",
+                )}
               </span>
-              <ProvenanceChip label="ILLUSTRATIVE VISUAL · SYNTHETIC DATA" />
+              <ProvenanceChip
+                label={pick("STYLISED VISUAL · NO TRAIN POSITIONS", "ILLUSTRATIVE VISUAL · SYNTHETIC DATA")}
+              />
             </div>
             <h1 className="font-headline-lg text-headline-lg lg:text-display-xl text-primary font-light leading-tight tracking-tight">
               Corridor Synchrony
@@ -135,8 +142,8 @@ export default function CommandCenter() {
             <p className="font-body-md text-body-md text-on-surface-variant max-w-2xl mt-1">
               Decision support for railway maintenance block planning: every job
               in the pipeline, from field report to committed possession and
-              completion, over a synthetic 10–11 Sep 2026 planning horizon.
-              The scene below is a stylised view; it is not live train data.
+              completion, over a {pick("10–11 Sep 2026 planning horizon derived from the public TAG-2026 timetable", "synthetic 10–11 Sep 2026 planning horizon")}.
+              The scene below is a stylised view of the corridor; it shows no train positions and is not live data.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -168,10 +175,10 @@ export default function CommandCenter() {
           <div className="relative z-30 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3 bg-[#0c121f]/90 backdrop-blur-xl px-3.5 py-1.5 rounded-lg border border-[#00dbe9]/40">
               <span className="font-label-mono text-label-mono text-primary-fixed font-bold tracking-wider">
-                NDLS ⇄ AGC · KM 0–195
+                NDLS ⇄ AGC · KM 0–{STATIONS[STATIONS.length - 1].kmDisplay}
               </span>
               <span className="font-label-caps text-label-caps text-secondary hidden md:inline">
-                SYNTHETIC TOPOLOGY · 2 TRACKS · {active.length} ACTIVE JOB{active.length === 1 ? "" : "S"}
+                {pick("DATED PUBLIC SNAPSHOT · 2 MODELLED LINES", "SYNTHETIC TOPOLOGY · 2 TRACKS")} · {active.length} ACTIVE JOB{active.length === 1 ? "" : "S"}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -260,12 +267,16 @@ export default function CommandCenter() {
                 {STATUS_LABEL[s]}
               </span>
             ))}
-            <span className="ml-auto text-outline">Markers sit at each job&apos;s stored chainage. Decorative rings and pulses are not data.</span>
+            <span className="ml-auto text-outline">Markers sit at each job&apos;s stored chainage (km). Decorative rings and glow are not data; no train is shown.</span>
           </div>
         </div>
       </section>
 
       {jobs.error && <div className="mb-4"><ErrorBox error={jobs.error} title="COULD NOT LOAD JOBS" /></div>}
+
+      <div className="mb-6">
+        <DataBasisPanel compact />
+      </div>
 
       {/* KPI STRIP */}
       <section className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-6" aria-label="Pipeline summary">

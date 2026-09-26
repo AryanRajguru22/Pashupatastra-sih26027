@@ -1,29 +1,23 @@
 "use client";
 
 /**
- * Spatial corridor visual for the Command Center (ported from the approved
- * Stitch "Corridor Synchrony" scene): orbital rings, luminous rails, laser
- * pulses and star dust are DECORATIVE. The stations and job markers are real:
- * stations sit at their synthetic chainage and each active job is drawn on its
- * own track at its stored corridor chainage.
+ * Spatial corridor visual for the corridor overview (ported from the approved
+ * Stitch "Corridor Synchrony" scene): orbital rings, luminous rails and star
+ * dust are DECORATIVE. The stations and job markers are data-driven: stations
+ * sit at their snapshot chainage (km, see railwayData.ts) and each active job is
+ * drawn on its own track at its stored corridor chainage.
+ *
+ * NO TRAIN IS DRAWN OR ANIMATED. No train position is known to this console, so
+ * in the real-data build the moving "laser" pulses along the rails are omitted
+ * (the synthetic fallback keeps them, as before).
  */
 
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { JOB_TYPE_LABEL, severityOf, type Job } from "@/lib/api";
 import { STATIONS } from "@/lib/fieldLocation";
+import { IS_REAL, TOTAL_KM, stationKm, pick } from "@/lib/railwayData";
 
 export type SceneMode = "SPATIAL" | "LINEAR";
-
-const KM: Record<string, number> = {
-  NDLS: 0,
-  NZM: 7,
-  FDB: 32,
-  PWL: 66,
-  MTJ: 133,
-  RKM: 190,
-  AGC: 195,
-};
-const TOTAL_KM = 195;
 
 const PATHS: Record<SceneMode, Record<string, string>> = {
   SPATIAL: {
@@ -100,8 +94,8 @@ export default function CorridorScene({
     if (!pts) return [];
     return STATIONS.map((s) => ({
       id: s.id,
-      up: pts.up1(KM[s.id] / TOTAL_KM),
-      down: pts.down1(KM[s.id] / TOTAL_KM),
+      up: pts.up1(stationKm(s.id) / TOTAL_KM),
+      down: pts.down1(stationKm(s.id) / TOTAL_KM),
     }));
   }, [pts]);
 
@@ -122,7 +116,7 @@ export default function CorridorScene({
       viewBox="0 0 1200 540"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label="Synthetic NDLS to AGC corridor with active maintenance jobs"
+      aria-label={pick("NDLS to AGC corridor (public snapshot chainage) with active maintenance jobs", "Synthetic NDLS to AGC corridor with active maintenance jobs")}
     >
       <defs>
         <linearGradient id="cyanTrackGlow" x1="0%" x2="100%" y1="0%" y2="100%">
@@ -206,12 +200,20 @@ export default function CorridorScene({
       <path ref={upRef} d={PATHS[mode]["UP-1"]} fill="none" stroke="#415664" strokeLinecap="round" strokeWidth="3" />
       <path d={PATHS[mode]["DOWN-1"]} fill="none" filter="url(#cinematicBloom)" opacity="0.65" stroke="#00f0ff" strokeLinecap="round" strokeWidth="6" />
       <path ref={downRef} d={PATHS[mode]["DOWN-1"]} fill="none" stroke="url(#cyanTrackGlow)" strokeLinecap="round" strokeWidth="4.5" />
-      <path className="animate-laser-fast" d={PATHS[mode]["DOWN-1"]} fill="none" stroke="#dbfcff" strokeLinecap="round" strokeWidth="2" opacity="0.9" aria-hidden />
-      <path className="animate-laser-counter" d={PATHS[mode]["UP-1"]} fill="none" stroke="#ffb688" strokeLinecap="round" strokeWidth="1.6" opacity="0.7" aria-hidden />
-      <text x={mode === "SPATIAL" ? 40 : 40} y={mode === "SPATIAL" ? 438 : 230} fill="#849495" fontSize="11" fontFamily="var(--font-label-mono)">UP-1</text>
-      <text x={mode === "SPATIAL" ? 40 : 40} y={mode === "SPATIAL" ? 488 : 305} fill="#00dbe9" fontSize="11" fontFamily="var(--font-label-mono)">DOWN-1</text>
+      {!IS_REAL && (
+        <>
+          <path className="animate-laser-fast" d={PATHS[mode]["DOWN-1"]} fill="none" stroke="#dbfcff" strokeLinecap="round" strokeWidth="2" opacity="0.9" aria-hidden />
+          <path className="animate-laser-counter" d={PATHS[mode]["UP-1"]} fill="none" stroke="#ffb688" strokeLinecap="round" strokeWidth="1.6" opacity="0.7" aria-hidden />
+        </>
+      )}
+      <text x={40} y={mode === "SPATIAL" ? 438 : 230} fill="#849495" fontSize="11" fontFamily="var(--font-label-mono)">
+        {pick("UP-1 · NDLS → AGC", "UP-1")}
+      </text>
+      <text x={40} y={mode === "SPATIAL" ? 488 : 305} fill="#00dbe9" fontSize="11" fontFamily="var(--font-label-mono)">
+        {pick("DOWN-1 · AGC → NDLS", "DOWN-1")}
+      </text>
 
-      {/* stations at their synthetic chainage */}
+      {/* stations at their snapshot chainage */}
       {showStations &&
         stationPoints.map((s) => (
           <g key={s.id}>
@@ -220,7 +222,7 @@ export default function CorridorScene({
               {s.id}
             </text>
             <text x={s.down.x} y={s.down.y + (mode === "SPATIAL" ? 37 : 39)} textAnchor="middle" fill="#849495" fontSize="9" fontFamily="var(--font-label-mono)">
-              km {KM[s.id]}
+              km {STATIONS.find((x) => x.id === s.id)?.kmDisplay}
             </text>
           </g>
         ))}

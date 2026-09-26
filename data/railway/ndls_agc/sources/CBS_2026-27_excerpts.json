@@ -1,0 +1,80 @@
+{
+  "NCR": {
+    "url": "https://indianrailways.gov.in/railwayboard/uploads/directorate/finance_budget/CBS_2026-27/NCR.pdf",
+    "sha256": "ff1b6ecd3abc24331ad91e1edfc1cc4055241e3febaefce91cb20b858a279899",
+    "pdf_pages": 164
+  },
+  "NR": {
+    "url": "https://indianrailways.gov.in/railwayboard/uploads/directorate/finance_budget/CBS_2026-27/NR.pdf",
+    "sha256": "cd98b765f2cfda8b2cea4cc0b9a8fdc2f0c32577accfd56cc04a1b66dff26e34",
+    "pdf_pages": 257
+  },
+  "items": [
+    {
+      "zone": "NCR",
+      "item_no": 14,
+      "pdf_page": 71,
+      "text": "14 Mathura-Palwal - 4th line (80 km) 668.70 (Cap. 84.29, EBR(IF) 584.41)"
+    },
+    {
+      "zone": "NCR",
+      "item_no": 102,
+      "pdf_page": 77,
+      "text": "102 Agra Cantt.-Mathura - CTR(S) - 33.439 km 56.56 (S.Fund 1.00, RRSK 41.37, R. 4.94, EBR(S) 9.24)"
+    },
+    {
+      "zone": "NCR",
+      "item_no": 110,
+      "pdf_page": 77,
+      "text": "110 Agra Cantt. - Mathura Jn. (UP&DN) - TSR(P) - 57.810 Tkm (PB#523/2023-24/NCR) 71.14 (S.Fund 54.40, RRSK 6.04, R. 10.70)"
+    },
+    {
+      "zone": "NCR",
+      "item_no": 115,
+      "pdf_page": 77,
+      "text": "115 Agra-Palwal - TRR(P) - 66.902 kms 89.05 (DRF 38.80, S.Fund 5.00, RRSK 37.46, EBR(S) 7.79)"
+    },
+    {
+      "zone": "NCR",
+      "item_no": 146,
+      "pdf_page": 79,
+      "text": "146 Mathura Jn. - Palwal - TSR(P) - 47.157 Tkm (PB#171/NCR/2024-25) 55.79 (S.Fund 48.11, RRSK 5.12, R. 2.56)"
+    },
+    {
+      "zone": "NCR",
+      "item_no": 170,
+      "pdf_page": 80,
+      "text": "170 Mathura Jn. - Palwal - Provision of Track Machine Stabling Siding (Mathura, Chhata, Kosi Kalan and Rundhi stations) (PB#495/2022-23/NCR) 245.47 (S.Fund 244.25, RRSK 0.96, R. 0.26)"
+    },
+    {
+      "zone": "NCR",
+      "item_no": 217,
+      "pdf_page": 84,
+      "text": "217 Mathura-Dholpur-Antri section- Upgradation work of Electric Traction System (NCR) (PB#190/RE/2023-24) 498.89 (Cap. 498.89)"
+    },
+    {
+      "zone": "NR",
+      "item_no": 30,
+      "pdf_page": 80,
+      "text": "30 Tughlakabad (Joint Cabin)-Palwal - 4th line (33.5 km) 287.48 (Cap. 243.24, C.Fund 2.24, EBR(IF) 42.00)"
+    },
+    {
+      "zone": "NR",
+      "item_no": 246,
+      "pdf_page": 93,
+      "text": "246 New Delhi - Palwal - TSR(P) - 54.530 Tkm & Okhla - Lajpat Nagar (DAL) - TSR(P) - 0.700 Tkm (Item#291/NR/2025-26) 70.16 (S.Fund 52.63, RRSK 6.77, R. 10.75)"
+    },
+    {
+      "zone": "NR",
+      "item_no": 1575,
+      "pdf_page": 193,
+      "text": "1575 Strengthening Track Circuit of UP/DN Main  line Okhla - Palwal  of 'A' route in Delhi Division. 15.17 (RRSK 15.17)"
+    },
+    {
+      "zone": "NR",
+      "item_no": 1584,
+      "pdf_page": 194,
+      "text": "1584 Tughlakabad~~Palwal~~Palwal~~Provision of ABS between 3rd and 4th line between TKD-PWL section of DLI Division. 48.83 (Cap. 48.83)"
+    }
+  ]
+}

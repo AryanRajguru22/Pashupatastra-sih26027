@@ -1,7 +1,7 @@
 /**
  * Time helpers. Three clocks are never mixed:
  *
- *   PLAN      horizon-relative minutes (fixed synthetic horizon, IST)
+ *   PLAN      horizon-relative minutes (fixed planning horizon, IST)
  *   OBSERVED  times entered by the crew (explicit offset, shown as entered)
  *   RECORDED  server wall-clock timestamps (UTC in the API, shown in IST)
  */

@@ -1,0 +1,349 @@
+######## PAGE 0
+                                   Firozpur            New            New Delhi           Nizamuddin            Nizamuddin         Nizamuddin Ayodhya Cantt.             New Delhi           Agra            Bareilly        Amritsar        Nizamuddin                Rani            Haridwar       Firozpur-Seoni
+                                    Mumbai         Delhi Rani         Virangana            Virangana            Ernakulam            Bhusaval         Lokmanya          Agra Cantt.       Lokmanya          Lokmanya         Mumbai               Rani             Kamlapati           Lokmanya            Patalkot
+        TRAIN NAME                   CSMT         Kamalapati          Laxmibai             Laxmibai               Mangala           Gondwana        Tilak (T) Tulsi       Intercity        Tilak (T)         Tilak (T)        CSMT           Kamalapati         Lokmanya Tilak        Tilak  (T) AC       Superfast
+                                    Punjab          Shatabdi          Jhansi Taj       Jhansi Gatiman          Lakshadweep            Express           Express                            Lashkar           Express         Express       Bhopal Express         (T) Express           Express            Express
+                                      Mail                             Express              Express               Express                                                                  Express
+        Train Number                 12138            12002             12280*               12050                 12618               12406             22130             14212             12162            14314           11058              12156                12154              12172              20424
+  Class of accommodation           1A,2A,3A          EC,CC             CC 2S,II              EC,CC             2A,3A SL,II,P        2A,3A SL,II    2A,3A, 3E, SL,II       CC 2S,II       2A,3A SL,II,P      2A,3A SL,II    2A,3A SL,II      1A,2A, 3A SL,II       2A,3A SL,II,P       1A,2A, 3A, P       2A,3A SL,II
+                                     SL,II,P
+       From Table No.                 39A                                                                                                                  47                                                   55A             15A                                                        75A               39A
+    Days of departure at              Daily           Daily              Daily              Except F                Daily               F,Su              W, M              Daily              Sa               Sa             Daily             Daily                   F                Tu, F              Daily
+      originating station
+Km        New Delhi           a      04.55            06.00              06.55                                                                                              17.40                                              20.25                                                                        Delhi
+                              d      05.10                                                                                                                                                                                     20.40                                                                     Safdarjung
+          Delhi Sarai                                                                                                                                                                                                                                                                                       11.16
+          Rohilla             d                                                                                                                                                                                                                                                                             11.20
+
+10        H.Nizamuddin        a         ...             ...              07.06                08.10                 05.35              15.05                                18.00                                              20.51             20.40                                    22.25
+                              d         ...             ...              07.08                                                                                              18.01                                              20.53                                                      22.40
+31        Faridabad           d      05.40              ...              07.26                  ...                 05.52                                                   18.25                                              21.12
+145       Mathura             a      07.23            07.19              08.35                  ...                 07.40              16.25                                20.13                                              22.50               ...                                                      13.30
+                              d      07.28            07.20              08.40                  ...                 07.45              16.27                                20.18                                              22.55               ...                                                      13.35
+195       Raja-ki-Mandi       d      07.50              ...              09.10                  ...                   ...                ...                                21.05                                ...             ...               ...
+199       Agra Cantt.         a      08.10            07.50              09.25                09.50                 08.20              17.15                                22.05            19.45             18.50           23.45             22.38                                    00.50             14.15
+                              d      08.15            07.55              09.30                09.55                 08.25              17.20                                                                   18.55           23.50             22.40                                    00.55             14.20
+251       Dhaulpur            d      09.15            08.39              10.25                  ...                   ...                ...                                                   ...               ...           00.48               ...
+317       Gwalior             a      10.19            09.23              11.50                11.07                 10.31              19.28                                                 21.15             20.40           01.49             00.24                                                      16.05
+                              d      10.21            09.28              11.55                11.09                 10.33              19.30                                                 21.17             20.42           01.51             00.26                                                      16.07
+389       Datia               a      11.20                               13.00                  ...                   ...                                                                      ...                             02.52
+                              d                                          13.02                                                                                                                 ...                             02.54
+          Virangana           a      12.15            10.45                                                         12.00              20.55             01.30                               22.50             22.20           04.05             01.50                                    03.50             17.45
+414       Lakshmibai          d      12.23            10.50              13.55                12.35                 12.08              21.03             01.50                               22.58             22.28           04.10             01.58                                    03.55             17.53
+          Jhansi
+504       Lalitpur            d      13.25            11.42                                                           ...              21.58             02.50                                 ...               ...           05.56                                                                        18.48
+567       Bina                a      14.35            12.40                                                         14.25              23.18             04.05                               00.50             01.00           07.05             03.50                                                      19.55
+                              d      14.40            12.42                                                         14.30              23.20             04.10                               00.53             01.05           07.10             03.52                                                      20.00
+652       Vidisha             d      15.40              ...                                                           ...              00.22                ...                                ...               ...           08.22             04.52                                                      21.00
+705       Bhopal              a      16.35            14.12                                                         16.15              01.05             06.00                                 ...             02.55           09.15             05.40                                    07.40             21.50
+                              d      16.40            14.15                                                         16.25              01.10             06.10                                                 03.05           09.20             05.45                                    07.50             21.55
+7 11      Rani                a      16.53            14.40                                                           ...                ...             06.28                               02.40             03.17           09.32             06.20                18.00                                 22.08
+          Kamalapati          d      16.55                                                                            ...                ...             06.30                               02.50             03.19           09.34                                                                        22.10
+779       Narmadapuram        d      18.00                                                                            ...              02.14                ...                                ...               ...           10.50                                  18.57                                 23.08
+796       Itarsi              a      18.35                                                                          18.20              02.45             07.45                               04.15             04.30           11.15                                  19.15                                 23.45
+                              d      18.45                                                                          18.25              02.55             07.55                               04.20             04.40           11.25                                  19.20                                 23.55
+          Amla                d                                                                                                        05.09                                                                                                                                                                02.25
+          Chhindwara          a                                                                                                                                                                                                                                                                             05.00
+                              d                                                                                                                                                                                                                                                                             05.10
+
+          Seoni               a                                                                                                                                                                                                                                                                             06.20
+
+872       Harda               d      19.38                                                                                                               09.35                               05.13             05.33           12.24                                  20.07
+980       Khandwa             a      21.37                                                                          20.53                                11.18                               06.43             07.13           14.23                                  22.13               12.23
+                              d      21.40                                                                          20.55                                11.20                               06.45             07.15           14.25                                  22.15               12.25
+1049      Burhanpur           d      22.30                                                                          21.45                                12.12                               07.40             08.05           15.25                                    ...
+1103      Bhusaval            a      23.25                                                                          22.40              15.05             13.15                               08.25             09.00           16.30                                  00.05               14.15
+                              d      23.30                                                                          22.45                                13.20                               08.30             09.05           16.35                                  00.10               14.20
+1128      Jalgaon             d      00.03                                                                            ...                                   ...                              09.02             09.37           17.02                                    ...
+1175      Pachora             d         ...                                                                           ...                                   ...                                ...               ...           17.35                                    ...
+1230      Chalisgaon          d      01.00                                                                            ...                                   ...                                ...               ...           18.12                                    ...
+                                     01.02
+1287      Manmad              a      01.55                                                                          01.03                                15.52                               10.38             11.33           19.13                                    ...
+                              d      02.00                                                                          01.05                                15.55                               10.40             11.35           19.15                                    ...
+1370      Sainagar Shirdi     a
+1360      Nasik Road          d      03.00                                                                          02.08                                16.55                               11.40             12.27           20.13                                    ...               17.35
+                                     03.05                                                                                                                                                                     12.30
+1366      Devlali             d                                                                                       ...                                   ...                                ...               ...           20.20                                    ...
+1411      Igatpuri            a                                                                                                                                                                ...               ...
+                              d
+1494      Kalyan              a      06.12                                                                          05.17                                19.47                               14.42             15.12           22.47                                  06.17               20.22
+                              d      06.15                                                                          05.20                                19.50                               14.45             15.15           22.50                                  06.20               20.25
+1514      Thane               a         ...                                                                                                              20.12                               15.07             15.32           23.12                                  06.38
+                              d                                                                                                                          20.15                               15.10             15.35           23.15                                  06.40
+1530      Lokmanya            a                                                                                                                          20.50                               16.05             16.15                                                  07.25               21.30
+          Tilak (T)
+1539      Dadar               a      07.02                                                                                                                                                                                     23.37
+                              d      07.05                                                                                                                                                                                     23.40
+
+1548      Mumbai CSMT         a      07.35                                                                                                                                                                                     00.05
+
+      Days of arrival at              Daily           Daily              Daily              Except F                Daily               Sa,M             Th,Tu              Daily              Su               Su             Daily             Daily                  Sa                W, Sa              Daily
+      destination station
+        To Table No.                                                                                                  26              via 34A            via 6A
+* To be cancelled between Gwalior and Virangana Laxmibai Jhansi from 01.01.2026 to 28.02.2026 & 01.12.2026 to 28.02.2027 due to foggy season.
+
+
+                                                                                                                                                            83
+######## PAGE 1
+                                           Kalka Sai         Amb Andaura            Bareilly      Kurukshetra Jn.       Khajuraho Bhopal        Nizamudin Mumbai          Sabarmati          Saharsa          Bina          Asansol       Nizamuddin Rani        Hoshiarpur          Dhule-          Banaras-
+           TRAIN NAME                    Nagar Shirdi            Hazur               Indore        Khajuraho Jn.          Mahamana SF             CSMT Rajdhani             Gwalior       Ahmedabad         Bhopal       Ahmedabad            Kamalapati         Agra Cantt.        Mumbai          Khajuraho
+                                            Express         Sahib Nanded            Express            Express                Express                 Express              Express           Express         MEMU           Express         Vande Bharat           Express           CSMT         Vande Bharat
+                                                                Express                                                                                                                                     Express                             Express                             Express          Express
+
+            Train Number                     22456               22710               14320              11842                  22164                    22222                22548            19484          11606           19436               20172              11906*            11012            26506
+     Class of accommodation               2A,3A SL,II          2A,3A SL,II        2A,3A SL,II       1A,2A,3A SL,II           CC 2S, II              1A,2A, 3A,P           2A,3A SL,II     2A,3A SL,II,P        2S        2A,3A SL,II,P           EC,CC            2A,3A,SL,II       CC,2S,II          CC,EC
+
+          From Table No.                      27A                  27A                55A                16A                                                                  23A              18A                             1A                                     16A                               24A
+
+        Days of departure at                 Th,Su                 Th                  W                 Daily                  Daily                   Daily               Tu,F,Sa         Except Sa         Daily            Sa              Except Sa             Daily            Daily         Except Th
+         originating station
+
+Km       New Delhi                 a         22.15                23.00                                  18.05
+                                   d         22.25                23.15                                  18.20
+         Delhi Sarai Rohilla       d
+
+10       Nizamuddin                a         22.36                                                       18.31                                          16.55                                                                                    14.40
+                                   d         22.38                                                       18.33
+31       Faridabad                 d                                                                     18.52
+145      Mathura                   a         00.08                00.41                                  20.35                                                                                                                                                       09.23
+                                   d         00.10                00.43                                  20.40                                                                                                                                                       09.25
+
+195      Raja-ki-Mandi             d           ...                  ...                ...
+199      Agra Cantt.               a         00.50                01.20              18.50               21.25                                          18.45                06.55                                                               16.16               11.00
+                                   d         00.55                01.25              18.55               21.30                                          18.47                07.05                                                               16.20
+
+251      Dhaulpur                  d           ...                  ..                 ...               22.43                                                               07.55
+317      Gwalior                   a         02.27                02.58              20.40               00.16                                          20.08                09.25                                                               17.38
+                                   d         02.29                03.00              20.42               00.18                                          20.10                                                                                    17.42
+
+389      Datia                     a           ...                  ...                ...
+                                   d
+
+         Virangana                 a         03.50                04.30              22.20               02.05               Khajuraho                  21.28                                                                                    18.56                                               Khajuraho
+414      Lakshmibai                d         03.55                04.38              22.28               02.13                  Dep.                    21.33                                                                                    19.00                                               Arr. 13.10
+         Jhansi                                                                                                                 16.30
+
+504      Lalitpur                  d           ...                  ...                ...               04.05                 19.16                                                          16.05                          16.05
+567      Bina                      a           ...                06.30              00.50                                     20.45                                                                          11.15
+                                   d           ...                06.35              01.00                                     20.50
+
+652      Vidisha                   d           ...                  ...              02.00                                     22.03                                                                          12.28
+705      Bhopal                    a         07.40                08.25                ...                                     23.05                    00.35                                                 13.40
+                                   d         07.50                08.35                                                                                 00.40
+
+7 11     Rani Kamalapati           a           ...                08.47                                                                                                                       20.15                          20.15               22.16
+                                   d           ...                08.49                                                                                                                       20.20                          20.20
+779      Narmadapuram              d           ...                  ...
+
+796      Itarsi                    a         09.30                10.10                                                                                                                       21.50                          21.50
+                                   d         09.35                10.20                                                                                                                       22.00                          22.00
+         Amla                      d
+         Chhindwara                a
+
+872      Harda                     d           ...                  ...
+980      Khandwa                   a         12.23                13.05                                                                                                                       00.30
+                                   d         12.25                13.10                                                                                                                       00.32
+
+1049     Burhanpur                 d                                                                                                                                                          01.20
+                                                                                                                                                                                              01.21
+1103     Bhusaval                  a         14.05                                                                                                      05.15                                 02.25                          02.25
+                                   d         14.10                                                                                                      05.17                                 02.30                          02.30
+
+1128     Jalgaon                   d                                                                                                                    05.40
+1175     Pachora                   d
+
+1230     Chalisgaon                d                                                                                                                                                                                                                                                  07.30
+                                                                                                                                                                                                                                                                                      07.33
+1287     Manmad                    a         16.25                                                                                                                                                                                                                                    08.35
+                                   d         16.30                                                                                                                                                                                                                                    08.40
+
+1370     Sainagar Shirdi           a         18.40
+
+1360     Nasik Road                d                                                                                                                    08.10                                                                                                                         09.31
+                                                                                                                                                                                                                                                                                      09.33
+1366     Devlali                   d
+
+1411     Igatpuri                  a                                                                                                                                                                                                                                                  10.30
+                                   d                                                                                                                                                                                                                                                  10.35
+1494     Kalyan                    a                                                                                                                    10.13                                                                                                                         12.20
+                                   d                                                                                                                    10.15                                                                                                                         12.22
+1514     Thane                     d                                                                                                                                                                                                                                                  12.36
+                                                                                                                                                                                                                                                                                      12.39
+
+1530     Lokmanya Tilak (T)        a
+1539     Dadar                     a                                                                                                                                                                                                                                                  13.12
+                                   d                                                                                                                                                                                                                                                  13.15
+
+1548     Mumbai CSMT               a                                                                                                                    11.15                                                                                                                         14.15
+
+          Days of arrival at                  F,  M                 F                  Th                Daily                  Daily                   Daily                W,Sa,          Except Su         Daily            M               Except Sa             Daily            Daily         Except Th
+         destination station                                                                                                                                                   Su
+            To Table No.                                           53                  4A                                                                                                      34A                            34A
+* Train No. 11906 will be cancelled on Tuesday, Thursday and Saturday due to foggy season from 01.01.2026 to 28.02.2026 & 01.12.2026 to 28.02.2027.
+
+                                                                                                                                                     84
+######## PAGE 2
+                                    Bhusaval           Lokmanya                 Rani          Agra Cantt.      Lokmanya           Ernakulam               Virangana             Mumbai          Virangana      Lokmanya Tilak         Lokmanya                Rani            Mumbai         Lokmanya             Seoni
+                                  Nizamuddin             Tilak (T)          Kamlapati          New Delhi         Tilak (T)       Nizamuddin               Laxmibai               CSMT           Laxmibai        (T) Agra  Cantt.     Tilak (T) Rani     Kamlapati New          CSMT           Tilak (T)         Patalkot-
+        TRAIN NAME                 Gondwana         Ayodhya Cantt.         Nizamuddin           Intercity        Bareilly          Mangala          Jhansi Nizamuddin           Firozpur       Jhansi New           Lashkar            Kamlapati              Delhi           Amritsar      Haridwar AC         Firozpur
+                                    Express          Tulsi Express            Bhopal            Express          Express        Lakshadweep          Gatiman Express          Punjab Mail        Delhi Taj          Express             Express            Shatabdi           Express         Express          Superfast
+                                                                              Express                                               Express                                                      Express                                                    Express                                             Express
+        Train Number                  12405               22129                12155              14211           14313              12617                  12049                12137            12279*             12161               12153               12001             11057            12171             20423
+  Class of accommodation              2A,3A          2A,3A, 3E SL,II           1A,2A,              CC             2A,3A,             2A,3A                  EC,CC              1A,2A,3A             CC               2A,3A               2A,3A               EC,CC             2A,3A            1A,2A,         2A,3A SL,II
+                                       SL,II                                  3A,SL,II            2S,II            SL,II             SL,II,P                                     SL,II,P           2S,II             SL,II,P             SL,II,P                                SL,II            3A,P
+       From Table No.                  40A                 via 6                                                                      26A                                                                                                                                        39                                 39
+    Days of departure at              Tu,Su               Tu,Su                 Daily             Daily              M                Daily                Except F               Daily            Daily                F                  Th                 Daily             Daily           M, Th             Daily
+      originating station
+
+km.    Mumbai CSMT            d                                                                                                                                                   19.35                                                                                         23.30
+
+                              a                                                                                                                                                   19.47                                                                                         23.37
+9      Dadar                  d                                                                                                                                                   19.50                                                                                         23.40
+
+
+16     Lokmanya               d                           06.00                                                    08.05                                                                                             16.25                16.25                                                 07.55
+       Tilak (T)
+33     Thane                  d                           06.20                                                      ...                                                            ...                              16.45                16.45                                 00.05             ...
+54     Kalyan                 a                           06.37                                                    08.37             13.27                                        20.32                              17.07                17.07                                 00.32           08.32
+                              d                           06.40                                                    08.40             13.30                                        20.35                              17.10                17.10                                 00.35           08.35
+137    Igatpuri               a                           08.27                                                     ....                ...                                        ....                                ....                ....                                  ....             ...
+                              d                           08.32
+182    Devlali                d                              ...                                                     ...                ...                                         ...                                 ...                 ...                                 02.44
+188    Nasik Road             d                           09.45                                                    11.20             16.40                                        23.00                              19.30                  ...                                 02.55           11.00
+1370   Sainagar Shirdi
+261    Manmad                 a                           10.50                                                    12.15             17.33                                        00.07                              20.35                  ...                                 04.02
+                              d                           10.55                                                    12.20             17.35                                        00.10                              20.37                  ...                                 04.05
+328    Chalisgaon             d                              ...                                                     ...                ...                                       00.55                                 ...                 ...                                 05.00
+373    Pachora                d                              ...                                                     ...                ..                                          ...                                 ...                ....                                 05.30
+420    Jalgaon                d                              ...                                                   14.10                ...                                       02.05                              22.32                  ...                                 06.15
+445    Bhusaval               a       06.00               13.05                                                    14.45             19.50                                        02.40                              23.15                23.15                                 06.45           14.10
+                              d                           13.10                                                    14.50             19.55                                        02.45                              23.20                23.20                                 06.50           14.15
+499    Burhanpur              d                           14.00                                                    15.40             20.45                                        03.30                              00.12                  ...                                 07.45
+568    Khandwa                a                           15.12                                                    16.47             22.17                                        04.52                              01.27                01.27                                 09.15           16.13
+                              d                           15.15                                                    16.50             22.20                                        04.55                              01.30                01.30                                 09.20           16.15
+676    Harda                  d                           16.22                                                    18.10                ...                                       06.03                              02.32                02.32                                 10.55             ...
+
+       Seoni                  d                                                                                                                                                                                                                                                                                   08.20
+
+       Chhindwara             a                                                                                                                                                                                                                                                                                   09.20
+                              d                                                                                                                                                                                                                                                                                   09.45
+       Amla                   d       15.02                                                                                                                                                                                                                                                                       12.13
+752    Itarsi                 a       17.45               17.35                                                    19.40             00.55                                        07.30                              03.55                03.55                                 12.25             ...             14.35
+                              d       17.50               17.40                                                    19.45             01.05                                        07.40                              04.00                04.00                                 12.35             ...             14.45
+769    Narmadapuram           d       18.10                  ...                                                     ...                ...                                       08.00                                 ...               04.20                                 12.54             ...             15.04
+842    Rani Kamalapati        a         ...               19.28                22.40                               21.13                ...                                       09.28                              05.40                05.50               15.10             14.46             ...             16.13
+                              d                           19.30                                                    21.15                                                          09.30                              05.50                                                      14.48             ...             16.15
+848    Bhopal                 a       19.25               19.40                22.53                               21.30             02.50                                        09.45                                 ...                                   15.22             15.25           20.40             16.45
+                              d       19.35               19.50                22.58                               21.40             02.55                                        09.50                                                                       15.25             15.30           20.50             16.50
+908    Vidisha                d       20.17                  ...               23.35                                 ...                ...                                       10.27                                 ...                                     ...             16.10             ...             17.27
+993    Bina                   a       21.38               21.48                00.45                               00.10             04.45                                        12.00                              08.02                                    17.00             17.50             ...             19.05
+                              d       21.40               21.50                00.47                               00.15             04.50                                        12.05                              08.05                                    17.02             17.55             ...             19.10
+1055   Lalitpur               d       22.20               22.32                   ...                                ...                ...                                       12.50                                 ...                                   17.35             18.41             ...             19.49
+       Virangana              a       23.30               00.02                02.27                               03.05             06.30                                        14.15                              11.32                                    18.40             20.20           00.40             21.07
+1145   Lakshmibai             d       23.38               00.12                02.32                               03.13             06.38                   15.00                14.23            15.10             11.40                                    18.45             20.28           00.45             21.15
+       Jhansi
+1170   Datia                  a         ...                                       ...                                ...                ...                                       14.44            15.29                                                                        20.49             ...
+                              d                                                                                                                                                   14.46            15.31                                                                        20.51
+1242   Gwalior                a       00.48                                    03.30                               04.25             07.50                   16.03                15.40            16.24             12.45                                    19.40             21.51             ...             22.26
+                              d       00.50                                    03.32                               04.27             07.52                   16.05                15.42            16.29             12.47                                    19.45             21.53                             22.28
+1308   Dhaulpur               d         ...                                       ...                                ...                ...                                       17.20            17.40                ...                                   20.45             23.00             ...
+1361   Agra Cantt.            a       02.15                                    05.15              05.45            06.25             09.55                   17.30                18.00            18.15             15.20                                    21.20             23.45           03.40             00.10
+                              d       02.20                                    05.17                               06.30             10.00                   17.35                18.05            18.20                                                      21.25             23.50           03.42             00.15
+1365   Raja-ki-Mandi          d         ...                                       ...             05.53              ...                ...                    ...                18.13            18.28                                                        ...               ...             ...
+1415   Mathura                a       02.55                                       ...             06.20                              10.33                     ...                18.45            19.00                                                      22.00             00.30             ...             00.50
+                              d       02.57                                       ...             06.25                              10.38                                        18.50            19.05                                                      22.01             00.35                             00.55
+1529   Faridabad              d                                                                   08.51                              12.50                     ...                20.35            20.45                                                        ...             02.47
+1550   Nizamuddin             a       05.00                                    08.00              09.15                              13.35                   19.30                20.55            21.05                                                        ...             03.07           06.40             Delhi
+                              d                                                                   09.17                                                                           20.57            21.07                                                        ...             03.09           06.55         Safdarjung
+       Delhi Sarai                                                                                                                                                                                                                                                                                                03.36
+       Rohilla                a                                                                                                                                                                                                                                                                                   03.40
+
+1555   New Delhi              a                                                                   10.00                                                                           21.25            21.35                                                      23.50             03.30
+                              d                                                                                                                                                   21.40                                                                                         03.45
+      Days of arrival at               W, M                W, M                 Daily             Daily             Tu                Daily                Except F               Daily            Daily               Sa                   F                 Daily             Daily           Tu, F             Daily
+      destination station
+To Table No.                                                47                                                      55                                                             39                                                                                            15               75
+* To be cancelled between Virangana Laxmibai Jhasi and Gwalior from 01.01.2026 to 28.02.2026 & 01.12.2026 to 28.02.2027 due to foggy season.
+
+
+
+                                                                                                                                                              85
+######## PAGE 3
+                                        Sai Nagar Hazur Sahib          Indore    Khajuraho Jn.       Bhopal       Mumbai CSMT          Gwalior      Ahmedabad        Bhopal       Ahmedabad  Rani Kamalapati Agra Cantt.               Mumbai       Khajuraho-
+            TRAIN NAME                     Shirdi    Nanded Amb Bareilly          Kurukshetra      Khajuraho         Nizamudin       Sabarmati        Saharsa          Bina         Asansol         Nizamuddin        Hoshiarpur        CSMT          Banaras
+                                           Kalka        Andaura       Express     Jn. Express      Mahamana           Rajdhani         Express        Express         MEMU          Express        Vande Bharat         Express         Dhule      Vande Bharat
+                                         Express        Express                                    SF Express         Express                                        Express                          Express                          Express        Express
+            Train Number                   22455          22709         14319         11841           22163             22221           22547          19483          11605          19435              20171            11905*         11 0 11         26505
+      Class of accommodation               2A,3A          2A,3A         2A,3A         2A,3A             CC          1A,2A, 3A,P         2A,3A          2A,3A            2s           2A,3A,            EC, CC         2A,3A, SL,II    CC, 2S,II        CC,EC
+                                            SL,II          SL,II         SL,II        SL,II            2S,II                             SL,II         SL,II, P                      SL,II,P
+          From Table No.                                 via 53A          4                                                                              34                            34
+  Days of departure at originating         Tu, Sa           Tu            Th          Daily            Daily             Daily          W,Sa,        Except Th         Daily           Th            Except Sa            Daily          Daily       Except Th
+                station                                                                                                                   Su
+
+km.     Mumbai CSMT                 d                                                                                    16.00                                                                                                           12.00
+
+9       Dadar                       d                                                                                                                                                                                                   12.10
+                                                                                                                                                                                                                                        12.12
+16      Lokmanya Tilak (T)          d
+33      Thane                       d                                                                                                                                                                                                   12.35
+                                                                                                                                                                                                                                        12.37
+54      Kalyan                      a                                                                                   16.43                                                                                                           12.58
+                                    d                                                                                   16.45                                                                                                           13.00
+137     Igatpuri                    d                                                                                                                                                                                                   15.10
+                                                                                                                                                                                                                                        15.15
+182     Devlali                     d
+188     Nasik Road                  d                                                                                   18.19                                                                                                           15.50
+                                                                                                                                                                                                                                        15.52
+
+1370    Sainagar Shirdi                     10.00
+
+261     Manmad                      a      11.35                                                                                                                                                                                        17.05
+                                    d      11.40                                                                                                                                                                                        17.10
+328     Chalisgaon                  d                                                                                                                                                                                                   18.55
+                                                                                                                                                                                                                                        19.00
+373     Pachora                     d
+420     Jalgaon                     d                                                                                   20.45
+445     Bhusaval                    a      14.10                                                                        21.15                           11.30                         11.30
+                                    d      14.15                                                                        21.17                           11.35                         11.35
+499     Burhanpur                   d                                                                                                                   12.30
+568     Khandwa                     a      16.13          20.12                                                                                         13.43
+                                    d      16.15          20.15                                                                                         13.45
+676     Harda                       d        ...
+        Chhindwara                  d
+        Amla                        d
+752     Itarsi                      a      18.45          22.40                                                                                         16.00                         16.00
+                                    d      18.50          22.45                                                                                         16.10                         16.10
+769     Narmadapuram                d        ...            ...
+842     Rani Kamalapati             a        ...          00.06                                                                                         17.40                         17.40              05.40
+                                    d        ...          00.08                                                                                         17.45                         17.45
+848     Bhopal                      a      20.40          00.20                                        06.30            01.55                                          14.20
+                                    d      20.50          00.30                                                         02.00
+908     Vidisha                     d        ...            ...         22.20                          07.10                                                           15.20
+993     Bina                        a        ...          02.15         00.05                          08.30                                                           16.55
+                                    d        ...          02.18         00.15                          08.35
+1055    Lalitpur                    d                                                 22.10            09.25                                            20.53                         20.53
+
+1145    Virangana Lakshmibai        a      00.40          04.01         03.05         23.45          Khajuraho          05.06                                                                           08.39                                         Khajuraho
+        Jhansi                      d      00.45          04.09         03.13         23.53          Arr. 12.55         05.11                                                                           08.43                                         Dep. 15.20
+
+1170    Datia                       a        ...            ...           ...
+                                    d
+1242    Gwalior                     a      01.55          05.09         04.25         01.42                             06.09            20.10                                                          09.41
+                                    d      01.57          05.11         04.27         01.44                             06.11                                                                           09.45
+1308    Dhaulpur                    d        ...            ...           ...         02.58                                             20.58
+1361    Agra Cantt.                 a      03.40          06.45         06.25         03.50                             07.30           21.50                                                           11.01              19.10
+                                    d      03.42          06.50         06.30         03.55                             07.32           22.00                                                           11.05
+1365    Raja-ki-Mandi               d        ...            ...
+1415    Mathura                     a      04.33          07.28                       05.00                                                                                                                               19.53
+                                    d      04.35          07.30                       05.05                                                                                                                               19.55
+1529    Faridabad                   d                                                 07.33
+1550    Nizamuddin                  a      06.28                                      08.12                              09.55                                                                           13.16
+                                    d      06.30                                      08.14
+        Delhi Sarai Rohilla         a
+1555    New Delhi                   a      06.55          10.10                       08.45
+                                    d      07.10          10.25                       09.00
+          Days of arrival at               W,Su             Su            F           Daily            Daily             Daily         Th,Su M        Except F         Daily            F            Except Sa            Daily          Daily       Except Th
+         destination station
+To Table No.                                 27             27            55            16                                                23             18                             1                                   16                            24
+*Train No.11905 will be cancelled on Monday, Wednesday and Friday due to foggy season from 01.01.2026 to 28.02.2026 & 01.12.2026 to 28.02.2027.
+                                                                                                                               86

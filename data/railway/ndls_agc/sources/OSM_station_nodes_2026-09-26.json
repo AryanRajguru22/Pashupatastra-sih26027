@@ -1,0 +1,105 @@
+{
+  "source": "OpenStreetMap via Overpass API (overpass-api.de)",
+  "query": "[out:json][timeout:60][bbox:27.10,77.10,28.70,78.10]; node[\"railway\"~\"^(station|halt)$\"]; out body;",
+  "osm_data_timestamp": "2026-09-26T09:31:05Z",
+  "retrieved": "2026-09-26",
+  "full_response_sha256": "40d396a8a9be1d0ec473d87fcef7d7a6dc7f376545b7e4c56133e93cee5c35f4",
+  "licence": "Open Database Licence (ODbL) 1.0 - (c) OpenStreetMap contributors - https://www.openstreetmap.org/copyright",
+  "nodes": [
+    {
+      "osm_node_id": 554257841,
+      "station_id": "NDLS",
+      "lat": 28.6434826,
+      "lon": 77.2227421,
+      "tags": {
+        "railway": "station",
+        "name": "New Delhi",
+        "ref": "NDLS",
+        "wikidata": "Q3634456",
+        "operator": "Delhi Metro Rail Corporation Limited"
+      }
+    },
+    {
+      "osm_node_id": 1988585233,
+      "station_id": "NZM",
+      "lat": 28.5889646,
+      "lon": 77.2535202,
+      "tags": {
+        "railway": "station",
+        "name": "Hazrat Nizamuddin Junction",
+        "ref": "NZM",
+        "wikidata": "Q2723139",
+        "operator": "NR"
+      }
+    },
+    {
+      "osm_node_id": 1572649890,
+      "station_id": "FDB",
+      "lat": 28.4107617,
+      "lon": 77.3070774,
+      "tags": {
+        "railway": "station",
+        "name": "Faridabad",
+        "ref": "FDB",
+        "wikidata": "Q15217364",
+        "operator": "NR"
+      }
+    },
+    {
+      "osm_node_id": 1078916610,
+      "station_id": "PWL",
+      "lat": 28.1515806,
+      "lon": 77.3417952,
+      "tags": {
+        "railway": "station",
+        "name": "Palwal",
+        "ref": "PWL",
+        "wikidata": "Q24947050",
+        "operator": "NR"
+      }
+    },
+    {
+      "osm_node_id": 790920249,
+      "station_id": "MTJ",
+      "lat": 27.4801125,
+      "lon": 77.6737596,
+      "tags": {
+        "railway": "station",
+        "name": "Mathura Junction",
+        "ref": "MTJ",
+        "wikidata": "Q15251338",
+        "operator": "NCR"
+      }
+    },
+    {
+      "osm_node_id": 301786568,
+      "station_id": "RKM",
+      "lat": 27.1940261,
+      "lon": 77.9970749,
+      "tags": {
+        "railway": "station",
+        "name": "Raja Ki Mandi",
+        "name:en": "Raja Ki Mandi",
+        "railway:ref": "RKM",
+        "ref": "RKM",
+        "wikidata": "Q15271403",
+        "operator": "NCR"
+      }
+    },
+    {
+      "osm_node_id": 458972632,
+      "station_id": "AGC",
+      "lat": 27.1589527,
+      "lon": 77.9900478,
+      "tags": {
+        "railway": "station",
+        "name": "Agra Cantonment",
+        "name:en": "Agra Cantonment",
+        "railway:ref": "AGC",
+        "ref": "AGC",
+        "wikidata": "Q3634740",
+        "operator": "North Central Railway"
+      }
+    }
+  ]
+}

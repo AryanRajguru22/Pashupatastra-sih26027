@@ -19,6 +19,7 @@ import {
 import { SECTION_IDS, TRACKS, stationName } from "@/lib/fieldLocation";
 import { duration, planWindow, recorded, shortId } from "@/lib/time";
 import { durationOf, locationText, obligationText } from "@/lib/jobView";
+import { pick } from "@/lib/railwayData";
 import { useResource } from "@/lib/useResource";
 import {
   BTN_GHOST,
@@ -134,7 +135,10 @@ export default function JobsPage() {
             </span>
           </span>
         }
-        subtitle="Deterministic risk scoring (fixed-weight baseline scorer, not a trained model) over the synthetic NDLS–AGC scenario."
+        subtitle={pick(
+          "Deterministic risk scoring (fixed-weight baseline scorer, not a trained model) over demo maintenance inputs on the NDLS–AGC public-data snapshot.",
+          "Deterministic risk scoring (fixed-weight baseline scorer, not a trained model) over the synthetic NDLS–AGC scenario.",
+        )}
         right={
           <>
             <ProvenanceChip />
@@ -346,7 +350,7 @@ export default function JobsPage() {
       <div className={`${CARD} grid md:grid-cols-3 gap-space-md`}>
         <Note k="Last decision reason" v="Authority postpone/reject reasons and solver refusals are shown on the job detail page." />
         <Note k="Duration" v={`Modelled block length from the work type (e.g. ${duration(90 * 60)} for an emergency repair).`} />
-        <Note k="Stations" v={`Sections use real station codes (${stationName("MTJ")}, ${stationName("RKM")} …) on a synthetic corridor.`} />
+        <Note k="Stations" v={pick(`Sections use the real stations (${stationName("MTJ")}, ${stationName("RKM")} …) at dated public-snapshot chainage. The observations are demo inputs grounded in real railway work categories.`, `Sections use real station codes (${stationName("MTJ")}, ${stationName("RKM")} …) on a synthetic corridor.`)} />
       </div>
     </Page>
   );

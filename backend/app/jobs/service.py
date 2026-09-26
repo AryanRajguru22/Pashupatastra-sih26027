@@ -21,6 +21,12 @@ from backend.app.data.corridor_dataset import (
     load_corridor_dataset,
 )
 
+from backend.app.data.dataset_selection import (
+    MODE_REAL,
+    load_configured_dataset,
+    railway_data_mode,
+)
+
 from backend.app.data.horizon_anchor import horizon_relative_minutes
 
 from backend.app.data.feature_adapter import (
@@ -460,6 +466,15 @@ class PossessionInputs:
     timetable_provenance: ProvenanceLevel
     possession_provenance: ProvenanceLevel
     snapshot: Optional[TrainDataSnapshot] = None
+    # The other two axes of the canonical profile. They default to SYNTHETIC -
+    # what every path reported before a dataset could declare its own basis
+    # (backend.app.data.corridor_dataset.DataBasis) - so a caller that does not
+    # set them is unchanged.
+    topology_provenance: ProvenanceLevel = ProvenanceLevel.SYNTHETIC
+    asset_condition_provenance: ProvenanceLevel = ProvenanceLevel.SYNTHETIC
+    # Legacy label reported as possession_source. None = derive it from the
+    # possession axis exactly as before (to_possession_source).
+    possession_source_label: Optional[str] = None
 
     @property
     def rejections(self) -> tuple:
@@ -829,9 +844,19 @@ class JobService:
         """
 
         if DEFAULT_CORRIDOR_ID in GENERATED_CORRIDOR_IDS:
+            if railway_data_mode() == MODE_REAL:
+                raise ValueError(
+                    "PASHUPAT_RAILWAY_DATA=real needs the NDLS-AGC dataset "
+                    "corridor (PASHUPAT_CORRIDOR_ID=CORR-NDLS-AGC); the "
+                    f"generated corridor {DEFAULT_CORRIDOR_ID!r} has no real "
+                    "snapshot. Refusing to serve it under a real-data label."
+                )
             return None
 
-        dataset = load_corridor_dataset()
+        # The synthetic dataset unless PASHUPAT_RAILWAY_DATA=real selects the
+        # offline snapshot (backend.app.data.dataset_selection). Real mode
+        # never degrades to synthetic: a bad snapshot raises here.
+        dataset = load_configured_dataset()
 
         if dataset.corridor_id != DEFAULT_CORRIDOR_ID:
             raise ValueError(
@@ -3049,32 +3074,58 @@ class JobService:
                 uncovered_dates=uncovered_dates,
             )
 
+        # The dataset states what its timetable IS (DataBasis). The default
+        # basis is SYNTHETIC_SCHEDULED, so every existing dataset behaves as
+        # before; a real snapshot declares REAL_SCHEDULED.
+        basis = dataset.basis
+
         provider = StaticTimetableProvider(
             dataset.timetable_records,
             dataset.topology,
-            provenance=TrainDataProvenance.SYNTHETIC_SCHEDULED.value,
+            provenance=basis.timetable_train_provenance,
             horizon_start=horizon_start,
         )
+
+        derivation_rules = {}
+        if basis.safety_buffer_minutes is not None:
+            derivation_rules["safety_buffer_minutes"] = basis.safety_buffer_minutes
+        if basis.minimum_window_minutes is not None:
+            derivation_rules["minimum_window_minutes"] = basis.minimum_window_minutes
 
         windows, snapshot = possession_windows_from_provider(
             provider,
             dataset.topology,
             horizon_minutes=horizon_minutes,
             registry=dataset.registry,
+            **derivation_rules,
         )
 
         timetable_provenance = from_train_data_provenance(
             snapshot.provenance
         )
 
+        if timetable_provenance is ProvenanceLevel.SYNTHETIC:
+            possession_provenance = derived_possession_provenance(
+                timetable_provenance
+            )
+        elif basis.derived_possession is not None:
+            # Settled by the dataset itself (never above its timetable - see
+            # DataBasis). Without that declaration this still fails closed.
+            possession_provenance = basis.derived_possession
+        else:
+            possession_provenance = derived_possession_provenance(
+                timetable_provenance
+            )
+
         return PossessionInputs(
             windows=windows,
             derivation=POSSESSION_DERIVATION_CANONICAL_TIMETABLE,
             timetable_provenance=timetable_provenance,
-            possession_provenance=derived_possession_provenance(
-                timetable_provenance
-            ),
+            possession_provenance=possession_provenance,
             snapshot=snapshot,
+            topology_provenance=basis.topology,
+            asset_condition_provenance=basis.asset_condition,
+            possession_source_label=basis.possession_source_label,
         )
 
     def _generated_possession_inputs(

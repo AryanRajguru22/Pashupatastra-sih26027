@@ -7,6 +7,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { API_BASE_URL, CORRIDOR_ID, PERSONAS } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { nowClockIst } from "@/lib/time";
+import { pick } from "@/lib/railwayData";
 
 interface NavItem {
   href: string;
@@ -19,7 +20,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "OPERATE",
     items: [
-      { href: "/", label: "Command Center", icon: "space_dashboard" },
+      { href: "/", label: "Corridor Overview", icon: "space_dashboard" },
       { href: "/inspection", label: "Field Inspection", icon: "edit_location_alt" },
       { href: "/jobs", label: "Maintenance Jobs", icon: "format_list_bulleted" },
       { href: "/planning", label: "Planning", icon: "calendar_clock" },
@@ -92,7 +93,7 @@ export default function Shell({ children }: { children: ReactNode }) {
 
       <header className="fixed top-0 left-0 right-0 h-14 z-50 bg-surface-container-lowest/90 backdrop-blur-2xl shadow-[0_1px_12px_rgba(0,0,0,0.5)] flex items-center justify-between px-4">
         <div className="flex items-center gap-3 shrink-0">
-          <Link href="/" className="flex items-center gap-3" aria-label="Command Center">
+          <Link href="/" className="flex items-center gap-3" aria-label="Corridor Overview">
             <Image src="/logo.svg" alt="Pashupatastra emblem" width={30} height={36} className="h-7 w-auto object-contain" priority />
             <div className="flex flex-col">
               <span className="font-headline-lg text-headline-sm tracking-wide text-primary leading-none">
@@ -108,7 +109,10 @@ export default function Shell({ children }: { children: ReactNode }) {
             {CORRIDOR_ID}
           </span>
           <span className="font-label-caps text-label-caps text-on-surface-variant hidden xl:inline-block tracking-widest">
-            SYNTHETIC TIMETABLE (10-11 SEP 2026)
+            {pick(
+              "TIMETABLE: TAG-2026 · POSSESSION: DERIVED (10–11 SEP 2026)",
+              "SYNTHETIC TIMETABLE (10-11 SEP 2026)",
+            )}
           </span>
         </div>
 
@@ -123,7 +127,10 @@ export default function Shell({ children }: { children: ReactNode }) {
           </div>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-low border border-outline-variant/30">
             <span className="font-label-mono text-label-mono text-on-surface-variant">
-              DATA: <span className="text-secondary">SYNTHETIC</span>
+              DATA:{" "}
+              <span className="text-secondary" title={pick("Published railway data as a dated offline snapshot. Maintenance observations are demo inputs. No live feed.", "Synthetic demo dataset")}>
+                {pick("PUBLIC SNAPSHOT · DEMO INPUTS", "SYNTHETIC")}
+              </span>
             </span>
           </div>
           <div
@@ -238,8 +245,11 @@ export default function Shell({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-3 overflow-hidden">
           <span className="w-1.5 h-1.5 rounded-full bg-primary-container shrink-0" />
           <span className="font-label-mono text-label-mono text-outline tracking-wider truncate">
-            PASHUPATASTRA • CORRIDOR: NDLS-AGC • SOLVER: OR-TOOLS CP-SAT •
-            STRICTLY SYNTHETIC DEMO DATA — NOT LIVE INDIAN RAILWAYS DATA
+            PASHUPATASTRA • CORRIDOR: NDLS-AGC • SOLVER: OR-TOOLS CP-SAT •{" "}
+            {pick(
+              "DATED PUBLIC SNAPSHOT + DEMO MAINTENANCE INPUTS — NO LIVE INDIAN RAILWAYS FEED",
+              "STRICTLY SYNTHETIC DEMO DATA — NOT LIVE INDIAN RAILWAYS DATA",
+            )}
           </span>
         </div>
         <div className="flex items-center gap-4 shrink-0">

@@ -13,6 +13,7 @@ import {
   type OptimizationResponse,
 } from "@/lib/api";
 import { SECTIONS, TRACKS } from "@/lib/fieldLocation";
+import { IS_REAL, SNAPSHOT, pick, stationKmDisplay } from "@/lib/railwayData";
 import { REOPT_LABEL, classify, type ReoptRow } from "@/lib/reopt";
 import {
   HORIZON_MINUTES,
@@ -56,7 +57,7 @@ const PAGE_ERRORS: Record<string, string> = {
   POSSESSION_DATA_UNAVAILABLE:
     "Refused to schedule without possession data (fail-closed).",
   TIMETABLE_COVERAGE_GAP:
-    "The horizon touches a date the (synthetic) timetable does not cover.",
+    "The horizon touches a date the timetable snapshot does not cover.",
   COMMITTED_STATE_INCONSISTENT:
     "Integrity refusal. Escalate to an engineer; do not retry.",
   EXECUTION_HISTORY_INCONSISTENT:
@@ -211,7 +212,7 @@ export default function PlanningPage() {
                 ACTING AS <span className="text-on-surface">{persona.id}</span>
               </span>
               <span className="font-label-caps text-label-caps text-secondary font-semibold">
-                PLANNING HORIZON: 10–11 SEP 2026 (SYNTHETIC)
+                PLANNING HORIZON: 10–11 SEP 2026 {pick("(TAG-2026 PATTERN)", "(SYNTHETIC)")}
               </span>
             </div>
           </div>
@@ -219,16 +220,16 @@ export default function PlanningPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
             <div className="lg:col-span-8 flex flex-col gap-2">
               <span className="font-label-mono text-label-mono text-primary tracking-widest uppercase">
-                {CORRIDOR_ID} · SYSTEM DERIVED from SYNTHETIC inputs
+                {CORRIDOR_ID} · {pick("SYSTEM DERIVED from PUBLIC SNAPSHOT + DEMO INPUTS", "SYSTEM DERIVED from SYNTHETIC inputs")}
               </span>
               <h1 className="font-headline-lg text-headline-lg text-on-surface tracking-tight leading-none">
                 Possession Scheduling Engine
               </h1>
               <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mt-2">
                 Constraint programming (OR-Tools CP-SAT) places each active job
-                inside a possession window derived from train-free gaps in the
-                synthetic timetable. Approved blocks stay pinned; every open
-                proposal is re-proposed on each run.
+                inside a candidate possession window derived from train-free gaps in the{" "}
+                {pick("public TAG-2026 passenger timetable", "synthetic timetable")}. Approved blocks stay
+                pinned; every open proposal is re-proposed on each run.
               </p>
             </div>
             <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-3 justify-end items-stretch lg:items-end">
@@ -326,7 +327,7 @@ export default function PlanningPage() {
                   <div key={`${s.id}-${t}`} className="grid grid-cols-12 items-center py-1 hover:bg-surface-container-high/30 rounded px-1 transition-colors">
                     <div className="col-span-2 flex flex-col">
                       <span className="font-headline-sm text-body-md text-on-surface font-semibold">{s.start} – {s.end}</span>
-                      <span className="font-label-mono text-xs text-outline">{t} · KM {s.kmStart}.0–{s.kmEnd}.0</span>
+                      <span className="font-label-mono text-xs text-outline">{t} · KM {stationKmDisplay(s.start)}–{stationKmDisplay(s.end)}</span>
                     </div>
                     <div className="col-span-10 relative h-8 bg-surface-container-low/70 rounded border border-outline-variant/20">
                       <div className="absolute left-1/2 top-0 bottom-0 w-px border-r border-dashed border-primary-container/60 z-10" />
@@ -419,7 +420,7 @@ export default function PlanningPage() {
           Run optimization over <strong>{active.length}</strong> active job(s) on {CORRIDOR_ID}? Committed blocks stay pinned. Every open (unapproved) proposal will be re-proposed and gets a new run id. Authorities must review again.
         </p>
         <p className="font-label-mono text-[11px] text-outline">
-          Acting as {persona.id} ({persona.role}) — declared, not verified. Planning horizon 10 Sep 00:00 – 12 Sep 00:00 IST (synthetic).
+          Acting as {persona.id} ({persona.role}) — declared, not verified. Planning horizon 10 Sep 00:00 – 12 Sep 00:00 IST{pick("", " (synthetic)")}.
         </p>
         <div className="flex justify-end gap-space-sm">
           <button type="button" className={BTN_GHOST} disabled={running} onClick={() => setConfirm(false)}>Cancel</button>
@@ -459,7 +460,10 @@ function RunResult({ r, jobs, onShowRecord, showRecord }: { r: OptimizationRespo
   const nm = (id: string) => JOB_TYPE_LABEL[byId.get(id)?.work_type ?? ""] ?? "";
   const derivation =
     r.possession_derivation === "CANONICAL_TIMETABLE_DERIVED"
-      ? "Possession windows derived from train-free gaps in the (synthetic) timetable"
+      ? pick(
+          "Candidate possession windows derived from train-free gaps in the public TAG-2026 passenger timetable",
+          "Possession windows derived from train-free gaps in the (synthetic) timetable",
+        )
       : r.possession_derivation === "GENERATED_STATIC_SLOTS"
         ? "Fixed generated slots; no train data"
         : r.possession_derivation;
@@ -485,6 +489,11 @@ function RunResult({ r, jobs, onShowRecord, showRecord }: { r: OptimizationRespo
       <div className="font-label-mono text-[11px] text-on-surface-variant flex flex-col gap-1">
         <span>Run <span title={r.optimization_run_id}>{shortId(r.optimization_run_id, 12)}</span> · generated {recorded(r.generated_at)} <TimeTag kind="RECORDED" /></span>
         <span>{derivation} · {r.possession_window_count} possession windows over the horizon</span>
+        {IS_REAL && r.possession_derivation === "CANONICAL_TIMETABLE_DERIVED" && (
+          <span data-testid="candidate-window-label" className="text-secondary">
+            {SNAPSHOT.possession.label} · Timetable source: TAG-2026 · Possession: derived · Freight/EMU coverage: not included
+          </span>
+        )}
         <ProvenanceStrip p={r.provenance} />
       </div>
 

@@ -35,13 +35,14 @@ WHAT IT IS NOT
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 from backend.app.data.canonical_train import CorridorTopology
 from backend.app.data.generator import CorridorDataGenerator
 from backend.app.data.models import Corridor, RouteClassification, TrackSegment
+from backend.app.data.provenance import ProvenanceLevel
 from backend.app.data.section_registry import SectionRegistry
 
 
@@ -58,6 +59,59 @@ class CorridorDatasetError(ValueError):
 
 
 @dataclass(frozen=True)
+class DataBasis:
+    """What a dataset's inputs ARE, stated by the dataset itself.
+
+    The jobs pipeline used to hard-code SYNTHETIC for every input axis because
+    every dataset in this repository was. A dataset built from a real,
+    hashed public snapshot (backend.app.data.real_corridor_dataset) declares
+    its own basis here instead. The DEFAULT is the all-SYNTHETIC basis, so a
+    dataset that says nothing is treated exactly as before.
+
+    derived_possession is the level of possession windows derived from this
+    dataset's timetable. It is None unless the dataset explicitly settles it;
+    None with a non-synthetic timetable fails closed in the service (see
+    backend.app.jobs.service.derived_possession_provenance), never a guess.
+    It may not exceed the timetable's own level (checked below).
+    """
+
+    label: str = "SYNTHETIC"
+    topology: ProvenanceLevel = ProvenanceLevel.SYNTHETIC
+    timetable_train_provenance: str = "SYNTHETIC_SCHEDULED"
+    asset_condition: ProvenanceLevel = ProvenanceLevel.SYNTHETIC
+    derived_possession: Optional[ProvenanceLevel] = None
+    # Legacy possession_source label for windows this dataset derives. None
+    # keeps the existing behaviour (mechanically derived from the axis). A
+    # dataset whose windows are derived from a real timetable sets its own
+    # label so the axis can stay conservative (see real_corridor_dataset).
+    possession_source_label: Optional[str] = None
+    safety_buffer_minutes: Optional[int] = None
+    minimum_window_minutes: Optional[int] = None
+    snapshot_id: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if self.derived_possession is not None:
+            from backend.app.data.provenance import from_train_data_provenance
+
+            timetable_level = from_train_data_provenance(
+                self.timetable_train_provenance
+            )
+            if (
+                timetable_level is ProvenanceLevel.SYNTHETIC
+                and self.derived_possession is not ProvenanceLevel.SYNTHETIC
+            ):
+                raise ValueError(
+                    "Possession derived from a SYNTHETIC timetable cannot be "
+                    f"declared {self.derived_possession.value}: a derived "
+                    "window is never more real than its input."
+                )
+
+    @classmethod
+    def synthetic(cls) -> "DataBasis":
+        return cls()
+
+
+@dataclass(frozen=True)
 class CorridorDataset:
     """One loaded corridor: structure, section vocabulary and timetable.
 
@@ -65,12 +119,18 @@ class CorridorDataset:
     canonical adapter (backend.app.data.timetable_adapter, reached
     through backend.app.data.train_provider) is the only thing that
     reads a clock value, resolves a section or applies chronology rules.
+
+    basis and snapshot are additive (Real-data integration): both default to
+    the all-synthetic basis and no snapshot, so every pre-existing
+    construction site is unchanged.
     """
 
     corridor: Corridor
     topology: CorridorTopology
     registry: SectionRegistry
     timetable_records: Tuple[Dict[str, Any], ...]
+    basis: DataBasis = field(default_factory=DataBasis.synthetic)
+    snapshot: Optional[Any] = None
 
     @property
     def corridor_id(self) -> str:
@@ -222,6 +282,7 @@ def load_corridor_dataset(
 __all__ = [
     "DEFAULT_DATASET_PATH",
     "CorridorDataset",
+    "DataBasis",
     "CorridorDatasetError",
     "load_corridor_dataset",
 ]

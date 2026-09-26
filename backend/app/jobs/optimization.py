@@ -153,8 +153,10 @@ def _build_provenance_profile(
     reported. They are not restated independently here, which is what
     keeps them from ever disagreeing with the windows the solver saw.
 
-    topology and asset_condition remain SYNTHETIC on every path
-    available today:
+    topology and asset_condition come from the resolved PossessionInputs, which
+    take them from the dataset's declared DataBasis. They are SYNTHETIC on every
+    path except the real-snapshot dataset (asset_condition stays SYNTHETIC there
+    too - a demo input - so the weakest-link result is still SYNTHETIC):
 
       - a generated corridor's topology is CorridorDataGenerator's two
         abstract endpoints;
@@ -172,9 +174,9 @@ def _build_provenance_profile(
     """
 
     return ProvenanceProfile(
-        topology=ProvenanceLevel.SYNTHETIC,
+        topology=inputs.topology_provenance,
         timetable=inputs.timetable_provenance,
-        asset_condition=ProvenanceLevel.SYNTHETIC,
+        asset_condition=inputs.asset_condition_provenance,
         possession=inputs.possession_provenance,
     )
 
@@ -539,8 +541,9 @@ class JobOptimizationService:
             # docstring for why a true canonical-first direction needs a
             # real possession-provenance signal this pipeline does not
             # have yet.
-            possession_source = to_possession_source(
-                provenance_profile.possession
+            possession_source = (
+                possession.possession_source_label
+                or to_possession_source(provenance_profile.possession)
             )
 
             # The existing CP-SAT solver, unmodified: record_run calls

@@ -2,44 +2,27 @@
  * Field-location -> corridor chainage conversion.
  *
  * Mirrors backend/app/jobs/field_location.convert_field_location. The backend
- * exposes no topology endpoint, so this SYNTHETIC six-section table is carried
- * in the frontend (values verified against the backend registry).
+ * exposes no topology endpoint (the v1 API is frozen), so the station/section
+ * table comes from the build-time projection of the offline public snapshot
+ * (see railwayData.ts) - or the synthetic fallback table when the console is
+ * built for the synthetic dataset.
  *
- * distance_* are corridor-absolute metres and are the only stored location;
- * field_location is a cross-check that must agree within 1 mm.
+ * UNITS. The domain (stations, sections, chainage) is KILOMETRES. The frozen API
+ * and the database carry METRES: distance_* are corridor-absolute metres and are
+ * the only stored location; field_location offsets are metres from a station and
+ * are a cross-check that must agree within 1 mm. The km -> m conversion happens
+ * here, once, and the UI presents the result in km.
  */
 
-export interface Station {
-  id: string;
-  name: string;
-}
+import {
+  SECTIONS,
+  STATIONS,
+  type Section,
+  type Station,
+} from "@/lib/railwayData";
 
-export interface Section {
-  id: string;
-  start: string;
-  end: string;
-  kmStart: number;
-  kmEnd: number;
-}
-
-export const STATIONS: Station[] = [
-  { id: "NDLS", name: "New Delhi" },
-  { id: "NZM", name: "Hazrat Nizamuddin" },
-  { id: "FDB", name: "Faridabad" },
-  { id: "PWL", name: "Palwal" },
-  { id: "MTJ", name: "Mathura Junction" },
-  { id: "RKM", name: "Raja Ki Mandi" },
-  { id: "AGC", name: "Agra Cantt" },
-];
-
-export const SECTIONS: Section[] = [
-  { id: "NDLS-NZM", start: "NDLS", end: "NZM", kmStart: 0, kmEnd: 7 },
-  { id: "NZM-FDB", start: "NZM", end: "FDB", kmStart: 7, kmEnd: 32 },
-  { id: "FDB-PWL", start: "FDB", end: "PWL", kmStart: 32, kmEnd: 66 },
-  { id: "PWL-MTJ", start: "PWL", end: "MTJ", kmStart: 66, kmEnd: 133 },
-  { id: "MTJ-RKM", start: "MTJ", end: "RKM", kmStart: 133, kmEnd: 190 },
-  { id: "RKM-AGC", start: "RKM", end: "AGC", kmStart: 190, kmEnd: 195 },
-];
+export { SECTIONS, STATIONS };
+export type { Section, Station };
 
 export const TRACKS = ["UP-1", "DOWN-1"] as const;
 
@@ -68,7 +51,8 @@ export function findSection(a: string, b: string): Section | null {
 }
 
 export function sectionLengthM(s: Section): number {
-  return (s.kmEnd - s.kmStart) * 1000;
+  // km -> m, rounded to a micrometre so 54.8 - 28 does not leave float noise.
+  return Math.round((s.kmEnd - s.kmStart) * 1e9) / 1e6;
 }
 
 export interface Conversion {

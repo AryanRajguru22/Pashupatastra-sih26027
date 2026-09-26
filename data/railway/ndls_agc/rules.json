@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "snapshot_id": "ndls-agc-2026-09-26",
+  "engineering_rules": {
+    "safety_buffer_minutes": 10,
+    "minimum_window_minutes": 20,
+    "occupancy": "Every section between a train's consecutive (published or interpolated) stops is occupied for the whole leg, extended by the safety buffer at both ends.",
+    "windows": "Train-free gaps of at least the minimum window per (track, section); a section any rejected train might have occupied yields no window.",
+    "label": "CANDIDATE POSSESSION WINDOW - DERIVED FROM PUBLIC PASSENGER TIMETABLE",
+    "coverage_statement": "Timetable source: TAG-2026 (23 trains). Freight, EMU/MEMU and the working timetable are NOT included, so a derived window may overstate free track."
+  },
+  "demo_inputs": {
+    "asset_condition": {
+      "class": "DEMO_MAINTENANCE_INPUT",
+      "generator": "backend.app.data.generator.CorridorDataGenerator.generate_assets",
+      "asset_seed": 42,
+      "assets_per_track": 24,
+      "note": "Asset condition, criticality and failure history are generated demo inputs: no public source exists. 24 assets per track (about 8 km apart) keep every reportable location near a demo asset (the association policy refuses a report more than 20 km from any asset)."
+    }
+  },
+  "provenance": [
+    {
+      "field": "rules.demo_asset_condition",
+      "value": "generated, seed 42, 24 assets per track",
+      "unit": null,
+      "class": "DEMO_MAINTENANCE_INPUT",
+      "source_ids": [],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "high",
+      "note": "Deterministic generator output; not an asset register."
+    },
+    {
+      "field": "rules.safety_buffer_minutes",
+      "value": 10,
+      "unit": "min",
+      "class": "ENGINEERING_ASSUMPTION",
+      "source_ids": [],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "The adapter's existing default. Not an Indian Railways rule."
+    },
+    {
+      "field": "rules.minimum_window_minutes",
+      "value": 20,
+      "unit": "min",
+      "class": "ENGINEERING_ASSUMPTION",
+      "source_ids": [],
+      "derived_from": null,
+      "derivation_method": null,
+      "confidence": "medium",
+      "note": "The adapter's existing default. Not an Indian Railways rule."
+    },
+    {
+      "field": "possession.candidate_windows",
+      "value": "derived",
+      "unit": "minutes from horizon start",
+      "class": "DERIVED_FROM_REAL",
+      "source_ids": [
+        "SRC-TAG-2026-T2"
+      ],
+      "derived_from": [
+        "timetable.published_times",
+        "timetable.interpolated_passing_times",
+        "rules.safety_buffer_minutes"
+      ],
+      "derivation_method": "section traversal -> occupancy interval (+buffer) -> merged train-free gaps >= minimum window",
+      "confidence": "low",
+      "note": "Not a real possession grant. Freight, EMU and the working timetable are absent."
+    }
+  ]
+}
