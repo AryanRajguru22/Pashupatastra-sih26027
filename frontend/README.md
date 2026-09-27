@@ -5,23 +5,28 @@ Pashupatastra backend. **Stitch is the visual source of truth; the backend is
 the functional source of truth.** The frontend adapts to the backend and never
 invents backend behaviour.
 
-All data is **synthetic and illustrative** (NDLS–AGC demo corridor, synthetic
-planning horizon 10–11 Sep 2026). Identity is declared through request headers
-and recorded as `DECLARED_UNVERIFIED`; there is no login. The risk scorer is a
-deterministic baseline, not a trained model.
+By default the console is built for the **offline public-railway-data snapshot**
+of the NDLS–AGC corridor (`data/railway/ndls_agc/`). It shows published stations,
+chainage and the TAG-2026 timetable. Possession windows are candidates derived from
+that timetable, and maintenance observations and asset condition are demo inputs.
+Build with `NEXT_PUBLIC_RAILWAY_DATA=synthetic` to use the synthetic fallback dataset
+instead. The planning horizon is fixed at 10–11 Sep 2026. Identity is declared
+through request headers and recorded as `DECLARED_UNVERIFIED`; there is no login. The
+risk scorer is a deterministic baseline, not a trained model.
 
 ## Run
 
 ```powershell
 # backend + seed (repo root, see docs/demo-runbook.md and scripts/seed_demo.py)
-$env:PASHUPAT_CORRIDOR_ID = "CORR-NDLS-AGC"
-$env:PASHUPAT_JOBS_DB     = "D:\Pashupatastra\demo\jobs.db"   # or any dedicated demo DB
+$env:PASHUPAT_CORRIDOR_ID  = "CORR-NDLS-AGC"
+$env:PASHUPAT_RAILWAY_DATA = "real"                # must match the console build
+$env:PASHUPAT_JOBS_DB      = "$PWD\demo\jobs.db"   # absolute path to a dedicated demo DB
 python scripts/seed_demo.py
 python -m uvicorn backend.app.api.main:app --host 127.0.0.1 --port 8000
 
 # frontend
 cd frontend
-$env:NEXT_PUBLIC_API_URL = "http://127.0.0.1:8000"   # inlined at build time
+# NEXT_PUBLIC_API_URL defaults to http://127.0.0.1:8000 (inlined at build time)
 npm run build ; npm run start                         # http://localhost:3000
 ```
 
@@ -31,7 +36,7 @@ npm run build ; npm run start                         # http://localhost:3000
 
 | Route | Screen | Backend it uses |
 |---|---|---|
-| `/` | Command Center | `GET /v1/jobs`, `/v1/obligations`, `/v1/optimization-runs/{id}` |
+| `/` | Corridor Overview | `GET /v1/jobs`, `/v1/obligations`, `/v1/optimization-runs/{id}` |
 | `/inspection` | Field Inspection | `POST /v1/jobs` (idempotency key, `field_location` cross-check) |
 | `/jobs`, `/jobs/[jobId]` | Maintenance Jobs, job detail (overview, scoring, proposal, execution, audit, obligation) | `GET /v1/jobs*`, `/history`, `/proposal`, `/execution`, `/obligation` |
 | `/planning` | Planning (CP-SAT) | `POST /v1/corridors/CORR-NDLS-AGC/optimize-jobs`, `GET /v1/optimization-runs/{id}` |
@@ -49,7 +54,7 @@ npm run build ; npm run start                         # http://localhost:3000
 | Health | shell | connectivity pill (15 s poll); offline disables every mutation |
 | Field intake / job creation | Field Inspection | Submit report |
 | Idempotent replay | Field Inspection | key kept across retries; "Submit as new report" on conflict |
-| Job list / retrieval | Jobs, Command Center, Job detail | queue, filters, row click |
+| Job list / retrieval | Jobs, Corridor Overview, Job detail | queue, filters, row click |
 | Deterministic scoring | Job detail → Scoring, Jobs, Field Inspection result | scores, ranked contributors, raw inputs |
 | Optimization | Planning | RUN OPTIMIZATION (confirm dialog) |
 | Proposal + explanation | Authority Review, Job detail → Proposal | proposal card (codes verbatim) |
@@ -58,7 +63,7 @@ npm run build ; npm run start                         # http://localhost:3000
 | Execution start / complete / not-completed | Execution, Job detail | dialogs with evidence-reference editor |
 | Evidence | Execution | reference, kind, capture time, optional coordinates (no upload) |
 | History / audit | Audit Trail, Job detail → Audit | grouped timeline, per-event details, raw JSON |
-| Obligations / SLA | Obligations, Command Center, Job detail | table, filters, assumed-SLA disclosure |
+| Obligations / SLA | Obligations, Corridor Overview, Job detail | table, filters, assumed-SLA disclosure |
 | Optimization run record | Planning | Run audit record |
 | Legacy disruption simulation | Simulation | four disruption types + baseline/recovered comparison |
 

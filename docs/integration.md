@@ -1,5 +1,10 @@
 # Extending the backend API
 
+> **Historical (Milestone 1).** This describes the legacy unversioned routers in
+> `backend/app/api/routers/`. The frozen lifecycle API lives in
+> `backend/app/jobs/router.py` under `/v1`; see
+> [`api-contract-v1.md`](api-contract-v1.md) and [`architecture.md`](architecture.md).
+
 The API is split so each new piece of work gets its own file instead of
 everyone editing the same handler code.
 

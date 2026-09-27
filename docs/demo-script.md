@@ -1,5 +1,11 @@
 # Demo script: PLAN → DISRUPT → RECOVER
 
+> **Historical (Milestone 1).** This script describes the original single-page
+> dashboard, which has been replaced by the current operations console. For the
+> current walkthrough, see the README's
+> [5-minute judge walkthrough](../README.md#5-minute-judge-walkthrough) and
+> [`demo-runbook.md`](demo-runbook.md).
+
 This is the presentation script for Pashupatastra (SIH26027). It walks
 through the live dashboard exactly as built — every screen, button, and
 number referenced below is real: driven by the canonical ML scorer, the

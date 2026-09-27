@@ -1,6 +1,7 @@
-# Milestone 1 dependencies only (contracts + optimizer + script).
-# FastAPI/ML/frontend deps join this file (or backend/pyproject.toml)
-# in the next wave - see docs/architecture.md.
+# Backend, optimizer, scripts and test dependencies (Python 3.11+).
+# The frontend's dependencies are in frontend/package.json.
+# Optional, tests only: pypdf (re-reads the stored source PDFs; those
+# tests are skipped when it is not installed).
 pydantic>=2.6
 ortools>=9.9
 pytest>=8.0

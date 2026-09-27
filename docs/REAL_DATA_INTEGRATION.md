@@ -25,7 +25,7 @@ Both the seed and the backend must see the same variables:
 ```powershell
 $env:PASHUPAT_CORRIDOR_ID  = "CORR-NDLS-AGC"
 $env:PASHUPAT_RAILWAY_DATA = "real"          # unset (or "synthetic") = the synthetic fallback
-$env:PASHUPAT_JOBS_DB      = "D:\Pashupatastra\demo\jobs.db"   # a dedicated demo database
+$env:PASHUPAT_JOBS_DB      = "$PWD\demo\jobs.db"   # absolute path to a dedicated demo database
 python scripts/seed_demo.py                  # or --verify to rehearse on a temporary database
 python -m uvicorn backend.app.api.main:app --port 8000
 ```

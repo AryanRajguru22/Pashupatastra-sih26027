@@ -1,4 +1,11 @@
 # PASHUPATASTRA — Railway Domain & Data Specification
+
+> **Historical (Phase 1).** This is the original domain specification for the
+> synthetic dataset. The corridor geometry, chainage and timetable used today come from
+> the dated public snapshot described in
+> [`REAL_DATA_INTEGRATION.md`](REAL_DATA_INTEGRATION.md) and
+> `data/railway/ndls_agc/`. Where the two differ, the snapshot and the code are
+> authoritative.
 **Role:** Darshini (Domain & Data Foundation Lead)  
 **Target Audience:** Ayush (ML/Scoring), Tyagi (CP-SAT Optimizer), Mehta (API/Backend), Archit (Frontend Dashboard), Tirth (Simulation & Recovery), Aryan (Integration Lead)
 
