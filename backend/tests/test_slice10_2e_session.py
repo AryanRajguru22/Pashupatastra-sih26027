@@ -852,7 +852,9 @@ def test_session_is_not_exported_or_used_by_any_other_production_module():
             "identity.session" in src or "identity import session" in src
         )
     ]
-    assert users == []
+    # The NovaForge integration is the only consumer: the session core is
+    # constructed in auth/bootstrap.py and driven by auth/service.py.
+    assert sorted(users) == ["auth/bootstrap.py", "auth/service.py"]
 
 
 def _mentions(source: str, wanted: Set[str]) -> bool:
@@ -909,10 +911,13 @@ def test_existing_authentication_pins_are_unchanged():
 # ------------------------------------------ K. HTTP and demo unchanged
 
 
-def test_http_novaforge_boot_is_still_refused():
+def test_http_novaforge_boot_is_refused_without_valid_configuration():
+    # The 10.2d refusal (no request authentication mechanism) is lifted by the
+    # NovaForge integration. What remains is the part that matters: an
+    # unconfigured novaforge mode REFUSES TO START, never falling back to demo.
     with pytest.raises(AuthConfigurationError) as info:
         compose_http_jobs({"PASHUPAT_AUTH_MODE": "novaforge"})
-    assert info.value.reason == AUTHENTICATION_MECHANISM_UNAVAILABLE
+    assert info.value.reason == "AUTH_CONFIGURATION_INVALID"
 
 
 def test_request_actor_is_unchanged_and_ignores_sessions():

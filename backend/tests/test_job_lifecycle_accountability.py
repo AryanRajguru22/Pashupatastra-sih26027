@@ -1819,6 +1819,11 @@ def test_every_state_changing_route_is_a_reviewed_history_recording_path():
         if method not in {"GET", "HEAD", "OPTIONS"}
     }
 
+    # /auth/* is session management for the NovaForge integration
+    # (backend.app.auth.router): it changes no maintenance-job state and is
+    # covered by backend/tests/test_novaforge_auth_http.py.
+    mutating = {(m, p) for m, p in mutating if not p.startswith("/auth/")}
+
     assert mutating == {
         ("POST", "/v1/jobs"),
         ("POST", "/v1/corridors/{corridor_id}/optimize-jobs"),

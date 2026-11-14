@@ -1351,7 +1351,7 @@ def test_demo_composition_is_unchanged_and_unenforced(tmp_path):
     assert type(composed.service.authorization) is not AuthenticatedEnforcingPolicy
 
 
-def test_http_novaforge_boot_is_still_refused_and_never_reads_the_file(tmp_path):
+def test_http_novaforge_boot_without_valid_auth_config_is_refused_and_never_reads_the_file(tmp_path):
     environ = {
         "PASHUPAT_AUTH_MODE": "novaforge",
         "PASHUPAT_IDENTITY_DIRECTORY": str(tmp_path / "does-not-exist.json"),
@@ -1360,7 +1360,9 @@ def test_http_novaforge_boot_is_still_refused_and_never_reads_the_file(tmp_path)
     with pytest.raises(AuthConfigurationError) as info:
         compose_http_jobs(environ)
 
-    assert info.value.reason == AUTHENTICATION_MECHANISM_UNAVAILABLE
+    # The mechanism now exists (NovaForge OIDC); what stays refused is a boot
+    # without a complete, valid PASHUPAT_AUTH_* configuration - never demo.
+    assert info.value.reason == "AUTH_CONFIGURATION_INVALID"
 
 
 def test_the_loader_ignores_the_environment(tmp_path, monkeypatch):

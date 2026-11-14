@@ -12,13 +12,20 @@ Run the dev server from the repo root:
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from backend.app.api.deps import request_actor
+from backend.app.auth import runtime as auth_runtime
+from backend.app.auth.guards import enforced_request_actor, require_solver_access
+from backend.app.auth.middleware import EnforcedModeMiddleware
+from backend.app.auth.router import router as auth_router
 
 from backend.app.api.errors import install_error_handlers
 from backend.app.api.routers import health, optimize, recover
 
 from backend.app.jobs.router import (
+    _composition as jobs_composition,
     router as jobs_router,
 )
 
@@ -31,18 +38,48 @@ from backend.app.jobs.router import (
 #                      the existing dashboard calls them. NOT part of the
 #                      v1 contract; do not build lifecycle features on them.
 #   /health            unversioned liveness check.
-app = FastAPI(title="Pashupatastra API")
+def build_app(auth: object = None) -> FastAPI:
+    """The application for one authentication mode.
 
-install_error_handlers(app)
+    auth is None for DEMO mode (declared X-Actor-* identities, open CORS,
+    exactly as before) or the AuthService for ENFORCED mode. Production builds
+    the module-level `app` below from the composition root; tests build
+    enforced apps directly.
+    """
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    application = FastAPI(title="Pashupatastra API")
+    install_error_handlers(application)
+    # Authentication mode is decided once, by the composition root
+    # (backend.app.api.composition). None means demo mode, unchanged.
+    auth_runtime.set_auth_service(auth)  # type: ignore[arg-type]
 
-app.include_router(health.router)
-app.include_router(optimize.router)
-app.include_router(recover.router)
-app.include_router(jobs_router)
+    if auth is None:
+        application.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+    else:
+        # ENFORCED mode: identity only from the server-side session; CORS only
+        # for the console's own origin, with credentials; CSRF + hardening headers.
+        frontend = auth.settings.frontend_origin  # type: ignore[attr-defined]
+        application.add_middleware(EnforcedModeMiddleware, frontend_origin=frontend)
+        application.add_middleware(
+            CORSMiddleware,
+            allow_origins=[frontend],
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Content-Type", "X-PP-CSRF", "Idempotency-Key"],
+        )
+        application.dependency_overrides[request_actor] = enforced_request_actor
+
+    application.include_router(health.router)
+    application.include_router(auth_router)
+    application.include_router(optimize.router, dependencies=[Depends(require_solver_access)])
+    application.include_router(recover.router, dependencies=[Depends(require_solver_access)])
+    application.include_router(jobs_router)
+    return application
+
+
+app = build_app(jobs_composition.auth)

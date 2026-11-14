@@ -436,11 +436,13 @@ def test_compose_jobs_rejects_a_non_mode():
         assert info.value.reason == INVALID_AUTH_MODE
 
 
-def test_http_novaforge_boot_is_refused_after_validation():
+def test_http_novaforge_boot_is_refused_without_valid_auth_configuration():
     with pytest.raises(AuthConfigurationError) as info:
         compose_http_jobs({"PASHUPAT_AUTH_MODE": "novaforge"})
 
-    assert info.value.reason == AUTHENTICATION_MECHANISM_UNAVAILABLE
+    # The mechanism now exists (NovaForge OIDC); what stays refused is a boot
+    # without a complete, valid PASHUPAT_AUTH_* configuration - never demo.
+    assert info.value.reason == "AUTH_CONFIGURATION_INVALID"
 
 
 @pytest.mark.parametrize("value", ["prod", "Demo", ""])

@@ -54,9 +54,23 @@ class ErrorCode(str, Enum):
     # spans; neither is preferred.
     LOCATION_INPUT_CONFLICT = "LOCATION_INPUT_CONFLICT"
 
+    # Enforced (NovaForge) mode: identity comes only from the server-side
+    # session, so a caller-declared actor is refused rather than ignored.
+    ACTOR_HEADERS_NOT_ACCEPTED = "ACTOR_HEADERS_NOT_ACCEPTED"
+
+    # 401 - enforced (NovaForge) mode only
+    UNAUTHENTICATED = "UNAUTHENTICATED"
+
     # 403
     ACTOR_SYSTEM_ROLE_FORBIDDEN = "ACTOR_SYSTEM_ROLE_FORBIDDEN"
     AUTHORIZATION_DENIED = "AUTHORIZATION_DENIED"
+    CSRF_REJECTED = "CSRF_REJECTED"
+
+    # 409 (enforced mode): the user holds several roles and has not chosen
+    # which to act in; 503: the identity provider could not be reached, and
+    # the request fails closed.
+    ROLE_SELECTION_REQUIRED = "ROLE_SELECTION_REQUIRED"
+    AUTH_PROVIDER_UNAVAILABLE = "AUTH_PROVIDER_UNAVAILABLE"
 
     # 404
     JOB_NOT_FOUND = "JOB_NOT_FOUND"

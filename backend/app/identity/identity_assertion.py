@@ -90,6 +90,7 @@ REJECTIONS
 
 from __future__ import annotations
 
+import hmac
 import math
 import threading
 import time
@@ -118,6 +119,14 @@ from backend.app.identity.trusted_keys import (
 
 ASSERTION_TYP = "nf-identity+jwt"
 TOKEN_USE = "identity_assertion"
+
+# The OIDC authorization-code flow (NovaForge's /oauth/token) returns an ID
+# token instead of the legacy back-channel assertion. It is verified by the
+# same code under a second, equally strict profile: its own typ and
+# token_use (so neither token type can be presented as the other), and the
+# login's nonce is mandatory.
+OIDC_ID_TOKEN_TYP = "JWT"
+OIDC_ID_TOKEN_USE = "id_token"
 PRINCIPAL_TYPE_USER = "user"
 ACCOUNT_STATUS_ACTIVE = "ACTIVE"
 
@@ -247,8 +256,19 @@ class AssertionVerifierConfig:
     clock_tolerance_seconds: int = DEFAULT_CLOCK_TOLERANCE_SECONDS
     max_lifetime_seconds: int = DEFAULT_MAX_LIFETIME_SECONDS
     max_assertion_length: int = DEFAULT_MAX_ASSERTION_LENGTH
+    # The token profile this verifier accepts. Defaults are the legacy
+    # assertion; OIDC_ID_TOKEN_PROFILE below is the code-flow ID token.
+    typ: str = ASSERTION_TYP
+    token_use: str = TOKEN_USE
 
     def __post_init__(self) -> None:
+        if (self.typ, self.token_use) not in (
+            (ASSERTION_TYP, TOKEN_USE),
+            (OIDC_ID_TOKEN_TYP, OIDC_ID_TOKEN_USE),
+        ):
+            raise AssertionVerifierConfigError(
+                "typ and token_use must be a supported profile pair."
+            )
         if not _is_bounded_token(self.issuer, MAX_ISSUER_LENGTH):
             raise AssertionVerifierConfigError(
                 "issuer must be a non-empty printable string without whitespace."
@@ -436,11 +456,18 @@ class IdentityAssertionVerifier:
         return self._config
 
     def verify(self, assertion: object) -> VerifiedIdentityAssertion:
-        """Return verified identity facts, or raise AssertionVerificationError."""
+        """Return verified identity facts, or raise AssertionVerificationError.
+
+        The legacy-assertion entry point. Its signature takes exactly one
+        caller-supplied value (pinned by a test). A verifier configured for
+        the OIDC ID-token profile refuses it: use verify_id_token.
+        """
 
         reason: AssertionRejection
         try:
-            return self._verify(assertion)
+            if self._config.token_use != TOKEN_USE:
+                raise _Rejected(AssertionRejection.WRONG_TOKEN_USE)
+            return self._verify(assertion, None)
         except _Rejected as rejected:
             reason = rejected.reason
         except Exception:  # noqa: BLE001 - anything unexpected fails closed
@@ -449,9 +476,33 @@ class IdentityAssertionVerifier:
         # __context__ or __cause__ that could expose library detail.
         raise AssertionVerificationError(reason)
 
+    def verify_id_token(
+        self, id_token: object, expected_nonce: str
+    ) -> VerifiedIdentityAssertion:
+        """Verify an OIDC ID token against the login transaction's nonce.
+
+        Only a verifier configured with the ID-token profile accepts this;
+        the nonce is mandatory and compared in constant time.
+        """
+
+        reason: AssertionRejection
+        try:
+            if self._config.token_use != OIDC_ID_TOKEN_USE:
+                raise _Rejected(AssertionRejection.WRONG_TOKEN_USE)
+            if not isinstance(expected_nonce, str) or not expected_nonce:
+                raise _Rejected(AssertionRejection.MISSING_CLAIM)
+            return self._verify(id_token, expected_nonce)
+        except _Rejected as rejected:
+            reason = rejected.reason
+        except Exception:  # noqa: BLE001 - anything unexpected fails closed
+            reason = AssertionRejection.INTERNAL_ERROR
+        raise AssertionVerificationError(reason)
+
     # -- steps ---------------------------------------------------------
 
-    def _verify(self, assertion: object) -> VerifiedIdentityAssertion:
+    def _verify(
+        self, assertion: object, expected_nonce: Optional[str] = None
+    ) -> VerifiedIdentityAssertion:
         cfg = self._config
 
         if not isinstance(assertion, str):
@@ -465,7 +516,7 @@ class IdentityAssertionVerifier:
         header_b64, payload_b64, signature_b64 = segments
 
         header = self._decode_object(header_b64)
-        kid = self._check_header(header)
+        kid = self._check_header(header, cfg.typ)
 
         key = self._resolve_key(kid)
         self._check_signature(
@@ -476,7 +527,7 @@ class IdentityAssertionVerifier:
 
         # Nothing in the payload is looked at before the signature holds.
         claims = self._decode_object(payload_b64)
-        return self._check_claims(claims, kid)
+        return self._check_claims(claims, kid, expected_nonce)
 
     @staticmethod
     def _decode_object(segment: str) -> Dict[str, Any]:
@@ -486,14 +537,14 @@ class IdentityAssertionVerifier:
             raise _Rejected(AssertionRejection.MALFORMED)
 
     @staticmethod
-    def _check_header(header: Mapping[str, Any]) -> str:
+    def _check_header(header: Mapping[str, Any], expected_typ: str) -> str:
         if header.get("alg") != ES256:
             # Covers "none", HS256 key-confusion, RS*/PS*, ES384, ...
             raise _Rejected(AssertionRejection.UNSUPPORTED_ALGORITHM)
         if set(header) - _ALLOWED_HEADER_MEMBERS:
             # crit, jwk, jku, x5u, x5c, b64, ... are never honoured.
             raise _Rejected(AssertionRejection.UNSUPPORTED_HEADER)
-        if header.get("typ") != ASSERTION_TYP:
+        if header.get("typ") != expected_typ:
             raise _Rejected(AssertionRejection.WRONG_TOKEN_TYPE)
         try:
             return validate_key_id(header.get("kid"))
@@ -532,7 +583,12 @@ class IdentityAssertionVerifier:
         except (InvalidSignature, ValueError):
             raise _Rejected(AssertionRejection.INVALID_SIGNATURE)
 
-    def _check_claims(self, claims: Mapping[str, Any], kid: str) -> VerifiedIdentityAssertion:
+    def _check_claims(
+        self,
+        claims: Mapping[str, Any],
+        kid: str,
+        expected_nonce: Optional[str] = None,
+    ) -> VerifiedIdentityAssertion:
         cfg = self._config
 
         for name in _REQUIRED_CLAIMS:
@@ -547,8 +603,17 @@ class IdentityAssertionVerifier:
         if not isinstance(aud, str) or aud != cfg.audience:
             raise _Rejected(AssertionRejection.WRONG_AUDIENCE)
 
-        if claims["token_use"] != TOKEN_USE:
+        if claims["token_use"] != cfg.token_use:
             raise _Rejected(AssertionRejection.WRONG_TOKEN_USE)
+
+        if cfg.token_use == OIDC_ID_TOKEN_USE:
+            nonce = claims.get("nonce")
+            if (
+                not isinstance(nonce, str)
+                or not expected_nonce
+                or not hmac.compare_digest(nonce.encode("utf-8"), expected_nonce.encode("utf-8"))
+            ):
+                raise _Rejected(AssertionRejection.INVALID_CLAIM)
 
         if (
             claims["principal_type"] != PRINCIPAL_TYPE_USER
@@ -631,6 +696,8 @@ __all__ = [
     "DEFAULT_MAX_LIFETIME_SECONDS",
     "IdentityAssertionVerifier",
     "InMemoryReplayGuard",
+    "OIDC_ID_TOKEN_TYP",
+    "OIDC_ID_TOKEN_USE",
     "PRINCIPAL_TYPE_USER",
     "ReplayDetected",
     "ReplayGuard",

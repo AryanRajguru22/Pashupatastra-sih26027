@@ -21,18 +21,23 @@ MODE
     Residual risk: removing ALL auth configuration still boots demo. The
     mitigation is operational (the deployment asserts its mode).
 
-ENFORCED HTTP IS INTENTIONALLY UNAVAILABLE IN 10.2d
-    There is no request actor source (10.2f), no directory loader
-    (10.2d.2) and authenticated events cannot yet be re-read (10.2d.1).
-    compose_http_jobs therefore refuses NOVAFORGE with
-    AUTHENTICATION_MECHANISM_UNAVAILABLE. Programmatic composition
-    (compose_jobs) works, for tests and for the later slices.
+ENFORCED HTTP (the NovaForge integration)
+    The 10.2d refusal (AUTHENTICATION_MECHANISM_UNAVAILABLE) is lifted:
+    compose_http_jobs now builds the authenticated deployment from
+    PASHUPAT_AUTH_* (backend.app.auth.settings), or refuses with
+    AUTH_CONFIGURATION_INVALID. Its entry criterion - an AUTHENTICATED
+    write must read back - was met by Slice 10.2d.1 (record-only
+    authenticated rehydration) and is re-proven end to end by
+    backend/tests/test_novaforge_auth_http.py. There is still NO fallback
+    to demo: a bad configuration refuses to start.
 
-ENTRY CRITERION FOR LIFTING THAT REFUSAL (P1-A, Slice 10.2d.1)
-    A write by an AUTHENTICATED actor commits and then fails on read-back,
-    because JobEvent.from_dict rejects the AUTHENTICATED value; the
-    caller sees a 400 after the mutation. Enforced HTTP must not be served
-    until sanctioned AUTHENTICATED event rehydration exists.
+    Request identity comes only from the server-side session
+    (backend.app.auth.guards); declared X-Actor-* headers are refused.
+    Mixed identities are impossible because the authenticated deployment
+    uses its own database (SEPARATE_DATABASE_REQUIRED), in which every
+    actor is a NovaForge-derived person id (this is what closes B-4: no
+    declared and authenticated caller can ever share optimization_runs.actor
+    or an idempotency key).
 
 The JobOptimizationService(service=None) fallback (a second, unenforced
 JobService) is untouched and remains demo-only in this slice.
@@ -61,6 +66,7 @@ IDENTITY_DIRECTORY_REQUIRED = "IDENTITY_DIRECTORY_REQUIRED"
 UNTRUSTED_DIRECTORY = "UNTRUSTED_DIRECTORY"
 SEPARATE_DATABASE_REQUIRED = "SEPARATE_DATABASE_REQUIRED"
 AUTHENTICATION_MECHANISM_UNAVAILABLE = "AUTHENTICATION_MECHANISM_UNAVAILABLE"
+AUTH_CONFIGURATION_INVALID = "AUTH_CONFIGURATION_INVALID"
 DIRECTORY_IN_DEMO_MODE = "DIRECTORY_IN_DEMO_MODE"
 
 
@@ -82,6 +88,9 @@ class JobsComposition:
     mode: AuthMode
     service: JobService
     optimization_service: JobOptimizationService
+    # Set only in NOVAFORGE mode: the object that turns a session cookie into
+    # an Actor (backend.app.auth.service.AuthService).
+    auth: Optional[object] = None
 
 
 def resolve_auth_mode(environ: Mapping[str, str]) -> AuthMode:
@@ -198,17 +207,28 @@ def compose_jobs(
     return JobsComposition(mode, service, optimization_service)
 
 
+def compose_novaforge_http(
+    environ: Mapping[str, str], *, http_client: object = None, clock: object = None
+) -> JobsComposition:
+    """Build the enforced deployment: jobs services + the NovaForge AuthService.
+
+    http_client / clock are injection points for tests only.
+    """
+
+    from backend.app.auth.bootstrap import build_authenticated_deployment
+
+    return build_authenticated_deployment(
+        environ, http_client=http_client, clock=clock, jobs_composition=JobsComposition
+    )
+
+
 def compose_http_jobs(environ: Mapping[str, str]) -> JobsComposition:
     """The router's single call: resolve the mode, then compose for HTTP."""
 
     mode = resolve_auth_mode(environ)
 
     if mode is AuthMode.NOVAFORGE:
-        raise AuthConfigurationError(
-            AUTHENTICATION_MECHANISM_UNAVAILABLE,
-            "novaforge mode cannot serve HTTP yet: no request "
-            "authentication mechanism exists in this release.",
-        )
+        return compose_novaforge_http(environ)
 
     return compose_jobs(mode)
 
@@ -221,5 +241,6 @@ __all__ = [
     "JobsComposition",
     "compose_http_jobs",
     "compose_jobs",
+    "compose_novaforge_http",
     "resolve_auth_mode",
 ]

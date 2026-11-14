@@ -214,6 +214,18 @@ class Session:
 
 
 @dataclass(frozen=True)
+class SessionInfo:
+    """What a caller may learn about a live session. Never a credential."""
+
+    session_ref: str
+    person_id: str
+    subject: str
+    requested_role: Optional[ActorRole]
+    created_at: float
+    absolute_expires_at: float
+
+
+@dataclass(frozen=True)
 class SessionHandle:
     """What create() / set_role() return: the raw handle, once."""
 
@@ -490,6 +502,42 @@ class SessionManager:
                 min(rotated.absolute_expires_at, rotated.fresh_until),
             )
 
+    def info(self, handle: str) -> "SessionInfo":
+        """Non-secret facts about a live session (no assertion, no handle)."""
+
+        with self._lock:
+            now = self._now()
+            session = self._live_session(handle, now)
+            return SessionInfo(
+                session_ref=session.session_ref,
+                person_id=session.person_id,
+                subject=session.verified.identity.subject,
+                requested_role=session.requested_role,
+                created_at=session.created_at,
+                absolute_expires_at=session.absolute_expires_at,
+            )
+
+    def extend_fresh(self, handle: str, fresh_until: float) -> None:
+        """Move the freshness bound forward after an EXTERNAL liveness check.
+
+        This is the "where a liveness source plugs in" seam named in the
+        module docstring: the caller has just confirmed with the identity
+        provider that the session is still live. The bound can only be
+        moved to a finite, future time and never past the absolute
+        lifetime, so no liveness answer can outlive the hard limits.
+        """
+
+        if not _is_valid_clock_reading(fresh_until):
+            raise SessionError(SessionRejection.CLOCK_UNAVAILABLE)
+        with self._lock:
+            now = self._now()
+            session = self._live_session(handle, now)
+            bound = min(float(fresh_until), session.absolute_expires_at)
+            if bound <= now:
+                self._sessions.pop(session.handle_digest, None)
+                raise SessionError(SessionRejection.INVALID_SESSION)
+            self._sessions[session.handle_digest] = replace(session, fresh_until=bound)
+
     def logout(self, handle: str) -> None:
         """End the session. Idempotent; reveals nothing about the handle."""
 
@@ -508,6 +556,7 @@ __all__ = [
     "SessionConfigError",
     "SessionError",
     "SessionHandle",
+    "SessionInfo",
     "SessionManager",
     "SessionRejection",
 ]

@@ -161,8 +161,37 @@ LEGACY_OPERATIONS = {
 }
 
 
+# The NovaForge authentication surface. NOT part of the frozen v1 jobs
+# contract: it is session management, excluded from the OpenAPI document
+# (include_in_schema=False), but pinned here so no auth route can appear
+# unreviewed.
+AUTH_OPERATIONS = {
+    ("GET", "/auth/config"),
+    ("GET", "/auth/login"),
+    ("GET", "/auth/callback"),
+    ("GET", "/auth/me"),
+    ("POST", "/auth/session/role"),
+    ("POST", "/auth/logout"),
+}
+
+
 def test_exact_v1_and_legacy_route_inventory():
     assert _operations() == V1_OPERATIONS | LEGACY_OPERATIONS
+
+
+def test_auth_route_inventory_is_pinned_and_outside_the_contract():
+    from backend.app.auth.router import router as auth_router
+
+    registered = {
+        (method, route.path)
+        for route in auth_router.routes
+        for method in getattr(route, "methods", ())
+        if method != "HEAD"
+    }
+    assert registered == AUTH_OPERATIONS
+    # ...and the live app serves them (mounted exactly once).
+    assert TestClient(app).get("/auth/config").json() == {"mode": "demo"}
+    assert not any(path.startswith("/auth/") for _, path in _operations())
 
 
 def test_unversioned_jobs_routes_no_longer_exist():
@@ -824,7 +853,10 @@ def test_committed_openapi_snapshot_matches_the_live_contract():
         )
     )
 
-    assert _contract_shape(snapshot) == _contract_shape(app.openapi()), (
+    live = app.openapi()
+    # /auth/* is the (unversioned) NovaForge session surface, outside this contract.
+    live = {**live, "paths": {p: v for p, v in live["paths"].items() if not p.startswith("/auth/")}}
+    assert _contract_shape(snapshot) == _contract_shape(live), (
         "docs/openapi-v1.json is the frozen frontend contract. If this "
         "change is intended, it is a contract change: regenerate the "
         "snapshot deliberately and version it."
@@ -842,6 +874,12 @@ def test_error_code_vocabulary_is_frozen():
         "ACTOR_INVALID",
         "ACTOR_SYSTEM_ROLE_FORBIDDEN",
         "AUTHORIZATION_DENIED",
+        # NovaForge integration (enforced mode) - additive, added deliberately.
+        "ACTOR_HEADERS_NOT_ACCEPTED",
+        "UNAUTHENTICATED",
+        "CSRF_REJECTED",
+        "ROLE_SELECTION_REQUIRED",
+        "AUTH_PROVIDER_UNAVAILABLE",
         "JOB_NOT_FOUND",
         "CORRIDOR_NOT_FOUND",
         "JOB_TERMINAL",
