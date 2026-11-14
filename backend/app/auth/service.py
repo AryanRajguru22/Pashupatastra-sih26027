@@ -22,6 +22,11 @@ LIVENESS (the staleness bound N = settings.freshness_seconds)
     are synced into the directory. So a revocation or role change is enforced
     within N seconds, never later. If NovaForge cannot be reached the request
     FAILS CLOSED (503); there is no grace period.
+
+    The session core's own `fresh_until` is NOT the liveness bound (an idle
+    user must not lose a session merely because no request arrived for N
+    seconds): it is kept at the absolute lifetime, and the bound N is enforced
+    here, on every request, through `last_verified_at`.
 """
 
 from __future__ import annotations
@@ -227,7 +232,7 @@ class AuthService:
             raise AuthError("session_refused", 403, f"A session could not be created ({exc.reason.value}).") from None
 
         session_info = self._sessions.info(handle.handle)
-        self._sessions.extend_fresh(handle.handle, now + 2 * self.settings.freshness_seconds)
+        self._sessions.extend_fresh(handle.handle, now + self.settings.session_seconds)
         with self._lock:
             self._bundles[session_info.session_ref] = _Bundle(
                 subject=subject,
@@ -427,7 +432,7 @@ class AuthService:
         bundle.email = result.get("email") if isinstance(result.get("email"), str) else bundle.email
         bundle.last_verified_at = now
         try:
-            self._sessions.extend_fresh(handle, now + 2 * self.settings.freshness_seconds)
+            self._sessions.extend_fresh(handle, now + self.settings.session_seconds)
         except SessionError:
             self._end(handle, info)
             raise AuthError("unauthenticated", 401, "Sign in required.") from None
