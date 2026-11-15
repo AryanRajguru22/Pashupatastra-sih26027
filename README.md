@@ -433,12 +433,19 @@ OR-Tools 9.15 and Node 24:
 
 | Check | Command | Result |
 |---|---|---|
-| Backend suite | `python -m pytest -q` | **3395 passed, 1 skipped**, 52 subtests passed (2–4 min) |
+| Backend suite | `python -m pytest -q` | **3479 passed, 1 skipped**, 52 subtests passed (about 2.5 min) |
 | Type check | `cd frontend && npx tsc --noEmit` | clean |
 | Lint | `cd frontend && npm run lint` | clean |
-| Production build | `cd frontend && npm run build` | succeeded; all 11 console routes built |
-| Demo rehearsal, real mode | `seed_demo.py --verify` | VERIFY PASS (both runs `OPTIMAL`, approved block preserved) |
+| Production build | `cd frontend && npm run build` | succeeded; all 12 console routes built |
+| Demo rehearsal, real mode | `seed_demo.py --verify` | VERIFY PASS (plan run, and disrupt / release / recover run) |
 | Demo rehearsal, synthetic mode | `seed_demo.py --verify` | VERIFY PASS |
+
+Run on 2026-11-15 under Windows 11 with Python 3.11.9, OR-Tools 9.15 and Node 24. The
+baseline before the disrupt/recover work was 3432 passed; it added 23 tests of its own
+(`test_disruption_recovery.py`) and 24 more arise because existing tests are parametrized over
+every authorization action. The console has no automated UI tests; it is verified by type
+check, lint, production build and an HTTP run of the exact calls the disruption page makes.
+CI (`.github/workflows/ci.yml`) runs the same checks on GitHub but has not yet run there.
 
 The skipped test needs POSIX FIFOs, which Windows does not have. The tests that re-read
 the stored source PDFs use the optional `pypdf` package (installed for this run) and
@@ -448,7 +455,7 @@ are skipped if it is not installed.
 > unless `PASHUPAT_JOBS_DB` is already set, so a shell that exported the demo variables
 > would point them at the demo database.
 
-What the suite covers (82 test modules in `backend/tests/` and `backend/app/ml/tests/`):
+What the suite covers (`backend/tests/` and `backend/app/ml/tests/`):
 
 - **Snapshot integrity**: every source and dataset hash verified; altered, missing or
   inconsistent files are refused; the checked-in snapshot equals a fresh rebuild; every
@@ -468,6 +475,10 @@ What the suite covers (82 test modules in `backend/tests/` and `backend/app/ml/t
 - **Identity and authorization** (library level): scope matching, the enforcing policy,
   corridor-complete authorization, ES256 assertion verification, and fail-closed
   auth-mode composition.
+- **Disruption and recovery**: window subtraction never adds possession, approved work
+  overlapping a disruption refuses the solve before it runs, a disrupted proposal cannot
+  be approved, removing every window fails closed, append-only storage, enforcing-policy
+  gating, and the demo rehearsal.
 - **SLA and obligations**: the policy must be labelled assumed, and a policy that is not
   is refused.
 
