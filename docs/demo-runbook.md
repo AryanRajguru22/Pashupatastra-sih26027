@@ -84,6 +84,15 @@ fallback.
   console build disagree about real vs. synthetic data (see step 3).
 - **About This Demo** shows *PUBLIC SNAPSHOT + DEMO INPUTS*.
 
+## 4b. Optional: the disruption segment (about 2 minutes)
+
+`python scripts/seed_demo.py --verify` already rehearses it. Live, after the approve step
+of the walkthrough: **Disruption & Recovery** (as Planning engineer) -> *Declare
+disruption* over the approved block's track, section and span -> *Run recovery* (refused,
+nothing solved) -> **Authority Review** (as Section authority): release the block ->
+*Run recovery* again -> read the comparison and the audit trail. Say plainly that the
+disruption is a declared, simulated input.
+
 ## 5. Reset between runs
 
 1. Stop the backend (`Ctrl+C` in Terminal 1). The seed cannot delete a database that

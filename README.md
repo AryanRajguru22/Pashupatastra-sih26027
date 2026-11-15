@@ -69,6 +69,8 @@ flowchart TD
     G -- "postpone / reject" --> C
     H --> I["Execution<br/>start and complete with evidence references"]
     I --> J["Audit trail and SLA obligations"]
+    X["Declared disruption<br/>(simulated)"] -.->|"subtracts possession windows"| E
+    X -.->|"approved block hit: authority releases first"| G
 ```
 
 | Stage | What actually happens | Where |
@@ -93,9 +95,10 @@ flowchart TD
 | **Authority** | Approve, postpone, reject and release, with stale-proposal protection. Approved blocks are preserved across re-optimization |
 | **Execution** | Evidence-gated start and completion (1–10 evidence references each), and a not-completed path with a reason |
 | **Assurance** | Append-only job history and optimization runs (enforced by SQLite triggers), and SLA obligations with overdue and attention flags |
-| **Simulation** | Disruption and recovery simulation (asset breakdown, track unavailable, emergency work, possession curtailment) on a separate synthetic fixture |
+| **Disrupt / recover** | Declared (simulated) disruptions recorded append-only against the real job queue. Every optimization subtracts them from the derived possession windows; approved work they hit must be released by the authority before recovery; recovery is a real CP-SAT re-plan with a before/after comparison |
+| **Synthetic sandbox** | The original stateless disruption what-if (asset breakdown, track unavailable, emergency work, possession curtailment) on a separate synthetic fixture |
 | **Data** | Hash-verified public-data snapshot, per-field provenance classes, and a synthetic fallback dataset for regression |
-| **Operations** | Deterministic demo seed and reset with a `--verify` rehearsal, fully offline at runtime, and a frozen `/v1` API contract |
+| **Operations** | Deterministic demo seed and reset with a `--verify` rehearsal (plan and disrupt/recover), fully offline at runtime, a frozen `/v1` API contract, and a GitHub Actions workflow running the backend suite and the console checks |
 
 ## Real railway data and data governance
 
@@ -232,7 +235,7 @@ line-ending conversion (`-text`), so the hashed bytes stay identical on every pl
 | Backend | Python 3.11, FastAPI, Pydantic v2, Uvicorn |
 | Optimization | Google OR-Tools CP-SAT (tested with 9.15) |
 | Persistence | SQLite (standard library `sqlite3`) |
-| Identity primitives | `cryptography` (ECDSA P-256 / ES256 verification, implemented as a library and not yet wired to HTTP; see [trust model](#security-and-trust-model)) |
+| Identity | `cryptography` (ES256 verification). NovaForge OIDC authorization-code + PKCE login with server-side sessions when `PASHUPAT_AUTH_MODE=novaforge`; see [trust model](#security-and-trust-model) |
 | Testing | pytest, TypeScript `tsc --noEmit`, ESLint, `next build` |
 
 There is no machine-learning framework: the scorer is plain, deterministic Python.
@@ -319,7 +322,7 @@ model.
 | `PASHUPAT_CORRIDOR_ID` | Must be `CORR-NDLS-AGC` for the demo corridor |
 | `PASHUPAT_RAILWAY_DATA` | `real` or `synthetic` (default). Matching is exact, and any other value is refused |
 | `PASHUPAT_JOBS_DB` | Path to the jobs database. **Always set it.** Unset, the server uses the repository-root `jobs.db` |
-| `PASHUPAT_AUTH_MODE` | Leave unset (demo mode). See [trust model](#security-and-trust-model) |
+| `PASHUPAT_AUTH_MODE` | Leave unset for the demo. `novaforge` enables enforced, authenticated operation and needs the `PASHUPAT_AUTH_*` variables documented in `backend/app/auth/settings.py`. See [trust model](#security-and-trust-model) |
 | `NEXT_PUBLIC_API_URL` | Backend URL for the console, read at build time (default `http://127.0.0.1:8000`) |
 | `NEXT_PUBLIC_RAILWAY_DATA` | Set to `synthetic` only to build the console for the synthetic fallback |
 
@@ -367,9 +370,21 @@ for the authority. The persona needed is shown in each step below.
 10. **Obligations (SLA)** (`/obligations`). The derived response-time obligations,
     against a policy that is labelled as assumed.
 
-Optional: **Disruption Sim** (`/simulation`) applies one of four disruption types to a
-separate synthetic fixture (Corridor A) and re-solves with committed blocks pinned. It is
-stateless and changes nothing in the jobs database.
+**Disrupt and recover** (`/disruptions`; also rehearsed by `seed_demo.py --verify`):
+
+11. As *Planning engineer*, **Declare disruption** over the approved block's track and
+    section and time span (for the seeded demo: `DOWN-1`, the approved block's section).
+    The page lists the affected jobs; the approved one is marked *Authority must release*.
+12. **Run recovery**. It is refused (`RECOVERY_BLOCKED`) and nothing is solved: the
+    optimizer will not move or keep an approved block on its own.
+13. As *Section authority*, release that block on **Authority Review**.
+14. As *Planning engineer*, **Run recovery** again. CP-SAT re-plans around the
+    disruption; the comparison shows what stayed, what moved (with its previous placement)
+    and anything that could not be placed. The audit trail on the page shows
+    `REGISTERED`, `RECOVERY_REFUSED`, `RECOVERY_PLANNED`.
+
+Optional: **Synthetic Sandbox** (`/simulation`) is the original stateless what-if on a
+separate synthetic fixture (Corridor A). It changes nothing in the jobs database.
 
 > Rejecting a proposal returns the job to the queue. The solver does not search for a
 > different window, so it can propose the same placement again. Use **Postpone** to keep
@@ -463,10 +478,10 @@ security boundary.
 
 | Mechanism | Status |
 |---|---|
-| **Actor identity** | Callers send `X-Actor-Id` and `X-Actor-Role` (`WORKER`, `ENGINEER`, `AUTHORITY`, `ADMIN`). The identity is **declared and not verified**, and is recorded as `DECLARED_UNVERIFIED`. There is no login. |
+| **Actor identity (demo mode, the default)** | Callers send `X-Actor-Id` and `X-Actor-Role` (`WORKER`, `ENGINEER`, `AUTHORITY`, `ADMIN`). The identity is **declared and not verified**, and is recorded as `DECLARED_UNVERIFIED`. There is no login. |
+| **Actor identity (`PASHUPAT_AUTH_MODE=novaforge`)** | The backend is a backend-for-frontend OIDC client of NovaForge: authorization code + PKCE (`state`, `nonce`, `iss` check) at `/auth/login` and `/auth/callback`, an opaque server-side session cookie, liveness checked against NovaForge introspection within a bound (fail closed), refresh rotation, role selection, single logout and CSRF protection. `X-Actor-*` headers are refused. The enforcing policy (roles + railway scope, corridor-complete checks) decides every request; NovaForge roles map to Pashupatastra roles and can only narrow them. Verified by tests against a simulated NovaForge; **not yet exercised against a running NovaForge instance** (see Limitations). |
 | **Accountability** | Approve, postpone, reject, release and every execution action require a named human actor. Otherwise the request is refused and nothing changes. |
-| **Role and scope authorization** | An enforcing policy (roles, railway scopes, corridor-complete checks, all fail-closed) is implemented and tested as a library. **Over HTTP the server runs an unenforced policy**, and role gating in the console is a presentation convenience. |
-| **Authentication** | ES256 identity-assertion verification, an identity directory and sessions are implemented and tested as library components. `PASHUPAT_AUTH_MODE=novaforge` is **refused at HTTP start-up** until authenticated request handling is complete. Stray auth configuration in demo mode is also refused. |
+| **Role and scope authorization** | In demo mode **the server runs an unenforced policy**, and role gating in the console is a presentation convenience. In `novaforge` mode the enforcing policy is active over HTTP. Stray auth configuration in demo mode is refused. |
 | **Integrity** | Idempotent intake, stale-proposal protection, append-only history enforced by triggers, and a hash-verified data snapshot. |
 | **Network** | No outbound calls at runtime. CORS is open (`*`) for local demonstration. |
 
@@ -484,8 +499,8 @@ publicly available.
 | **Operational integration** | There is no live feed, as-run train data, possession-grant system or notification delivery. Approving a block sets its status to `notified`, but nothing is sent. |
 | **Planning scope** | The horizon is two days and fixed (10–11 Sep 2026). The model uses two running lines and six sections. The objective has no start-time preference, and rejecting a proposal does not look for an alternative window. |
 | **Asset data** | Asset condition, criticality and failure history are generated demo inputs. The scorer uses hand-authored weights and is not trained on railway data. |
-| **Identity and authentication** | Identity is declared and unverified over HTTP, and role and scope enforcement is not active there (see above). |
-| **Simulation** | Disruption simulation runs on a separate synthetic fixture through legacy stateless routes. It does not act on the jobs database. |
+| **Identity and authentication** | Demo mode declares identity and does not enforce roles. Enforced NovaForge mode exists in the backend, but the **console has no login flow yet**: it still sends `X-Actor-*` headers, which enforced mode refuses, so the console works only in demo mode. Completing it needs a running, registered NovaForge client (issuer, client id/secret, redirect URI) to test against. |
+| **Simulation** | Disruptions are declared planning inputs (kinds: track unavailable, possession curtailment), never observed events, and only subtract possession; there is no live feed of closures. The Synthetic Sandbox runs on a separate fixture through legacy stateless routes and does not act on the jobs database. |
 | **Deployment** | The prototype runs locally with SQLite and one process. There is no hosted deployment, and SLA durations are assumed demo values, not Indian Railways policy. Evidence is stored as references; no files are uploaded. |
 
 ## Data sources
@@ -533,7 +548,9 @@ snapshot is described in [`docs/REAL_DATA_INTEGRATION.md`](docs/REAL_DATA_INTEGR
 backend/app/
   api/            FastAPI app, error model, auth-mode composition, legacy routes
   jobs/           /v1 router and JobService: intake, location, lifecycle, execution,
-                  proposals, obligations, SLA policy, idempotency, duplicates
+                  proposals, obligations, SLA policy, idempotency, duplicates;
+                  disruption.py / disruption_service.py: persisted DISRUPT -> RECOVER
+  auth/           NovaForge OIDC client, server-side sessions, CSRF (enforced mode)
   optimizer/      CP-SAT model (solver.py)
   data/           Corridor datasets (synthetic + real snapshot loader), section registry,
                   timetable adapter (candidate windows), provenance, dataset selection
@@ -542,7 +559,7 @@ backend/app/
                   sessions (library level)
   audit/          Optimization-run records
   persistence/    Append-only trigger guards
-  simulation/     Disruption generation and recovery
+  simulation/     Disruption generation and recovery (stateless synthetic sandbox)
 backend/tests/    Backend test suite (pytest)
 contracts/        Shared Pydantic contracts (BlockCandidate, OptimizationRequest/Result, ...)
 data/railway/ndls_agc/   Real public-data snapshot: manifest, datasets, stored sources
@@ -561,6 +578,7 @@ docs/             Current documentation and API contract (see below)
 | [`docs/api-contract-v1.md`](docs/api-contract-v1.md) · [`docs/openapi-v1.json`](docs/openapi-v1.json) | Frozen `/v1` API contract |
 | [`docs/demo-runbook.md`](docs/demo-runbook.md) | Presentation-day startup and troubleshooting |
 | [`docs/architecture.md`](docs/architecture.md) | Component architecture |
+| [`docs/DISRUPT_RECOVER_ARCHITECTURE.md`](docs/DISRUPT_RECOVER_ARCHITECTURE.md) | Persisted disruption and recovery: model, safety rules, audit |
 | [`docs/SLICE9_IMPLEMENTATION.md`](docs/SLICE9_IMPLEMENTATION.md) | SLA, obligations and accountability implementation record |
 | [`frontend/README.md`](frontend/README.md) | Console screens and how each maps to the backend |
 | [`data/railway/ndls_agc/sources/README.md`](data/railway/ndls_agc/sources/README.md) | Stored public sources |

@@ -46,6 +46,11 @@ contract change and needs a deliberate snapshot regeneration.
 | `GET /v1/obligations?state=&obligation_type=&role=&past_due=&attention=&limit=&cursor=` | — | 200 `{items, next_cursor, evaluated_at, policy_version, policy_assumed}` | — | any | — |
 | `GET /v1/optimization-runs/{run_id}` | — | 200 `OptimizationRunResponse` | run exists | any | — |
 | `POST /v1/corridors/{corridor_id}/optimize-jobs` | — | 200 `JobOptimizationResponse` | ≥1 eligible job | ENGINEER / SYSTEM | — |
+| `POST /v1/corridors/{corridor_id}/disruptions` | `{kind, track_id, section_id?, starts_at, ends_at, reason}` | 201 `DisruptionResponse` | track/section known; span inside horizon | ENGINEER | — |
+| `GET /v1/corridors/{corridor_id}/disruptions` | — | 200 `{corridor_id, items: DisruptionResponse[]}` | — | ENGINEER / AUTHORITY | — |
+| `GET /v1/corridors/{corridor_id}/disruptions/{id}` | — | 200 `DisruptionResponse` incl. `events[]` | disruption exists | ENGINEER / AUTHORITY | — |
+| `POST /v1/corridors/{corridor_id}/disruptions/{id}/clear` | `{reason}` | 200 `DisruptionResponse` | `ACTIVE` | ENGINEER | — |
+| `POST /v1/corridors/{corridor_id}/disruptions/{id}/recover` | — | 200 `DisruptionRecoveryResponse` (`optimization`, `comparison`) | `ACTIVE`; no approved block overlaps an active disruption | ENGINEER | — |
 | `POST /v1/jobs/{id}/proposal/approve` | `{expected_proposal_run_id}` | 200 `{job, message}` → `notified` | `scheduled` | AUTHORITY | **required** |
 | `POST /v1/jobs/{id}/notify` | `{expected_proposal_run_id}` | 200 `{job, message}` → `notified` | `scheduled` | AUTHORITY | **required** (same effect as approve) |
 | `POST /v1/jobs/{id}/proposal/reject` | `{expected_proposal_run_id, reason}` | 200 → `reported` | `scheduled` | AUTHORITY | **required** |
@@ -188,14 +193,40 @@ data.
 and proposals name: the run's request, result, solver status, timing and provenance
 snapshot, as stored. Append-only; there is no route that updates or deletes a run.
 
+## Disruption and recovery (persisted)
+
+A **disruption** is a declared, *simulated* planning input (`basis: SIMULATED_DECLARED`),
+never an observed railway event. Kinds: `TRACK_UNAVAILABLE` (a track, optionally one
+section) and `POSSESSION_CURTAILMENT` (one section; `section_id` required). `starts_at` /
+`ends_at` are ISO-8601 with an explicit UTC offset; the span is rounded outward to whole
+minutes. Full design: [`DISRUPT_RECOVER_ARCHITECTURE.md`](DISRUPT_RECOVER_ARCHITECTURE.md).
+
+- Every optimization (recovery or not) subtracts the span from the derived possession
+  windows of the named track/section, and records the active disruption ids in the run's
+  provenance snapshot.
+- `DisruptionResponse.affected_jobs[]` names each placed job the span overlaps and its
+  `impact`: `PROPOSAL_REPLAN` (uncommitted; re-planned by the next run),
+  `RELEASE_REQUIRED` (approved, `notified`: the authority must release it) or
+  `NOT_COMPLETED_REPORT_REQUIRED` (`in_progress`: the crew must report it not-completed).
+- `POST .../recover` and `POST .../optimize-jobs` are **refused before any solve** with
+  `409 RECOVERY_BLOCKED` while an approved block overlaps an active disruption; `detail`
+  lists the jobs. Nothing is solved, written or withdrawn.
+- `POST /v1/jobs/{id}/proposal/approve` (and `/notify`) returns `409 PROPOSAL_DISRUPTED`
+  for a proposal inside an active disruption.
+- `comparison` is `{unchanged[], moved[{job_id, before, after}], newly_unscheduled[], newly_scheduled[], counts}`,
+  computed from stored placements; a block released because of the disruption appears
+  under `moved` with its previous placement.
+- Recovery is authorized as `REQUEST_OPTIMIZATION`; declare/clear/read use
+  `REGISTER_DISRUPTION`, `CLEAR_DISRUPTION`, `READ_DISRUPTION` (corridor-scoped).
+
 ## Error codes
 
 | Status | Codes |
 |---|---|
 | 400 | `INVALID_REQUEST`, `INVALID_TRANSITION`, `EVIDENCE_INVALID`, `INVALID_CURSOR`, `ACTOR_HEADERS_INCOMPLETE`, `ACTOR_INVALID`, `ASSET_ASSOCIATION_FAILED`, `FIELD_LOCATION_INVALID`, `LOCATION_INPUT_CONFLICT` |
 | 403 | `ACTOR_SYSTEM_ROLE_FORBIDDEN`, `AUTHORIZATION_DENIED` (no policy denies today) |
-| 404 | `JOB_NOT_FOUND`, `CORRIDOR_NOT_FOUND`, `OPTIMIZATION_RUN_NOT_FOUND` |
-| 409 | `STALE_PROPOSAL`, `STALE_EXECUTION`, `JOB_TERMINAL`, `JOB_COMMITTED`, `CONCURRENT_MODIFICATION`, `NO_CURRENT_PROPOSAL`, `NO_ELIGIBLE_JOBS`, `POSSESSION_DATA_UNAVAILABLE`, `TIMETABLE_COVERAGE_GAP`, `COMMITTED_STATE_INCONSISTENT`, `EXECUTION_HISTORY_INCONSISTENT`, `IDEMPOTENCY_KEY_CONFLICT`, `ASSET_REFERENCE_INVALID` (not returned by any v1 route today), `OBLIGATION_STATE_INCONSISTENT`, `SLA_POLICY_UNRESOLVABLE` |
+| 404 | `JOB_NOT_FOUND`, `CORRIDOR_NOT_FOUND`, `OPTIMIZATION_RUN_NOT_FOUND`, `DISRUPTION_NOT_FOUND` |
+| 409 | `STALE_PROPOSAL`, `STALE_EXECUTION`, `JOB_TERMINAL`, `JOB_COMMITTED`, `CONCURRENT_MODIFICATION`, `NO_CURRENT_PROPOSAL`, `NO_ELIGIBLE_JOBS`, `POSSESSION_DATA_UNAVAILABLE`, `TIMETABLE_COVERAGE_GAP`, `COMMITTED_STATE_INCONSISTENT`, `EXECUTION_HISTORY_INCONSISTENT`, `IDEMPOTENCY_KEY_CONFLICT`, `ASSET_REFERENCE_INVALID` (not returned by any v1 route today), `OBLIGATION_STATE_INCONSISTENT`, `SLA_POLICY_UNRESOLVABLE`, `DISRUPTION_STATE_CONFLICT`, `RECOVERY_BLOCKED`, `PROPOSAL_DISRUPTED`, `ALL_POSSESSION_REMOVED` |
 | 422 | `VALIDATION_ERROR` |
 
 `GET /v1/jobs/{id}/proposal` returning `409 NO_CURRENT_PROPOSAL` carries a `detail` that
