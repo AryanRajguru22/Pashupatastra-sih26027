@@ -84,6 +84,19 @@ from backend.app.optimizer.solver import (
 from backend.app.optimizer.solver import _resource_key
 
 
+from dataclasses import replace as _dc_replace
+
+from backend.app.jobs.disruption import (
+    BASIS_SIMULATED_DECLARED,
+    AllPossessionRemovedError,
+    DisruptionRepository,
+    RecoveryBlockedError,
+    affected_jobs,
+    committed_blockers,
+    subtract_disruptions,
+)
+
+
 class PossessionDataUnavailableError(RuntimeError):
     """No possession data at all was available for the optimization.
 
@@ -404,10 +417,19 @@ class JobOptimizationService:
             AuditRepository(self.service.repository.db_path)
         )
 
+        # Declared disruptions live in the same database file. Every run
+        # reads the ACTIVE ones, so no optimization - recovery or not -
+        # can plan through a disruption.
+        self.disruptions = DisruptionRepository(
+            self.service.repository.db_path
+        )
+
     def optimize_corridor(
         self,
         corridor_id: str | None = None,
         actor: Actor | None = None,
+        *,
+        trigger: str = "jobs_optimize",
     ) -> dict[str, Any]:
 
         requester = actor if actor is not None else unidentified_actor()
@@ -464,6 +486,37 @@ class JobOptimizationService:
 
             job_ids = [block.block_id for block in candidates]
 
+            # Declared disruptions (DISRUPT). Read under the lifecycle
+            # lock, so a disruption registered a moment ago is either
+            # seen here or its registration waited for this run.
+            active_disruptions = self.disruptions.active()
+
+            if active_disruptions:
+                blockers = committed_blockers(
+                    affected_jobs(
+                        self.service.repository.list_active(),
+                        active_disruptions,
+                        OPTIMIZATION_HORIZON_START,
+                    )
+                )
+
+                if blockers:
+                    # Refused BEFORE an attempt exists: no solver run, no
+                    # optimization_runs row, and no proposal is written
+                    # or withdrawn. The solver would otherwise pin a
+                    # block whose possession no longer exists and report
+                    # the whole model INFEASIBLE, taking every unrelated
+                    # proposal with it. The refusal is recorded on each
+                    # blocking job.
+                    refusal = RecoveryBlockedError(blockers)
+                    self.service.record_rejected_transition(
+                        [entry["job_id"] for entry in blockers],
+                        requester,
+                        "optimize",
+                        refusal,
+                    )
+                    raise refusal
+
             # ONE horizon for this run, resolved once here and passed to
             # BOTH the possession boundary and the request builder. The
             # canonical path anchors every traversal to this exact
@@ -488,6 +541,7 @@ class JobOptimizationService:
                 requested_at=event_timestamp(self.service.clock()),
                 run_id=new_run_id(),
                 horizon_start=horizon_start,
+                trigger=trigger,
             )
 
             try:
@@ -495,6 +549,13 @@ class JobOptimizationService:
                     horizon_start,
                     horizon_minutes,
                 )
+
+                if active_disruptions:
+                    possession = self._apply_disruptions(
+                        possession,
+                        active_disruptions,
+                        horizon_start,
+                    )
 
                 windows = possession.windows
 
@@ -571,6 +632,16 @@ class JobOptimizationService:
                         "uncovered_tracks": sorted(uncovered),
                         "provenance": provenance_profile.to_dict(),
                         **_rejection_summary(possession),
+                        **(
+                            {
+                                "active_disruption_ids": [
+                                    d.disruption_id for d in active_disruptions
+                                ],
+                                "disruption_basis": BASIS_SIMULATED_DECLARED,
+                            }
+                            if active_disruptions
+                            else {}
+                        ),
                     },
                 )
 
@@ -640,6 +711,42 @@ class JobOptimizationService:
                 result.infeasibility_reasons
             ),
         }
+
+    @staticmethod
+    def _apply_disruptions(
+        possession: PossessionInputs,
+        active: list,
+        horizon_start: str,
+    ) -> PossessionInputs:
+        """Subtract active disruptions from the derived windows.
+
+        Fails closed if that leaves no window at all: an empty window
+        list would switch the solver's possession rule OFF, which is the
+        opposite of what a disruption means.
+        """
+
+        windows = subtract_disruptions(
+            possession.windows, active, horizon_start
+        )
+
+        if possession.windows and not windows:
+            raise AllPossessionRemovedError(
+                "The active disruptions "
+                f"({', '.join(d.disruption_id for d in active)}) remove "
+                "every possession window in the planning horizon. Nothing "
+                "can be planned until one is cleared."
+            )
+
+        return _dc_replace(
+            possession,
+            windows=windows,
+            derivation=(
+                f"{possession.derivation} | MINUS {len(active)} declared "
+                "disruption(s) "
+                f"[{', '.join(d.disruption_id for d in active)}] "
+                f"({BASIS_SIMULATED_DECLARED})"
+            ),
+        )
 
     def _record_failure(
         self,

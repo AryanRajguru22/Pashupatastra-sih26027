@@ -31,6 +31,24 @@ from backend.app.jobs.asset_association import (
     AssetReferenceError,
 )
 
+from backend.app.jobs.disruption import (
+    AllPossessionRemovedError,
+    DisruptedPlacementError,
+    DisruptionNotFoundError,
+    DisruptionStateError,
+    RecoveryBlockedError,
+)
+
+from backend.app.jobs.disruption_models import (
+    ClearDisruptionRequest,
+    DisruptionListResponse,
+    DisruptionResponse,
+    DisruptionRecoveryResponse,
+    RegisterDisruptionRequest,
+)
+
+from backend.app.jobs.disruption_service import DisruptionService
+
 from backend.app.jobs.execution import (
     EvidenceValidationError,
     ExecutionIntegrityError,
@@ -139,6 +157,10 @@ require_resource_aware(service.authorization)
 # corridor and lifecycle lock (JobService.lifecycle_lock).
 optimization_service = _composition.optimization_service
 
+# Persisted DISRUPT / RECOVER workflow. Built from the optimization
+# service so it shares its JobService, lifecycle lock and authorization.
+disruption_service = DisruptionService(optimization_service)
+
 
 # Refusals that are conflicts with the job's current state rather than
 # malformed requests. Each maps to 409. CommittedStateIntegrityError means
@@ -163,6 +185,11 @@ _CONFLICTS = (
 # ones the routes returned before Slice 7 - only the code is new.
 _TRANSLATIONS: tuple[tuple[type, int, ErrorCode], ...] = (
     (AuthorizationDenied, 403, ErrorCode.AUTHORIZATION_DENIED),
+    (DisruptionNotFoundError, 404, ErrorCode.DISRUPTION_NOT_FOUND),
+    (DisruptionStateError, 409, ErrorCode.DISRUPTION_STATE_CONFLICT),
+    (RecoveryBlockedError, 409, ErrorCode.RECOVERY_BLOCKED),
+    (DisruptedPlacementError, 409, ErrorCode.PROPOSAL_DISRUPTED),
+    (AllPossessionRemovedError, 409, ErrorCode.ALL_POSSESSION_REMOVED),
     (NoEligibleJobsError, 409, ErrorCode.NO_ELIGIBLE_JOBS),
     (PossessionDataUnavailableError, 409, ErrorCode.POSSESSION_DATA_UNAVAILABLE),
     (TimetableCoverageGapError, 409, ErrorCode.TIMETABLE_COVERAGE_GAP),
@@ -222,6 +249,15 @@ def _api_error(
     KeyError is the 404 every route already used; `not_found` names WHAT
     was not found (a job by default, a corridor for optimize-jobs).
     """
+
+    # A KeyError subclass, so it must be told apart BEFORE the generic
+    # 404 below, which would mislabel it as a missing job or corridor.
+    if isinstance(exc, DisruptionNotFoundError):
+        return ApiError(
+            404,
+            ErrorCode.DISRUPTION_NOT_FOUND,
+            exc.args[0] if exc.args else "Unknown disruption",
+        )
 
     if isinstance(exc, KeyError):
         # str(KeyError("x")) is the quoted repr "'x'"; the message is args[0].
@@ -1049,3 +1085,129 @@ def get_optimization_run(
         ) from exc
 
     return OptimizationRunResponse(**run.to_dict())
+
+
+# ----------------------------------------------------------------------
+# DISRUPT / RECOVER (persisted)
+# ----------------------------------------------------------------------
+
+
+@router.post(
+    "/corridors/{corridor_id}/disruptions",
+    response_model=DisruptionResponse,
+    status_code=201,
+    tags=["disruptions"],
+)
+def register_disruption(
+    corridor_id: str,
+    body: RegisterDisruptionRequest,
+    actor: Actor = Depends(request_actor),
+) -> DisruptionResponse:
+    """Declare a SIMULATED disruption (a track or section span is unusable).
+
+    From now on every optimization subtracts the span from the derived
+    possession windows. The response lists the jobs it affects and what
+    each requires. Recorded append-only with the declaring actor.
+    """
+
+    try:
+        view = disruption_service.register(
+            corridor_id,
+            actor,
+            kind=body.kind,
+            track_id=body.track_id,
+            section_id=body.section_id,
+            starts_at=body.starts_at,
+            ends_at=body.ends_at,
+            reason=body.reason,
+        )
+    except _HANDLED as exc:
+        raise _api_error(exc, not_found=ErrorCode.CORRIDOR_NOT_FOUND) from exc
+
+    return DisruptionResponse(**view)
+
+
+@router.get(
+    "/corridors/{corridor_id}/disruptions",
+    response_model=DisruptionListResponse,
+    tags=["disruptions"],
+)
+def list_disruptions(
+    corridor_id: str,
+    actor: Actor = Depends(request_actor),
+) -> DisruptionListResponse:
+    try:
+        items = disruption_service.list_disruptions(corridor_id, actor)
+    except _HANDLED as exc:
+        raise _api_error(exc, not_found=ErrorCode.CORRIDOR_NOT_FOUND) from exc
+
+    return DisruptionListResponse(
+        corridor_id=corridor_id,
+        items=[DisruptionResponse(**item) for item in items],
+    )
+
+
+@router.get(
+    "/corridors/{corridor_id}/disruptions/{disruption_id}",
+    response_model=DisruptionResponse,
+    tags=["disruptions"],
+)
+def get_disruption(
+    corridor_id: str,
+    disruption_id: str,
+    actor: Actor = Depends(request_actor),
+) -> DisruptionResponse:
+    try:
+        view = disruption_service.get(corridor_id, disruption_id, actor)
+    except _HANDLED as exc:
+        raise _api_error(exc, not_found=ErrorCode.CORRIDOR_NOT_FOUND) from exc
+
+    return DisruptionResponse(**view)
+
+
+@router.post(
+    "/corridors/{corridor_id}/disruptions/{disruption_id}/clear",
+    response_model=DisruptionResponse,
+    tags=["disruptions"],
+)
+def clear_disruption(
+    corridor_id: str,
+    disruption_id: str,
+    body: ClearDisruptionRequest,
+    actor: Actor = Depends(request_actor),
+) -> DisruptionResponse:
+    try:
+        view = disruption_service.clear(
+            corridor_id, disruption_id, actor, reason=body.reason
+        )
+    except _HANDLED as exc:
+        raise _api_error(exc, not_found=ErrorCode.CORRIDOR_NOT_FOUND) from exc
+
+    return DisruptionResponse(**view)
+
+
+@router.post(
+    "/corridors/{corridor_id}/disruptions/{disruption_id}/recover",
+    response_model=DisruptionRecoveryResponse,
+    tags=["disruptions"],
+)
+def recover_from_disruption(
+    corridor_id: str,
+    disruption_id: str,
+    actor: Actor = Depends(request_actor),
+) -> DisruptionRecoveryResponse:
+    """Re-plan around every active disruption and return a before/after diff.
+
+    A real CP-SAT run over the possession windows minus the active
+    disruptions, with approved work still pinned. Refused with
+    RECOVERY_BLOCKED (409) before any solve while approved work overlaps
+    a disruption; the detail names each job and the authority action
+    that resolves it.
+    """
+
+    try:
+        result = disruption_service.recover(corridor_id, disruption_id, actor)
+    except _HANDLED as exc:
+        raise _api_error(exc, not_found=ErrorCode.CORRIDOR_NOT_FOUND) from exc
+
+    return DisruptionRecoveryResponse(**result)

@@ -49,6 +49,11 @@ def test_engineer_holds_optimization_and_reads_and_nothing_else():
         {
             A.REQUEST_OPTIMIZATION,
             A.READ_OPTIMIZATION_RUN,
+            # Persisted disruption workflow: the planning engineer
+            # declares and clears disruptions and reads them.
+            A.REGISTER_DISRUPTION,
+            A.CLEAR_DISRUPTION,
+            A.READ_DISRUPTION,
             A.READ_JOB,
             A.READ_JOB_HISTORY,
             A.READ_BLOCK_PROPOSAL,
@@ -65,6 +70,9 @@ def test_authority_holds_the_four_decisions_and_reads_and_nothing_else():
             A.REJECT_PROPOSAL,
             A.POSTPONE_PROPOSAL,
             A.RELEASE_COMMITTED_BLOCK,
+            # Reads disruptions (to see what forces a release); it never
+            # declares or clears one.
+            A.READ_DISRUPTION,
             A.READ_JOB,
             A.READ_JOB_HISTORY,
             A.READ_BLOCK_PROPOSAL,
@@ -161,9 +169,17 @@ def test_every_action_is_classified_exactly_once():
     assert missing == set(), f"unclassified, so undeniable-by-rule: {missing}"
 
 
-def test_the_corridor_scoped_actions_are_exactly_the_two_without_a_section():
+def test_the_corridor_scoped_actions_are_exactly_the_ones_without_a_section():
+    # The two optimization actions, plus the three disruption actions: a
+    # disruption names a track and a span, never one job.
     assert CORRIDOR_SCOPED_ACTIONS == frozenset(
-        {A.REQUEST_OPTIMIZATION, A.READ_OPTIMIZATION_RUN}
+        {
+            A.REQUEST_OPTIMIZATION,
+            A.READ_OPTIMIZATION_RUN,
+            A.REGISTER_DISRUPTION,
+            A.CLEAR_DISRUPTION,
+            A.READ_DISRUPTION,
+        }
     )
 
 

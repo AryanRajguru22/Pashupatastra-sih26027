@@ -138,6 +138,12 @@ V1_OPERATIONS = {
     ("GET", "/v1/jobs/{job_id}/proposal"),
     ("GET", "/v1/jobs/{job_id}/execution"),
     ("POST", "/v1/corridors/{corridor_id}/optimize-jobs"),
+    # Persisted DISRUPT / RECOVER - additive, added deliberately.
+    ("POST", "/v1/corridors/{corridor_id}/disruptions"),
+    ("GET", "/v1/corridors/{corridor_id}/disruptions"),
+    ("GET", "/v1/corridors/{corridor_id}/disruptions/{disruption_id}"),
+    ("POST", "/v1/corridors/{corridor_id}/disruptions/{disruption_id}/clear"),
+    ("POST", "/v1/corridors/{corridor_id}/disruptions/{disruption_id}/recover"),
     ("POST", "/v1/jobs/{job_id}/notify"),
     ("POST", "/v1/jobs/{job_id}/proposal/approve"),
     ("POST", "/v1/jobs/{job_id}/proposal/reject"),
@@ -896,6 +902,13 @@ def test_error_code_vocabulary_is_frozen():
         # Slice 8 (field intake) - additive, added deliberately. No
         # existing code was renamed or removed.
         "ASSET_ASSOCIATION_FAILED",
+        # Persisted DISRUPT / RECOVER - additive, added deliberately. No
+        # existing code was renamed or removed.
+        "DISRUPTION_NOT_FOUND",
+        "DISRUPTION_STATE_CONFLICT",
+        "RECOVERY_BLOCKED",
+        "PROPOSAL_DISRUPTED",
+        "ALL_POSSESSION_REMOVED",
         "FIELD_LOCATION_INVALID",
         "LOCATION_INPUT_CONFLICT",
         "IDEMPOTENCY_KEY_CONFLICT",

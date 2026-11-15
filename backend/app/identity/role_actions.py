@@ -100,6 +100,12 @@ ROLE_ACTIONS: Mapping[ActorRole, FrozenSet[JobAction]] = {
         {
             JobAction.REQUEST_OPTIMIZATION,
             JobAction.READ_OPTIMIZATION_RUN,
+            # The planning engineer declares and clears disruptions and
+            # runs recovery; the authority only reads them (and decides
+            # the releases they force).
+            JobAction.REGISTER_DISRUPTION,
+            JobAction.CLEAR_DISRUPTION,
+            JobAction.READ_DISRUPTION,
         }
     )
     | JOB_READS,
@@ -109,6 +115,7 @@ ROLE_ACTIONS: Mapping[ActorRole, FrozenSet[JobAction]] = {
             JobAction.REJECT_PROPOSAL,
             JobAction.POSTPONE_PROPOSAL,
             JobAction.RELEASE_COMMITTED_BLOCK,
+            JobAction.READ_DISRUPTION,
         }
     )
     | JOB_READS,
@@ -126,6 +133,9 @@ CORRIDOR_SCOPED_ACTIONS: FrozenSet[JobAction] = frozenset(
     {
         JobAction.REQUEST_OPTIMIZATION,
         JobAction.READ_OPTIMIZATION_RUN,
+        JobAction.REGISTER_DISRUPTION,
+        JobAction.CLEAR_DISRUPTION,
+        JobAction.READ_DISRUPTION,
     }
 )
 

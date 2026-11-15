@@ -116,6 +116,15 @@ class JobAction(str, Enum):
     # while every other read in the application already passed here.
     READ_JOB = "READ_JOB"
 
+    # Persisted disruption workflow (DISRUPT / RECOVER on the jobs
+    # pipeline). All three are corridor-shaped: a disruption names a
+    # track and a span, not one job. Recovery itself is an optimization
+    # run and is authorized as REQUEST_OPTIMIZATION - there is no second
+    # permission for "optimize after a disruption".
+    REGISTER_DISRUPTION = "REGISTER_DISRUPTION"
+    CLEAR_DISRUPTION = "CLEAR_DISRUPTION"
+    READ_DISRUPTION = "READ_DISRUPTION"
+
 
 class AuthorizationDenied(Exception):
     """A policy refused an action. Raised before any state is touched.

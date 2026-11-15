@@ -85,6 +85,11 @@ from backend.app.identity.resource import ResourceLocation, location_of
 
 from backend.app.identity.scope import ScopeError
 
+from backend.app.jobs.disruption import (
+    DisruptedPlacementError,
+    DisruptionRepository,
+    affected_jobs,
+)
 from backend.app.jobs.asset_association import (
     ASSET_REFERENCE_UNFINGERPRINTED,
     AssetAssociationPolicy,
@@ -1996,17 +2001,53 @@ class JobService:
 
         self._authorize_existing_job(committer, JobAction.COMMIT_BLOCK, job_id)
 
-        return self._transition(
-            job_id,
-            committer,
-            "notify",
-            plan_commit(
+        # Held across the disruption check AND the commit (the lock is
+        # re-entrant), so a disruption registered concurrently is either
+        # seen here or waits until this commit has finished.
+        with self.lifecycle_lock:
+            self._refuse_disrupted_placement(job_id, committer)
+
+            return self._transition(
                 job_id,
-                actor=committer,
-                at=event_timestamp(self.clock()),
-                expected_proposal_run_id=expected_proposal_run_id,
-            ),
+                committer,
+                "notify",
+                plan_commit(
+                    job_id,
+                    actor=committer,
+                    at=event_timestamp(self.clock()),
+                    expected_proposal_run_id=expected_proposal_run_id,
+                ),
+            )
+
+    def _refuse_disrupted_placement(self, job_id: str, actor: Actor) -> None:
+        """An uncommitted proposal inside an active disruption cannot be approved.
+
+        Committing it would pin work onto a span the corridor has been
+        declared unusable for. The refusal is recorded in the job's
+        history like any other refused transition; nothing changes.
+        """
+
+        job = self.repository.get(job_id)
+
+        if job is None or job.get("status") != "scheduled":
+            return  # the transition itself reports the real problem
+
+        active = DisruptionRepository(self.repository.db_path).active()
+
+        hits = affected_jobs([job], active, OPTIMIZATION_HORIZON_START)
+
+        if not hits:
+            return
+
+        error = DisruptedPlacementError(
+            f"Job '{job_id}' cannot be approved: its proposed placement "
+            f"overlaps active disruption(s) {', '.join(hits[0]['disruption_ids'])}. "
+            "Run recovery to re-plan it."
         )
+
+        self.record_rejected_transition([job_id], actor, "notify", error)
+
+        raise error
 
     # -----------------------------------------
     # Authority review of a NEW block proposal (Sprint 3 Slice 3)

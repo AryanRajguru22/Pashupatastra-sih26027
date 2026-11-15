@@ -29,6 +29,68 @@
         "title": "ActorResponse",
         "type": "object"
       },
+      "AffectedJob": {
+        "properties": {
+          "disruption_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Disruption Ids",
+            "type": "array"
+          },
+          "end_minute": {
+            "title": "End Minute",
+            "type": "integer"
+          },
+          "impact": {
+            "title": "Impact",
+            "type": "string"
+          },
+          "job_id": {
+            "title": "Job Id",
+            "type": "string"
+          },
+          "required_action": {
+            "title": "Required Action",
+            "type": "string"
+          },
+          "section_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Id"
+          },
+          "start_minute": {
+            "title": "Start Minute",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "status",
+          "track_id",
+          "start_minute",
+          "end_minute",
+          "disruption_ids",
+          "impact",
+          "required_action"
+        ],
+        "title": "AffectedJob",
+        "type": "object"
+      },
       "ApproveProposalRequest": {
         "additionalProperties": false,
         "description": "Body for POST /jobs/{job_id}/proposal/approve (Sprint 3 Slice 3).\n\nLike CommitBlockRequest, expected_proposal_run_id is REQUIRED here: an\nauthority approving a reviewed proposal must always name it, so an\napproval can never silently commit whatever happens to be current.\nApproval itself delegates to the existing commit machinery\n(JobService.notify) rather than a second commit implementation -\nsee JobService.approve_proposal.",
@@ -245,6 +307,22 @@
         "title": "BlockProposalResponse",
         "type": "object"
       },
+      "ClearDisruptionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "ClearDisruptionRequest",
+        "type": "object"
+      },
       "CommitBlockRequest": {
         "additionalProperties": false,
         "description": "Body for POST /v1/jobs/{job_id}/notify.\n\nexpected_proposal_run_id is REQUIRED (Slice 7): the v1 contract has\nno unpinned commit path. It pins the commit to the proposal the\ncaller reviewed - if the job's current proposal came from a different\nrun, the commit is refused with 409 STALE_PROPOSAL and the attempt is\nrecorded. The in-process JobService.notify keeps its optional\nparameter for direct callers; only the HTTP contract requires it.",
@@ -372,6 +450,217 @@
           "corridor_id"
         ],
         "title": "DisruptionEvent",
+        "type": "object"
+      },
+      "DisruptionKind": {
+        "enum": [
+          "TRACK_UNAVAILABLE",
+          "POSSESSION_CURTAILMENT"
+        ],
+        "title": "DisruptionKind",
+        "type": "string"
+      },
+      "DisruptionListResponse": {
+        "properties": {
+          "corridor_id": {
+            "title": "Corridor Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DisruptionResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "corridor_id",
+          "items"
+        ],
+        "title": "DisruptionListResponse",
+        "type": "object"
+      },
+      "DisruptionRecoveryResponse": {
+        "properties": {
+          "active_disruption_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Active Disruption Ids",
+            "type": "array"
+          },
+          "comparison": {
+            "additionalProperties": true,
+            "title": "Comparison",
+            "type": "object"
+          },
+          "disruption": {
+            "$ref": "#/components/schemas/DisruptionResponse"
+          },
+          "optimization": {
+            "additionalProperties": true,
+            "title": "Optimization",
+            "type": "object"
+          }
+        },
+        "required": [
+          "disruption",
+          "optimization",
+          "comparison",
+          "active_disruption_ids"
+        ],
+        "title": "DisruptionRecoveryResponse",
+        "type": "object"
+      },
+      "DisruptionResponse": {
+        "properties": {
+          "affected_jobs": {
+            "items": {
+              "$ref": "#/components/schemas/AffectedJob"
+            },
+            "title": "Affected Jobs",
+            "type": "array"
+          },
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "blocking_recovery": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blocking Recovery",
+            "type": "array"
+          },
+          "clear_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clear Reason"
+          },
+          "cleared_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cleared At"
+          },
+          "cleared_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cleared By"
+          },
+          "corridor_id": {
+            "title": "Corridor Id",
+            "type": "string"
+          },
+          "declared_by": {
+            "title": "Declared By",
+            "type": "string"
+          },
+          "declared_role": {
+            "title": "Declared Role",
+            "type": "string"
+          },
+          "disruption_id": {
+            "title": "Disruption Id",
+            "type": "string"
+          },
+          "ends_at": {
+            "title": "Ends At",
+            "type": "string"
+          },
+          "events": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Events"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DisruptionKind"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "recovery_runs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recovery Runs",
+            "type": "array"
+          },
+          "registered_at": {
+            "title": "Registered At",
+            "type": "string"
+          },
+          "section_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Id"
+          },
+          "starts_at": {
+            "title": "Starts At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "track_id": {
+            "title": "Track Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "disruption_id",
+          "kind",
+          "corridor_id",
+          "track_id",
+          "starts_at",
+          "ends_at",
+          "reason",
+          "declared_by",
+          "declared_role",
+          "registered_at",
+          "basis",
+          "status",
+          "recovery_runs",
+          "affected_jobs",
+          "blocking_recovery"
+        ],
+        "title": "DisruptionResponse",
         "type": "object"
       },
       "EvidenceInput": {
@@ -2056,6 +2345,60 @@
         "title": "RecoveryResponse",
         "type": "object"
       },
+      "RegisterDisruptionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "ends_at": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Ends At",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/DisruptionKind"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "section_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Id"
+          },
+          "starts_at": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Starts At",
+            "type": "string"
+          },
+          "track_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Track Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "track_id",
+          "starts_at",
+          "ends_at",
+          "reason"
+        ],
+        "title": "RegisterDisruptionRequest",
+        "type": "object"
+      },
       "RejectProposalRequest": {
         "additionalProperties": false,
         "description": "Body for POST /jobs/{job_id}/proposal/reject (Sprint 3 Slice 3).\n\nBoth fields are mandatory: a rejection must name the exact proposal\nit refuses and state why.",
@@ -2401,6 +2744,448 @@
           }
         },
         "summary": "Recover"
+      }
+    },
+    "/v1/corridors/{corridor_id}/disruptions": {
+      "get": {
+        "operationId": "list_disruptions_v1_corridors__corridor_id__disruptions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "corridor_id",
+            "required": true,
+            "schema": {
+              "title": "Corridor Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisruptionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Disruptions",
+        "tags": [
+          "jobs",
+          "disruptions"
+        ]
+      },
+      "post": {
+        "description": "Declare a SIMULATED disruption (a track or section span is unusable).\n\nFrom now on every optimization subtracts the span from the derived\npossession windows. The response lists the jobs it affects and what\neach requires. Recorded append-only with the declaring actor.",
+        "operationId": "register_disruption_v1_corridors__corridor_id__disruptions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "corridor_id",
+            "required": true,
+            "schema": {
+              "title": "Corridor Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDisruptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisruptionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Disruption",
+        "tags": [
+          "jobs",
+          "disruptions"
+        ]
+      }
+    },
+    "/v1/corridors/{corridor_id}/disruptions/{disruption_id}": {
+      "get": {
+        "operationId": "get_disruption_v1_corridors__corridor_id__disruptions__disruption_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "corridor_id",
+            "required": true,
+            "schema": {
+              "title": "Corridor Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "disruption_id",
+            "required": true,
+            "schema": {
+              "title": "Disruption Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisruptionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Disruption",
+        "tags": [
+          "jobs",
+          "disruptions"
+        ]
+      }
+    },
+    "/v1/corridors/{corridor_id}/disruptions/{disruption_id}/clear": {
+      "post": {
+        "operationId": "clear_disruption_v1_corridors__corridor_id__disruptions__disruption_id__clear_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "corridor_id",
+            "required": true,
+            "schema": {
+              "title": "Corridor Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "disruption_id",
+            "required": true,
+            "schema": {
+              "title": "Disruption Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClearDisruptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisruptionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clear Disruption",
+        "tags": [
+          "jobs",
+          "disruptions"
+        ]
+      }
+    },
+    "/v1/corridors/{corridor_id}/disruptions/{disruption_id}/recover": {
+      "post": {
+        "description": "Re-plan around every active disruption and return a before/after diff.\n\nA real CP-SAT run over the possession windows minus the active\ndisruptions, with approved work still pinned. Refused with\nRECOVERY_BLOCKED (409) before any solve while approved work overlaps\na disruption; the detail names each job and the authority action\nthat resolves it.",
+        "operationId": "recover_from_disruption_v1_corridors__corridor_id__disruptions__disruption_id__recover_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "corridor_id",
+            "required": true,
+            "schema": {
+              "title": "Corridor Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "disruption_id",
+            "required": true,
+            "schema": {
+              "title": "Disruption Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+            "in": "header",
+            "name": "X-Actor-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared actor identifier (e.g. WORKER-042). NOT verified: recorded with DECLARED_UNVERIFIED assurance. Send together with X-Actor-Role, or send neither.",
+              "title": "X-Actor-Id"
+            }
+          },
+          {
+            "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+            "in": "header",
+            "name": "X-Actor-Role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Declared role: WORKER, ENGINEER, AUTHORITY or ADMIN. SYSTEM is refused (403). NOT verified and not yet enforced as a permission: authentication and RBAC are later slices.",
+              "title": "X-Actor-Role"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DisruptionRecoveryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recover From Disruption",
+        "tags": [
+          "jobs",
+          "disruptions"
+        ]
       }
     },
     "/v1/corridors/{corridor_id}/optimize-jobs": {

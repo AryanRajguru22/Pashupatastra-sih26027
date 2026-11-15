@@ -609,6 +609,10 @@ def test_corridor_scoped_and_section_scoped_action_tables_are_unchanged():
     assert CORRIDOR_SCOPED_ACTIONS == {
         A.REQUEST_OPTIMIZATION,
         A.READ_OPTIMIZATION_RUN,
+        # Persisted disruption workflow (corridor-shaped, see role_actions).
+        A.REGISTER_DISRUPTION,
+        A.CLEAR_DISRUPTION,
+        A.READ_DISRUPTION,
     }
     assert A.REQUEST_OPTIMIZATION in ROLE_ACTIONS[ActorRole.ENGINEER]
     assert A.READ_OPTIMIZATION_RUN in ROLE_ACTIONS[ActorRole.ENGINEER]

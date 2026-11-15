@@ -1842,6 +1842,14 @@ def test_every_state_changing_route_is_a_reviewed_history_recording_path():
         ("POST", "/v1/jobs/{job_id}/execution/start"),
         ("POST", "/v1/jobs/{job_id}/execution/complete"),
         ("POST", "/v1/jobs/{job_id}/execution/not-completed"),
+        # Persisted DISRUPT / RECOVER (backend.app.jobs.disruption). These
+        # write the append-only disruption_events table (REGISTERED /
+        # CLEARED / RECOVERY_PLANNED / RECOVERY_REFUSED, with the declaring
+        # actor) and change no job row themselves; recover runs the normal
+        # optimization path, which writes its own job events and a run row.
+        ("POST", "/v1/corridors/{corridor_id}/disruptions"),
+        ("POST", "/v1/corridors/{corridor_id}/disruptions/{disruption_id}/clear"),
+        ("POST", "/v1/corridors/{corridor_id}/disruptions/{disruption_id}/recover"),
         ("POST", "/optimize"),
         ("POST", "/recover"),
     }

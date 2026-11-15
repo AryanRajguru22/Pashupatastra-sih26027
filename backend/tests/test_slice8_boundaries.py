@@ -96,6 +96,12 @@ def test_no_new_authorization_action():
         # call, while every other read already passed this seam. Still no
         # write action added, renamed or removed.
         "READ_JOB",
+        # Persisted DISRUPT / RECOVER added exactly three corridor-shaped
+        # actions: declare, clear, read. Recovery itself is authorized as
+        # REQUEST_OPTIMIZATION - no fourth action exists for it.
+        "REGISTER_DISRUPTION",
+        "CLEAR_DISRUPTION",
+        "READ_DISRUPTION",
     ]
 
 

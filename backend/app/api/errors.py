@@ -110,6 +110,21 @@ class ErrorCode(str, Enum):
     # trail does not hold. Its own code, not JOB_NOT_FOUND, because the
     # thing that was not found is not a job.
     OPTIMIZATION_RUN_NOT_FOUND = "OPTIMIZATION_RUN_NOT_FOUND"
+    DISRUPTION_NOT_FOUND = "DISRUPTION_NOT_FOUND"
+
+    # 409 - persisted disruption workflow (DISRUPT / RECOVER)
+    # The disruption is not in a state that permits the operation
+    # (e.g. clearing or recovering an already-cleared disruption).
+    DISRUPTION_STATE_CONFLICT = "DISRUPTION_STATE_CONFLICT"
+    # Approved work overlaps an active disruption: the solve is refused
+    # until the authority releases it / the worker reports it
+    # not-completed. `detail` names each job.
+    RECOVERY_BLOCKED = "RECOVERY_BLOCKED"
+    # An uncommitted proposal lies inside an active disruption and cannot
+    # be approved.
+    PROPOSAL_DISRUPTED = "PROPOSAL_DISRUPTED"
+    # Active disruptions remove every possession window.
+    ALL_POSSESSION_REMOVED = "ALL_POSSESSION_REMOVED"
 
 
 class ApiError(HTTPException):
