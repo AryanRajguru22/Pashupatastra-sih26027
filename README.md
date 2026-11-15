@@ -515,7 +515,7 @@ publicly available.
 | **Operational integration** | There is no live feed, as-run train data, possession-grant system or notification delivery. Approving a block sets its status to `notified`, but nothing is sent. |
 | **Planning scope** | The horizon is two days and fixed (10–11 Sep 2026). The model uses two running lines and six sections. The objective has no start-time preference, and rejecting a proposal does not look for an alternative window. |
 | **Asset data** | Asset condition, criticality and failure history are generated demo inputs. The scorer uses hand-authored weights and is not trained on railway data. |
-| **Identity and authentication** | Demo mode declares identity and does not enforce roles. Enforced NovaForge mode exists in the backend, but the **console has no login flow yet**: it still sends `X-Actor-*` headers, which enforced mode refuses, so the console works only in demo mode. This is unbuilt console work (login redirect, credentialed requests with the CSRF header, role selection, logout); it is not blocked, but it needs a running NovaForge with a registered client to be tested end to end. |
+| **Identity and authentication** | Demo mode declares identity and does not enforce roles. Enforced NovaForge mode exists in the backend and the console has a sign-in gate, role chooser, sign-out and the CSRF header (see [`docs/NOVAFORGE_INTEGRATION.md`](docs/NOVAFORGE_INTEGRATION.md)). It is **verified by build and by the backend's simulated-NovaForge tests, not in a browser against a running NovaForge**, and NovaForge must add three new permissions before disruption routes work in that mode. |
 | **Simulation** | Disruptions are declared planning inputs (kinds: track unavailable, possession curtailment), never observed events, and only subtract possession; there is no live feed of closures. The Synthetic Sandbox runs on a separate fixture through legacy stateless routes and does not act on the jobs database. |
 | **Deployment** | The prototype runs locally with SQLite and one process. There is no hosted deployment, and SLA durations are assumed demo values, not Indian Railways policy. Evidence is stored as references; no files are uploaded. |
 
@@ -594,6 +594,8 @@ docs/             Current documentation and API contract (see below)
 | [`docs/api-contract-v1.md`](docs/api-contract-v1.md) · [`docs/openapi-v1.json`](docs/openapi-v1.json) | Frozen `/v1` API contract |
 | [`docs/demo-runbook.md`](docs/demo-runbook.md) | Presentation-day startup and troubleshooting |
 | [`docs/architecture.md`](docs/architecture.md) | Component architecture |
+| [`docs/NOVAFORGE_INTEGRATION.md`](docs/NOVAFORGE_INTEGRATION.md) | Optional NovaForge-mode authentication: flow, configuration, console, required NovaForge permissions |
+| [`docs/FINAL_PRODUCT_COMPLETION_REPORT.md`](docs/FINAL_PRODUCT_COMPLETION_REPORT.md) | Final state: architecture, verification (including real-browser run), demo sequence, limitations |
 | [`docs/DISRUPT_RECOVER_ARCHITECTURE.md`](docs/DISRUPT_RECOVER_ARCHITECTURE.md) | Persisted disruption and recovery: model, safety rules, audit |
 | [`docs/SLICE9_IMPLEMENTATION.md`](docs/SLICE9_IMPLEMENTATION.md) | SLA, obligations and accountability implementation record |
 | [`frontend/README.md`](frontend/README.md) | Console screens and how each maps to the backend |
