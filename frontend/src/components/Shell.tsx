@@ -5,7 +5,8 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { API_BASE_URL, CORRIDOR_ID, PERSONAS } from "@/lib/api";
-import { useSession } from "@/lib/session";
+import { useSession, type AuthState } from "@/lib/session";
+import type { Role } from "@/lib/api";
 import { nowClockIst } from "@/lib/time";
 import { pick } from "@/lib/railwayData";
 
@@ -60,7 +61,8 @@ function isActive(pathname: string, href: string): boolean {
 
 export default function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { persona, setPersonaId, online } = useSession();
+  const { persona, setPersonaId, online, auth, signIn, signOut, chooseRole } = useSession();
+  const enforced = auth.mode === "novaforge";
   const [clock, setClock] = useState("--:--:--");
 
   useEffect(() => {
@@ -136,15 +138,51 @@ export default function Shell({ children }: { children: ReactNode }) {
           </div>
           <div
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-low border border-outline-variant/30"
-            title="Demo mode: identity is declared through request headers and recorded as DECLARED_UNVERIFIED. The server does not authenticate or enforce roles. Role gating in this UI is a presentation convenience, not production authorization."
+            title={
+              enforced
+                ? "Authenticated through NovaForge. The server derives your identity and role from your session and enforces them."
+                : "Demo mode: identity is declared through request headers and recorded as DECLARED_UNVERIFIED. The server does not authenticate or enforce roles. Role gating in this UI is a presentation convenience, not production authorization."
+            }
           >
             <span className="font-label-mono text-label-mono text-on-surface-variant">
-              IDENTITY: <span className="text-outline">DECLARED (DEMO MODE)</span>
+              IDENTITY:{" "}
+              {enforced ? (
+                <span className="text-primary-fixed">AUTHENTICATED (NOVAFORGE)</span>
+              ) : (
+                <span className="text-outline">DECLARED (DEMO MODE)</span>
+              )}
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
+          {enforced ? (
+            auth.mode === "novaforge" && auth.me && auth.status !== "anonymous" ? (
+              <div className="flex items-center gap-2 font-label-mono text-label-mono">
+                <span className="text-on-surface" title={auth.me.email ?? undefined}>
+                  {auth.me.name ?? auth.me.actor_id}
+                </span>
+                {auth.me.roles.length > 1 ? (
+                  <select
+                    aria-label="Acting role"
+                    className="bg-surface-container-low rounded-full px-2 py-0.5 border border-outline-variant/40 text-primary"
+                    value={auth.me.active_role ?? ""}
+                    onChange={(e) => void chooseRole(e.target.value as Role)}
+                  >
+                    {auth.me.active_role === null && <option value="">Choose role…</option>}
+                    {auth.me.roles.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-primary">{auth.me.active_role}</span>
+                )}
+                <button type="button" onClick={() => void signOut()} className="px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant hover:text-primary">
+                  Sign out
+                </button>
+              </div>
+            ) : null
+          ) : (
           <div
             role="group"
             aria-label="Acting persona (declared identity, demo mode)"
@@ -167,6 +205,7 @@ export default function Shell({ children }: { children: ReactNode }) {
               </button>
             ))}
           </div>
+          )}
           <div className="hidden md:flex items-center px-2 py-1 rounded bg-surface-container-lowest border border-outline-variant/30 text-on-surface">
             <span className="font-label-mono text-label-mono tracking-tight text-primary-fixed">
               {clock} IST
@@ -238,7 +277,15 @@ export default function Shell({ children }: { children: ReactNode }) {
               disabled and no fixture data is substituted on lifecycle screens.
             </div>
           )}
-          <div className="flex flex-col w-full text-on-surface">{children}</div>
+          {auth.mode === "loading" || (auth.mode === "novaforge" && auth.status === "loading") ? (
+            <div className="mt-8 font-label-mono text-label-mono text-outline" aria-busy="true">
+              Checking your session…
+            </div>
+          ) : auth.mode === "novaforge" && auth.status !== "ready" ? (
+            <SignInGate auth={auth} onSignIn={signIn} onChoose={chooseRole} />
+          ) : (
+            <div className="flex flex-col w-full text-on-surface">{children}</div>
+          )}
         </main>
       </div>
 
@@ -255,10 +302,62 @@ export default function Shell({ children }: { children: ReactNode }) {
         </div>
         <div className="flex items-center gap-4 shrink-0">
           <span className="font-label-caps text-label-caps text-on-surface-variant tracking-widest">
-            IDENTITY // DECLARED, NOT VERIFIED
+            {enforced ? "IDENTITY // AUTHENTICATED, SERVER-ENFORCED" : "IDENTITY // DECLARED, NOT VERIFIED"}
           </span>
         </div>
       </footer>
+    </div>
+  );
+}
+
+
+/** Shown instead of the console until the user holds a session and an acting role. */
+function SignInGate({
+  auth,
+  onSignIn,
+  onChoose,
+}: {
+  auth: Extract<AuthState, { mode: "novaforge" }>;
+  onSignIn: () => void;
+  onChoose: (role: Role) => Promise<void>;
+}) {
+  return (
+    <div className="mt-12 max-w-xl mx-auto rounded-lg bg-surface-container/80 border border-outline-variant/40 p-8 flex flex-col gap-4">
+      <h1 className="font-headline-md text-headline-md text-primary">
+        {auth.status === "selecting" ? "Choose your role" : auth.status === "unavailable" ? "Sign-in is unavailable" : "Sign in required"}
+      </h1>
+      {auth.status === "anonymous" && (
+        <>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            This console is protected. Sign in through NovaForge to act on the maintenance plan. Your role and railway scope are decided by the server, not by this page.
+          </p>
+          {auth.error && (
+            <p role="alert" className="font-label-mono text-label-mono text-error">{auth.error}</p>
+          )}
+          <button type="button" onClick={onSignIn} className="self-start px-5 py-2.5 rounded-full bg-primary text-on-primary font-label-mono text-label-mono">
+            Sign in with NovaForge
+          </button>
+        </>
+      )}
+      {auth.status === "selecting" && auth.me && (
+        <>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            You hold more than one role. Choose the one to act in; you can change it later.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {auth.me.roles.map((r) => (
+              <button key={r} type="button" onClick={() => void onChoose(r)} className="px-4 py-2 rounded-full bg-surface-container-high text-primary font-label-mono text-label-mono hover:bg-surface-bright">
+                {r}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      {auth.status === "unavailable" && (
+        <p role="alert" className="font-label-mono text-label-mono text-error">
+          {auth.error ?? "The identity provider or the backend could not be reached."} Nothing is shown and no action is possible until it can be (the console fails closed).
+        </p>
+      )}
     </div>
   );
 }

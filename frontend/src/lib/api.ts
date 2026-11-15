@@ -14,6 +14,43 @@ export const API_BASE_URL =
 
 export const CORRIDOR_ID = "CORR-NDLS-AGC";
 
+/**
+ * Authentication mode, reported by the server (GET /auth/config) and set once
+ * by the session provider. "demo": identity is declared through X-Actor-*
+ * headers. "novaforge": identity comes only from the server-side session
+ * cookie; the console sends no declared identity and adds the CSRF header the
+ * server requires on state-changing requests.
+ */
+let enforcedAuth = false;
+export function setEnforcedAuth(value: boolean): void {
+  enforcedAuth = value;
+}
+export function isEnforcedAuth(): boolean {
+  return enforcedAuth;
+}
+/** Extra headers every state-changing request needs in enforced mode. */
+export function csrfHeaders(): Record<string, string> {
+  return enforcedAuth ? { "X-PP-CSRF": "1" } : {};
+}
+export const UNAUTHENTICATED_EVENT = "pp:unauthenticated";
+
+export interface AuthConfig {
+  mode: "demo" | "novaforge";
+  login_path?: string;
+  issuer?: string;
+}
+
+export interface AuthMe {
+  authenticated: boolean;
+  selection_required: boolean;
+  active_role: Role | null;
+  actor_id: string;
+  roles: Role[];
+  name: string | null;
+  email: string | null;
+  permissions: string[];
+}
+
 export type JobStatus =
   | "reported"
   | "scheduled"
@@ -30,7 +67,7 @@ export type JobType =
   | "EMERGENCY_REPAIR";
 
 export type Severity = "NONE" | "MINOR" | "MODERATE" | "CRITICAL";
-export type Role = "WORKER" | "ENGINEER" | "AUTHORITY";
+export type Role = "WORKER" | "ENGINEER" | "AUTHORITY" | "ADMIN";
 
 export interface Persona {
   id: string;
@@ -413,7 +450,11 @@ async function request<T>(
 ): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
   if (body !== undefined) headers["Content-Type"] = "application/json";
-  if (persona) {
+  if (enforcedAuth) {
+    // Identity comes only from the session cookie; a declared identity is
+    // refused by the server in this mode.
+    if (method !== "GET") Object.assign(headers, csrfHeaders());
+  } else if (persona) {
     headers["X-Actor-Id"] = persona.id;
     headers["X-Actor-Role"] = persona.role;
   }
@@ -444,6 +485,9 @@ async function request<T>(
     } catch {
       /* non-JSON error body */
     }
+    if (enforcedAuth && res.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event(UNAUTHENTICATED_EVENT));
+    }
     throw new ApiError(res.status, code, detail);
   }
   return (await res.json()) as T;
@@ -462,6 +506,13 @@ export const api = {
       return false;
     }
   },
+
+  authConfig: () => request<AuthConfig>("GET", "/auth/config", null),
+  me: () => request<AuthMe>("GET", "/auth/me", null),
+  selectRole: (role: Role) =>
+    request<AuthMe>("POST", "/auth/session/role", null, { role }),
+  logout: () =>
+    request<{ logout_url: string | null }>("POST", "/auth/logout", null, {}),
 
   createJob: (p: Persona, body: JobCreateBody) =>
     request<Job>("POST", "/v1/jobs", p, body),

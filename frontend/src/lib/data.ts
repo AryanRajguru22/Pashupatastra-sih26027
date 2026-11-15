@@ -23,6 +23,7 @@
  * whether its contents are real.
  */
 
+import { csrfHeaders } from "@/lib/api";
 import type {
   OptimizationResult,
   OptimizationRequest,
@@ -77,7 +78,7 @@ export async function fetchOptimizationData(): Promise<DashboardData> {
 
     const res = await fetch(`${API_BASE_URL}/optimize`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...csrfHeaders() },
       body: JSON.stringify(request),
       cache: "no-store",
       signal: controller.signal,
@@ -230,7 +231,7 @@ export async function triggerRecovery(
 
     const res = await fetch(`${API_BASE_URL}/recover`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...csrfHeaders() },
       body: JSON.stringify({ request, disruption }),
       cache: "no-store",
       signal: controller.signal,

@@ -18,13 +18,41 @@ import {
   type ReactNode,
 } from "react";
 import {
+  API_BASE_URL,
+  ApiError,
   PERSONAS,
+  UNAUTHENTICATED_EVENT,
   api,
+  setEnforcedAuth,
+  type AuthMe,
   type OptimizationResponse,
   type Persona,
+  type Role,
 } from "@/lib/api";
 
+/**
+ * Who the console is acting as.
+ *  - demo: identity is DECLARED through the persona switch (not verified).
+ *  - novaforge: identity comes only from the server-side session. status is
+ *    "loading" until /auth/me answers, "anonymous" (sign in), "selecting" (the
+ *    user holds several roles and must choose one), "ready", or "unavailable"
+ *    (the identity provider or the backend could not be reached: fail closed).
+ */
+export type AuthState =
+  | { mode: "loading" }
+  | { mode: "demo" }
+  | {
+      mode: "novaforge";
+      status: "loading" | "anonymous" | "selecting" | "ready" | "unavailable";
+      me: AuthMe | null;
+      error: string | null;
+    };
+
 interface Session {
+  auth: AuthState;
+  signIn: () => void;
+  signOut: () => Promise<void>;
+  chooseRole: (role: Role) => Promise<void>;
   persona: Persona;
   setPersonaId: (id: string) => void;
   online: boolean | null;
@@ -65,6 +93,101 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     prev: OptimizationResponse | null;
   }>({ last: null, prev: null });
   const [tick, setTick] = useState(0);
+  const [auth, setAuth] = useState<AuthState>({ mode: "loading" });
+
+  const refreshMe = useCallback(async () => {
+    try {
+      const me = await api.me();
+      setAuth({
+        mode: "novaforge",
+        status: me.selection_required ? "selecting" : "ready",
+        me,
+        error: null,
+      });
+    } catch (e) {
+      const err = e instanceof ApiError ? e : null;
+      if (err && err.status === 401) {
+        setAuth({ mode: "novaforge", status: "anonymous", me: null, error: null });
+      } else {
+        setAuth({
+          mode: "novaforge",
+          status: "unavailable",
+          me: null,
+          error: err ? `${err.code}: ${err.detail}` : "The backend could not be reached.",
+        });
+      }
+    }
+  }, []);
+
+  // Ask the server which mode it runs in. Demo mode changes nothing.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const cfg = await api.authConfig();
+        if (!alive) return;
+        if (cfg.mode === "novaforge") {
+          setEnforcedAuth(true);
+          setAuth({ mode: "novaforge", status: "loading", me: null, error: null });
+          await refreshMe();
+        } else {
+          setEnforcedAuth(false);
+          setAuth({ mode: "demo" });
+        }
+      } catch {
+        // Older or unreachable backend: the connectivity probe below reports
+        // it. Fall back to demo mode only, never to a weaker enforced mode.
+        if (alive) setAuth({ mode: "demo" });
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [refreshMe]);
+
+  // Any 401 from an enforced-mode call means the session ended or expired.
+  useEffect(() => {
+    const onExpired = () => {
+      setAuth((cur) =>
+        cur.mode === "novaforge"
+          ? { mode: "novaforge", status: "anonymous", me: null, error: "Your session ended. Sign in again." }
+          : cur,
+      );
+    };
+    window.addEventListener(UNAUTHENTICATED_EVENT, onExpired);
+    return () => window.removeEventListener(UNAUTHENTICATED_EVENT, onExpired);
+  }, []);
+
+  const signIn = useCallback(() => {
+    // A full-page navigation: the server redirects to NovaForge and back.
+    const back = encodeURIComponent(window.location.pathname || "/");
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- a server route (via the same-origin proxy), not a Next.js page
+    window.location.assign(`${API_BASE_URL}/auth/login?return_to=${back}`);
+  }, []);
+
+  const signOut = useCallback(async () => {
+    try {
+      const r = await api.logout();
+      setAuth({ mode: "novaforge", status: "anonymous", me: null, error: null });
+      if (r.logout_url) window.location.assign(r.logout_url);
+    } catch {
+      // The session cookie may already be gone; re-read the truth.
+      await refreshMe();
+    }
+  }, [refreshMe]);
+
+  const chooseRole = useCallback(
+    async (role: Role) => {
+      try {
+        await api.selectRole(role);
+      } catch {
+        /* refreshMe below reports the resulting state */
+      }
+      await refreshMe();
+      setTick((t) => t + 1);
+    },
+    [refreshMe],
+  );
 
   useEffect(() => {
     const id = readStore<string>(PERSONA_KEY);
@@ -108,7 +231,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Session>(
     () => ({
-      persona: PERSONAS.find((p) => p.id === personaId) ?? PERSONAS[0],
+      auth,
+      signIn,
+      signOut,
+      chooseRole,
+      persona:
+        auth.mode === "novaforge" && auth.me && auth.me.active_role
+          ? {
+              id: auth.me.actor_id,
+              role: auth.me.active_role,
+              label: auth.me.name ?? auth.me.actor_id,
+            }
+          : (PERSONAS.find((p) => p.id === personaId) ?? PERSONAS[0]),
       setPersonaId,
       online,
       lastOptimize: opt.last,
@@ -117,7 +251,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       tick,
       bump,
     }),
-    [personaId, setPersonaId, online, opt, recordOptimize, tick, bump],
+    [auth, signIn, signOut, chooseRole, personaId, setPersonaId, online, opt, recordOptimize, tick, bump],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -269,7 +269,7 @@ export default function DisruptionsPage() {
                       {d.basis}
                     </Chip>
                     <Chip tone={d.status === "ACTIVE" ? "amber" : "neutral"}>{d.status}</Chip>
-                    <span className="font-label-mono text-label-mono text-outline">{shortId(d.disruption_id, 12)}</span>
+                    <span className="font-label-mono text-label-mono text-outline">{d.disruption_id}</span>
                   </div>
                   <h2 className="font-headline-sm text-headline-sm text-on-surface">
                     {KIND_LABEL[d.kind]} · {d.track_id} · {d.section_id ?? "every section"}
@@ -285,12 +285,12 @@ export default function DisruptionsPage() {
                   <button
                     type="button"
                     className={BTN_WARN}
-                    disabled={!canRecover || blocking.length > 0}
+                    disabled={!canRecover}
                     title={
                       !isEngineer
                         ? "Recovery is a planning-engineer action."
                         : blocking.length > 0
-                          ? "Blocked: release the approved blocks listed below first."
+                          ? "The server will refuse this until the approved blocks listed below are released."
                           : undefined
                     }
                     onClick={recover}
@@ -336,7 +336,7 @@ export default function DisruptionsPage() {
                           <tr key={a.job_id} className="border-t border-outline-variant/20 align-top">
                             <td className="py-2 pr-3">
                               <Link href={`/jobs/${encodeURIComponent(a.job_id)}`} className="text-primary hover:underline">
-                                {shortId(a.job_id, 12)}
+                                {a.job_id}
                               </Link>
                             </td>
                             <td className="py-2 pr-3">{a.status}</td>
@@ -489,7 +489,7 @@ function RecoveryResult({ r }: { r: DisruptionRecovery }) {
           <tbody>
             {c.moved.map((m) => (
               <tr key={m.job_id} className="border-t border-outline-variant/20">
-                <td className="py-1 pr-3">{shortId(m.job_id, 12)}</td>
+                <td className="py-1 pr-3">{m.job_id}</td>
                 <td className="py-1 pr-3">{place(m.before)} <span className="text-outline">({m.before.status})</span></td>
                 <td className="py-1 pr-3">{place(m.after)} <span className="text-outline">({m.after.status})</span></td>
               </tr>
@@ -499,7 +499,7 @@ function RecoveryResult({ r }: { r: DisruptionRecovery }) {
       )}
       {c.newly_unscheduled.map((u) => (
         <p key={u.job_id} className="font-label-mono text-label-mono text-error">
-          {shortId(u.job_id, 12)} could not be placed: {u.reason ?? "no reason recorded"}
+          {u.job_id} could not be placed: {u.reason ?? "no reason recorded"}
         </p>
       ))}
       <p className="font-label-mono text-label-mono text-outline">
