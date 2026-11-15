@@ -64,6 +64,10 @@ const PAGE_ERRORS: Record<string, string> = {
     "Integrity refusal. Escalate to an engineer; do not retry.",
   CONCURRENT_MODIFICATION:
     "Data changed during the run. Reload and run again.",
+  RECOVERY_BLOCKED:
+    "Refused before any solve: approved work overlaps a declared disruption. Release it on Authority Review, then see Disruption & Recovery.",
+  ALL_POSSESSION_REMOVED:
+    "Declared disruptions remove every possession window. Clear one under Disruption & Recovery to plan again.",
   CORRIDOR_NOT_FOUND:
     "Setup error: the backend serves a different corridor than CORR-NDLS-AGC.",
 };

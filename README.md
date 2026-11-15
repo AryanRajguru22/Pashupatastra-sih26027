@@ -437,7 +437,7 @@ OR-Tools 9.15 and Node 24:
 
 | Check | Command | Result |
 |---|---|---|
-| Backend suite | `python -m pytest -q` | **3479 passed, 1 skipped**, 52 subtests passed (about 2.5 min) |
+| Backend suite | `python -m pytest -q` | **3480 passed, 1 skipped**, 52 subtests passed (about 2.5 min) |
 | Type check | `cd frontend && npx tsc --noEmit` | clean |
 | Lint | `cd frontend && npm run lint` | clean |
 | Production build | `cd frontend && npm run build` | succeeded; all 12 console routes built |
