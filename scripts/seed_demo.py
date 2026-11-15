@@ -52,6 +52,12 @@ WHAT THE DEMO THEN DOES (rehearse() performs exactly this)
                                     approved block is preserved
     7. the crew starts and completes the critical job with evidence
 
+SECOND SCENARIO: DISRUPT -> RECOVER (rehearse_disruption, also run by --verify)
+    On a fresh queue: optimize; the authority approves the critical job; the
+    planning engineer declares a SIMULATED disruption over that block's span;
+    recovery is REFUSED before any solve (approved work is hit); the authority
+    releases the block; recovery then re-plans around the disruption.
+
 WHY THE SCENARIO IS SHAPED THIS WAY
     The solver's objective rewards only WHETHER a job is scheduled, never
     where (backend/app/optimizer/solver.py); with its fixed seed and single
@@ -97,6 +103,11 @@ from backend.app.data.dataset_selection import (  # noqa: E402
     railway_data_mode,
 )
 from backend.app.identity.actor import ActorRole, human_actor  # noqa: E402
+from backend.app.jobs.disruption import (  # noqa: E402
+    DisruptionKind,
+    RecoveryBlockedError,
+)
+from backend.app.jobs.disruption_service import DisruptionService  # noqa: E402
 from backend.app.jobs.field_location import convert_field_location  # noqa: E402
 from backend.app.jobs.lifecycle import proposal_run_id_of  # noqa: E402
 from backend.app.jobs.models import JobCreateRequest  # noqa: E402
@@ -704,6 +715,168 @@ def check_invariants(service: JobService, rehearsal: Rehearsal) -> List[str]:
 
 
 # ----------------------------------------------------------------------
+# Disruption rehearsal (DISRUPT -> RECOVER), a second, separate scenario
+# ----------------------------------------------------------------------
+
+ENGINEER_ID = "ENGINEER-003"
+DISRUPTION_REASON = "SIMULATED: overhead-line fault declared on the approved block's span"
+RELEASE_REASON = "Disruption declared over the approved span; block cannot proceed"
+
+
+@dataclass
+class DisruptionRehearsal:
+    """What rehearse_disruption() did. Random ids are kept out of the checks."""
+
+    ids: Dict[str, str]
+    disruption_id: str
+    track_id: str
+    section_id: str
+    span: Tuple[int, int]
+    impact_before_release: List[Dict[str, Any]]
+    refusal_blocking: List[str]
+    runs_before_refusal: int
+    runs_after_refusal: int
+    status_after_refusal: Dict[str, str]
+    recovery: Dict[str, Any]
+    placements_after: Dict[str, Dict[str, Any]]
+    event_types: List[str]
+
+
+def _optimization_run_count(service: JobService) -> int:
+    with closing(sqlite3.connect(service.repository.db_path)) as conn:
+        return conn.execute("SELECT COUNT(*) FROM optimization_runs").fetchone()[0]
+
+
+def rehearse_disruption(service: JobService, seed_ids: Mapping[str, str]) -> DisruptionRehearsal:
+    """DISRUPT then RECOVER, on a freshly seeded service.
+
+    1. optimize; the authority approves the critical job
+    2. the planning engineer declares a SIMULATED disruption over the
+       approved block's span, on its own (track, section)
+    3. recovery is attempted and REFUSED before any solve (approved work is hit)
+    4. the authority releases the approved block
+    5. recovery runs: a real CP-SAT re-plan around the disruption
+    """
+
+    authority = human_actor(AUTHORITY_ID, ActorRole.AUTHORITY)
+    engineer = human_actor(ENGINEER_ID, ActorRole.ENGINEER)
+    optimizer = JobOptimizationService(service)
+    disruptions = DisruptionService(optimizer)
+
+    ids = dict(seed_ids)
+    ids[LIVE_INTAKE_JOB.key] = report(service, LIVE_INTAKE_JOB)["job_id"]
+
+    optimizer.optimize_corridor(DEMO_CORRIDOR_ID, actor=engineer)
+    approved = service.repository.get(ids[APPROVE_TARGET])
+    service.approve_proposal(
+        ids[APPROVE_TARGET],
+        authority,
+        expected_proposal_run_id=proposal_run_id_of(approved),
+    )
+    approved = service.repository.get(ids[APPROVE_TARGET])
+    span = (approved["schedule_start_minute"], approved["schedule_end_minute"])
+    section = approved["block_candidate"]["section_id"]
+
+    declared = disruptions.register(
+        DEMO_CORRIDOR_ID,
+        engineer,
+        kind=DisruptionKind.POSSESSION_CURTAILMENT,
+        track_id=approved["track_id"],
+        section_id=section,
+        starts_at=_observed_at(span[0] - 5),
+        ends_at=_observed_at(span[1] + 5),
+        reason=DISRUPTION_REASON,
+    )
+    disruption_id = declared["disruption_id"]
+
+    runs_before = _optimization_run_count(service)
+    refusal: List[str] = []
+    try:
+        disruptions.recover(DEMO_CORRIDOR_ID, disruption_id, engineer)
+    except RecoveryBlockedError as exc:
+        refusal = [entry["job_id"] for entry in exc.blocking]
+    runs_after = _optimization_run_count(service)
+    status_after_refusal = {
+        key: service.repository.get(job_id)["status"] for key, job_id in ids.items()
+    }
+
+    service.release_committed_block(
+        ids[APPROVE_TARGET],
+        authority,
+        expected_proposal_run_id=proposal_run_id_of(approved),
+        reason=RELEASE_REASON,
+    )
+    recovery = disruptions.recover(DEMO_CORRIDOR_ID, disruption_id, engineer)
+
+    detail = disruptions.get(DEMO_CORRIDOR_ID, disruption_id, engineer)
+
+    return DisruptionRehearsal(
+        ids=ids,
+        disruption_id=disruption_id,
+        track_id=approved["track_id"],
+        section_id=section,
+        span=(span[0] - 5, span[1] + 5),
+        impact_before_release=declared["affected_jobs"],
+        refusal_blocking=refusal,
+        runs_before_refusal=runs_before,
+        runs_after_refusal=runs_after,
+        status_after_refusal=status_after_refusal,
+        recovery=recovery,
+        placements_after={key: _placement(service, job_id) for key, job_id in ids.items()},
+        event_types=[event["event_type"] for event in detail["events"]],
+    )
+
+
+def check_disruption_invariants(service: JobService, r: DisruptionRehearsal) -> List[str]:
+    """Every property the disruption walkthrough relies on. [] means all hold."""
+
+    failures: List[str] = []
+    approved_id = r.ids[APPROVE_TARGET]
+
+    impact = {entry["job_id"]: entry["impact"] for entry in r.impact_before_release}
+    if impact.get(approved_id) != "RELEASE_REQUIRED":
+        failures.append(f"the approved block was not flagged RELEASE_REQUIRED: {impact}")
+
+    if r.refusal_blocking != [approved_id]:
+        failures.append(f"recovery was not refused for exactly the approved block: {r.refusal_blocking}")
+    if r.runs_after_refusal != r.runs_before_refusal:
+        failures.append("the refused recovery still ran the solver")
+    if r.status_after_refusal[APPROVE_TARGET] != "notified":
+        failures.append("the refused recovery changed the approved block's commitment")
+
+    outcome = r.recovery["optimization"]
+    if outcome["solver_status"] not in {"OPTIMAL", "FEASIBLE"}:
+        failures.append(f"recovery status is {outcome['solver_status']}")
+    if r.disruption_id not in r.recovery["active_disruption_ids"]:
+        failures.append("the recovery run did not apply the disruption")
+    if r.recovery["disruption"]["basis"] != "SIMULATED_DECLARED":
+        failures.append("the disruption is not labelled SIMULATED_DECLARED")
+
+    d_start, d_end = r.span
+    for key, job_id in r.ids.items():
+        stored = service.repository.get(job_id)
+        placed = r.placements_after[key]
+        if placed["start_minute"] is None:
+            continue
+        same_resource = (
+            stored["track_id"] == r.track_id
+            and stored["block_candidate"]["section_id"] == r.section_id
+        )
+        if same_resource and placed["start_minute"] < d_end and placed["end_minute"] > d_start:
+            failures.append(f"{key}: placed {placed['start_minute']}-{placed['end_minute']} inside the disruption")
+
+    counts = r.recovery["comparison"]["counts"]
+    if sum(counts.values()) == 0:
+        failures.append("the recovery comparison is empty")
+
+    expected = ["REGISTERED", "RECOVERY_REFUSED", "RECOVERY_PLANNED"]
+    if r.event_types != expected:
+        failures.append(f"disruption audit trail is {r.event_types}, expected {expected}")
+
+    return failures
+
+
+# ----------------------------------------------------------------------
 # CLI
 # ----------------------------------------------------------------------
 
@@ -772,6 +945,11 @@ def verify() -> int:
         summary = business_summary(service, rehearsal)
         failures = check_invariants(service, rehearsal)
 
+    with tempfile.TemporaryDirectory(prefix="pashupatastra-demo-verify-dis-") as scratch:
+        dis_service = build_demo_service(Path(scratch) / "jobs.db")
+        dis_rehearsal = rehearse_disruption(dis_service, seed(dis_service))
+        failures += check_disruption_invariants(dis_service, dis_rehearsal)
+
     print(f"OR-Tools {_ortools_version()}, corridor {DEMO_CORRIDOR_ID}")
     print(f"first run:  {summary['first_run']['solver_status']} {summary['first_run']['counts']}")
     print(f"second run: {summary['second_run']['solver_status']} {summary['second_run']['counts']}")
@@ -784,6 +962,13 @@ def verify() -> int:
             f"run2 {second['status']}@{second['start_minute']}-{second['end_minute']} "
             f"final {final['status']}"
         )
+
+    print(
+        "disruption: refused while approved work was hit "
+        f"({len(dis_rehearsal.refusal_blocking)} job), released, recovered "
+        f"{dis_rehearsal.recovery['optimization']['solver_status']} "
+        f"{dis_rehearsal.recovery['comparison']['counts']}"
+    )
 
     if failures:
         print("VERIFY FAIL")

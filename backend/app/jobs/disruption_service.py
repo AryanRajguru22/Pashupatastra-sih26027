@@ -32,6 +32,9 @@ from backend.app.jobs.service import OPTIMIZATION_HORIZON_START
 
 _PLACED = ("scheduled", "notified", "in_progress")
 
+# Human decisions that withdraw an approved block back to "reported".
+_WITHDRAWAL_EVENTS = frozenset({"BLOCK_RELEASED", "EXECUTION_NOT_COMPLETED"})
+
 
 class DisruptionService:
     def __init__(self, optimization_service: JobOptimizationService):
@@ -71,6 +74,44 @@ class DisruptionService:
                     "section_id": (job.get("block_candidate") or {}).get("section_id"),
                 }
         return out
+
+    def _before_plan(self, record: DisruptionRecord) -> dict[str, dict[str, Any]]:
+        """The plan recovery starts from.
+
+        Current placements, plus the placement of any approved block that
+        was released (or reported not-completed) because of this
+        disruption: recovery must show where that work WAS, or a forced
+        move would read as brand-new work.
+        """
+
+        plan = self._placements()
+        history = self.service.history
+
+        for job in self.service.repository.list_active():
+            if job["job_id"] in plan:
+                continue
+            for stored in reversed(history.list_for_job(job["job_id"])):
+                event = stored.event
+                if event.event_type.value not in _WITHDRAWAL_EVENTS:
+                    continue
+                if event.occurred_at < record.registered_at:
+                    break
+                prior = event.before_state
+                if (
+                    prior is not None
+                    and prior.schedule_start_minute is not None
+                    and prior.schedule_end_minute is not None
+                ):
+                    plan[job["job_id"]] = {
+                        "status": f"{prior.status} (withdrawn: {event.event_type.value})",
+                        "start_minute": int(prior.schedule_start_minute),
+                        "end_minute": int(prior.schedule_end_minute),
+                        "track_id": job["track_id"],
+                        "section_id": (job.get("block_candidate") or {}).get("section_id"),
+                    }
+                break
+
+        return plan
 
     def _view(self, record: DisruptionRecord) -> dict[str, Any]:
         impacts = (
@@ -215,7 +256,7 @@ class DisruptionService:
                     "nothing to recover from. Use a normal optimization."
                 )
 
-            before = self._placements()
+            before = self._before_plan(record)
 
             try:
                 outcome = self.optimization.optimize_corridor(

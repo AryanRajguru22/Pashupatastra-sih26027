@@ -568,3 +568,20 @@ def test_http_surface(tmp_path, monkeypatch):
     assert client.post(f"{base}/{did}/clear", json={"reason": "done"}, headers=eng).status_code == 200
     again = client.post(f"{base}/{did}/recover", headers=eng)
     assert again.status_code == 409 and again.json()["code"] == "DISRUPTION_STATE_CONFLICT"
+
+
+# ----------------------------------------------------------------------
+# The demo rehearsal (scripts/seed_demo.py --verify runs the same code)
+# ----------------------------------------------------------------------
+
+
+def test_demo_disruption_rehearsal_satisfies_every_invariant(tmp_path):
+    service = demo.build_demo_service(tmp_path / "rehearsal" / "jobs.db")
+    rehearsal = demo.rehearse_disruption(service, demo.seed(service))
+
+    assert demo.check_disruption_invariants(service, rehearsal) == []
+    # The forced move is reported against where the block WAS, not as new work.
+    moved = {m["job_id"]: m for m in rehearsal.recovery["comparison"]["moved"]}
+    approved = rehearsal.ids[demo.APPROVE_TARGET]
+    assert approved in moved
+    assert "BLOCK_RELEASED" in moved[approved]["before"]["status"]
