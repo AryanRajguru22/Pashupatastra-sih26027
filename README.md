@@ -370,18 +370,22 @@ for the authority. The persona needed is shown in each step below.
 10. **Obligations (SLA)** (`/obligations`). The derived response-time obligations,
     against a policy that is labelled as assumed.
 
-**Disrupt and recover** (`/disruptions`; also rehearsed by `seed_demo.py --verify`):
+**Disrupt and recover** (`/disruptions`; also rehearsed by `seed_demo.py --verify`).
+Run this segment **after step 7 and before step 8**. Step 8 completes the approved block,
+and completed work is terminal: it can no longer be disrupted.
 
-11. As *Planning engineer*, **Declare disruption** over the approved block's track and
-    section and time span (for the seeded demo: `DOWN-1`, the approved block's section).
-    The page lists the affected jobs; the approved one is marked *Authority must release*.
-12. **Run recovery**. It is refused (`RECOVERY_BLOCKED`) and nothing is solved: the
-    optimizer will not move or keep an approved block on its own.
-13. As *Section authority*, release that block on **Authority Review**.
-14. As *Planning engineer*, **Run recovery** again. CP-SAT re-plans around the
-    disruption; the comparison shows what stayed, what moved (with its previous placement)
-    and anything that could not be placed. The audit trail on the page shows
-    `REGISTERED`, `RECOVERY_REFUSED`, `RECOVERY_PLANNED`.
+- **7a.** As *Planning engineer*, **Declare disruption** over the approved block's track,
+  section and time span (read them from Authority Review or the job). The page lists the
+  affected jobs; the approved block is marked *Authority must release*.
+- **7b.** **Run recovery**. It is refused (`RECOVERY_BLOCKED`) and nothing is solved: the
+  optimizer will not move or keep an approved block on its own.
+- **7c.** As *Section authority*, release that block on **Authority Review**.
+- **7d.** As *Planning engineer*, **Run recovery** again. CP-SAT re-plans around the
+  disruption; the comparison shows what stayed, what moved (with its previous placement)
+  and anything that could not be placed. The audit trail on the page shows `REGISTERED`,
+  `RECOVERY_REFUSED`, `RECOVERY_PLANNED`.
+- **7e.** As *Section authority*, approve the re-planned proposal for the released job.
+  Recovery commits nothing, and step 8 needs an approved (`notified`) block to start.
 
 Optional: **Synthetic Sandbox** (`/simulation`) is the original stateless what-if on a
 separate synthetic fixture (Corridor A). It changes nothing in the jobs database.
@@ -441,9 +445,10 @@ OR-Tools 9.15 and Node 24:
 | Demo rehearsal, synthetic mode | `seed_demo.py --verify` | VERIFY PASS |
 
 Run on 2026-11-15 under Windows 11 with Python 3.11.9, OR-Tools 9.15 and Node 24. The
-baseline before the disrupt/recover work was 3432 passed; it added 23 tests of its own
-(`test_disruption_recovery.py`) and 24 more arise because existing tests are parametrized over
-every authorization action. The console has no automated UI tests; it is verified by type
+baseline before the disrupt/recover work was 3432 passed; it added 24 tests of its own
+(`test_disruption_recovery.py`); 24 more come from existing tests parametrized over the
+authorization actions (per-file collection diff: security +3, identity directory +3,
+authenticated assurance +3, auth-mode composition +15). The console has no automated UI tests; it is verified by type
 check, lint, production build and an HTTP run of the exact calls the disruption page makes.
 CI (`.github/workflows/ci.yml`) runs the same checks on GitHub but has not yet run there.
 
@@ -490,7 +495,7 @@ security boundary.
 | Mechanism | Status |
 |---|---|
 | **Actor identity (demo mode, the default)** | Callers send `X-Actor-Id` and `X-Actor-Role` (`WORKER`, `ENGINEER`, `AUTHORITY`, `ADMIN`). The identity is **declared and not verified**, and is recorded as `DECLARED_UNVERIFIED`. There is no login. |
-| **Actor identity (`PASHUPAT_AUTH_MODE=novaforge`)** | The backend is a backend-for-frontend OIDC client of NovaForge: authorization code + PKCE (`state`, `nonce`, `iss` check) at `/auth/login` and `/auth/callback`, an opaque server-side session cookie, liveness checked against NovaForge introspection within a bound (fail closed), refresh rotation, role selection, single logout and CSRF protection. `X-Actor-*` headers are refused. The enforcing policy (roles + railway scope, corridor-complete checks) decides every request; NovaForge roles map to Pashupatastra roles and can only narrow them. Verified by tests against a simulated NovaForge; **not yet exercised against a running NovaForge instance** (see Limitations). |
+| **Actor identity (`PASHUPAT_AUTH_MODE=novaforge`)** | The backend is a backend-for-frontend OIDC client of NovaForge: authorization code + PKCE (`state`, `nonce`, `iss` check) at `/auth/login` and `/auth/callback`, an opaque server-side session cookie, liveness checked against NovaForge introspection within a bound (fail closed), refresh rotation, role selection, single logout and CSRF protection. `X-Actor-*` headers are refused. The enforcing policy (roles + railway scope, corridor-complete checks) decides every request; NovaForge roles map to Pashupatastra roles and can only narrow them. Verified by this repository's tests against a simulated NovaForge. A separate cross-application test in the NovaForge repository (`server/test/pashupatastra-e2e.test.ts`) drives the real NovaForge server and this backend over HTTP; it needs PostgreSQL, is not part of either repository's CI, and was **not re-run for this release** (no database was available). |
 | **Accountability** | Approve, postpone, reject, release and every execution action require a named human actor. Otherwise the request is refused and nothing changes. |
 | **Role and scope authorization** | In demo mode **the server runs an unenforced policy**, and role gating in the console is a presentation convenience. In `novaforge` mode the enforcing policy is active over HTTP. Stray auth configuration in demo mode is refused. |
 | **Integrity** | Idempotent intake, stale-proposal protection, append-only history enforced by triggers, and a hash-verified data snapshot. |
@@ -510,7 +515,7 @@ publicly available.
 | **Operational integration** | There is no live feed, as-run train data, possession-grant system or notification delivery. Approving a block sets its status to `notified`, but nothing is sent. |
 | **Planning scope** | The horizon is two days and fixed (10–11 Sep 2026). The model uses two running lines and six sections. The objective has no start-time preference, and rejecting a proposal does not look for an alternative window. |
 | **Asset data** | Asset condition, criticality and failure history are generated demo inputs. The scorer uses hand-authored weights and is not trained on railway data. |
-| **Identity and authentication** | Demo mode declares identity and does not enforce roles. Enforced NovaForge mode exists in the backend, but the **console has no login flow yet**: it still sends `X-Actor-*` headers, which enforced mode refuses, so the console works only in demo mode. Completing it needs a running, registered NovaForge client (issuer, client id/secret, redirect URI) to test against. |
+| **Identity and authentication** | Demo mode declares identity and does not enforce roles. Enforced NovaForge mode exists in the backend, but the **console has no login flow yet**: it still sends `X-Actor-*` headers, which enforced mode refuses, so the console works only in demo mode. This is unbuilt console work (login redirect, credentialed requests with the CSRF header, role selection, logout); it is not blocked, but it needs a running NovaForge with a registered client to be tested end to end. |
 | **Simulation** | Disruptions are declared planning inputs (kinds: track unavailable, possession curtailment), never observed events, and only subtract possession; there is no live feed of closures. The Synthetic Sandbox runs on a separate fixture through legacy stateless routes and does not act on the jobs database. |
 | **Deployment** | The prototype runs locally with SQLite and one process. There is no hosted deployment, and SLA durations are assumed demo values, not Indian Railways policy. Evidence is stored as references; no files are uploaded. |
 

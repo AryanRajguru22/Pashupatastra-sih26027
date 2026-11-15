@@ -86,11 +86,12 @@ fallback.
 
 ## 4b. Optional: the disruption segment (about 2 minutes)
 
-`python scripts/seed_demo.py --verify` already rehearses it. Live, after the approve step
-of the walkthrough: **Disruption & Recovery** (as Planning engineer) -> *Declare
+`python scripts/seed_demo.py --verify` already rehearses it. Live, run it after the
+review step and **before Execution** (completed work is terminal and cannot be disrupted): **Disruption & Recovery** (as Planning engineer) -> *Declare
 disruption* over the approved block's track, section and span -> *Run recovery* (refused,
 nothing solved) -> **Authority Review** (as Section authority): release the block ->
-*Run recovery* again -> read the comparison and the audit trail. Say plainly that the
+*Run recovery* again -> read the comparison and the audit trail -> approve the re-planned
+proposal on Authority Review (Execution needs an approved block). Say plainly that the
 disruption is a declared, simulated input.
 
 ## 5. Reset between runs

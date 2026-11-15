@@ -273,6 +273,13 @@ def _names(record: DisruptionRecord, track_id: str, section_id: Optional[str]) -
         return False
     if record.section_id is None:
         return True
+    # A resource that names no section is matched by track alone in the
+    # solver (see optimizer._possession_window_covers_block: a block with
+    # no section is covered by ANY window on its track). It therefore
+    # cannot be proven clear of a section-specific disruption, so it is
+    # treated as hit. That only removes possession - the safe direction.
+    if section_id is None:
+        return True
     return record.section_id == section_id
 
 

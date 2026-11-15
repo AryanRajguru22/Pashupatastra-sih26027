@@ -150,6 +150,22 @@ def test_track_unavailable_without_section_hits_every_section_of_the_track():
     assert [w.window_id for w in out] == ["C"]
 
 
+def test_a_window_or_job_with_no_section_is_treated_as_hit_by_a_section_disruption():
+    # The solver matches a section-less block to ANY window on its track, so
+    # a section-less window could otherwise host work inside the disrupted span.
+    section_less = window("N", section=None, start=0, end=300)
+    out = subtract_disruptions([section_less], [record(start=100, end=200)], OPTIMIZATION_HORIZON_START)
+    assert [(w.start_minute, w.end_minute) for w in out] == [(0, 100), (200, 300)]
+
+    job = {
+        "job_id": "J", "status": "notified", "track_id": "UP-1",
+        "schedule_start_minute": 150, "schedule_end_minute": 170,
+        "block_candidate": {"section_id": None},
+    }
+    hits = affected_jobs([job], [record()], OPTIMIZATION_HORIZON_START)
+    assert [h["impact"] for h in hits] == ["RELEASE_REQUIRED"]
+
+
 def test_compare_plans_classifies_every_job():
     before = {
         "same": {"status": "scheduled", "start_minute": 1, "end_minute": 2},
