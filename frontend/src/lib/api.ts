@@ -285,6 +285,103 @@ export interface JobCreateBody {
   idempotency_key: string;
 }
 
+/* ---------- persisted DISRUPT / RECOVER ---------- */
+
+export type DisruptionKind = "TRACK_UNAVAILABLE" | "POSSESSION_CURTAILMENT";
+
+export type DisruptionImpact =
+  | "PROPOSAL_REPLAN"
+  | "RELEASE_REQUIRED"
+  | "NOT_COMPLETED_REPORT_REQUIRED";
+
+export interface AffectedJob {
+  job_id: string;
+  status: string;
+  track_id: string;
+  section_id: string | null;
+  start_minute: number;
+  end_minute: number;
+  disruption_ids: string[];
+  impact: DisruptionImpact;
+  required_action: string;
+}
+
+export interface DisruptionEvent {
+  sequence: number;
+  event_id: string;
+  event_type: "REGISTERED" | "CLEARED" | "RECOVERY_PLANNED" | "RECOVERY_REFUSED";
+  occurred_at: string;
+  actor_id: string;
+  actor_role: string;
+  actor_assurance: string;
+  payload: Record<string, unknown>;
+}
+
+export interface Disruption {
+  disruption_id: string;
+  kind: DisruptionKind;
+  corridor_id: string;
+  track_id: string;
+  section_id: string | null;
+  starts_at: string;
+  ends_at: string;
+  reason: string;
+  declared_by: string;
+  declared_role: string;
+  registered_at: string;
+  /** Always SIMULATED_DECLARED: a declared planning input, never an observed event. */
+  basis: string;
+  status: "ACTIVE" | "CLEARED";
+  cleared_at: string | null;
+  cleared_by: string | null;
+  clear_reason: string | null;
+  recovery_runs: string[];
+  affected_jobs: AffectedJob[];
+  blocking_recovery: string[];
+  events?: DisruptionEvent[] | null;
+}
+
+export interface PlanPlacement {
+  status: string;
+  start_minute: number;
+  end_minute: number;
+  track_id?: string;
+  section_id?: string | null;
+}
+
+export interface RecoveryComparison {
+  unchanged: string[];
+  moved: { job_id: string; before: PlanPlacement; after: PlanPlacement }[];
+  newly_unscheduled: {
+    job_id: string;
+    before: PlanPlacement;
+    reason?: string | null;
+  }[];
+  newly_scheduled: { job_id: string; after: PlanPlacement }[];
+  counts: {
+    unchanged: number;
+    moved: number;
+    newly_unscheduled: number;
+    newly_scheduled: number;
+  };
+}
+
+export interface DisruptionRecovery {
+  disruption: Disruption;
+  optimization: OptimizationResponse;
+  comparison: RecoveryComparison;
+  active_disruption_ids: string[];
+}
+
+export interface RegisterDisruptionBody {
+  kind: DisruptionKind;
+  track_id: string;
+  section_id: string | null;
+  starts_at: string;
+  ends_at: string;
+  reason: string;
+}
+
 /** Stable-code error shape of every v1 4xx. */
 export class ApiError extends Error {
   status: number;
@@ -392,6 +489,39 @@ export const api = {
     request<OptimizationResponse>(
       "POST",
       `/v1/corridors/${CORRIDOR_ID}/optimize-jobs`,
+      p,
+    ),
+
+  listDisruptions: (p: Persona) =>
+    request<{ corridor_id: string; items: Disruption[] }>(
+      "GET",
+      `/v1/corridors/${CORRIDOR_ID}/disruptions`,
+      p,
+    ),
+  getDisruption: (p: Persona, id: string) =>
+    request<Disruption>(
+      "GET",
+      `/v1/corridors/${CORRIDOR_ID}/disruptions/${enc(id)}`,
+      p,
+    ),
+  registerDisruption: (p: Persona, body: RegisterDisruptionBody) =>
+    request<Disruption>(
+      "POST",
+      `/v1/corridors/${CORRIDOR_ID}/disruptions`,
+      p,
+      body,
+    ),
+  clearDisruption: (p: Persona, id: string, reason: string) =>
+    request<Disruption>(
+      "POST",
+      `/v1/corridors/${CORRIDOR_ID}/disruptions/${enc(id)}/clear`,
+      p,
+      { reason },
+    ),
+  recoverDisruption: (p: Persona, id: string) =>
+    request<DisruptionRecovery>(
+      "POST",
+      `/v1/corridors/${CORRIDOR_ID}/disruptions/${enc(id)}/recover`,
       p,
     ),
 

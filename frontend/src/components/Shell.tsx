@@ -24,6 +24,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
       { href: "/inspection", label: "Field Inspection", icon: "edit_location_alt" },
       { href: "/jobs", label: "Maintenance Jobs", icon: "format_list_bulleted" },
       { href: "/planning", label: "Planning", icon: "calendar_clock" },
+      { href: "/disruptions", label: "Disruption & Recovery", icon: "bolt", badge: "SIM" },
       { href: "/review", label: "Authority Review", icon: "verified_user" },
       { href: "/execution", label: "Execution", icon: "engineering" },
     ],
@@ -38,7 +39,7 @@ const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "SIMULATION",
     items: [
-      { href: "/simulation", label: "Disruption Sim", icon: "bolt", badge: "SIM" },
+      { href: "/simulation", label: "Synthetic Sandbox", icon: "science", badge: "SIM" },
     ],
   },
   {

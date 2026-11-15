@@ -184,13 +184,13 @@ export default function SimulationPage() {
         </svg>
         <div className="relative z-10 flex flex-col gap-2">
           <span className="font-label-caps text-label-caps text-primary tracking-widest">
-            DISRUPTION WHAT-IF // CORRIDOR A (SYNTHETIC FIXTURE)
+            SYNTHETIC SANDBOX // CORRIDOR A (STATELESS, NOT THE JOBS PIPELINE)
           </span>
           <h1 className="font-headline-lg text-headline-lg lg:text-display-xl text-primary font-light leading-tight tracking-tight">
-            Disruption &amp; Operational Recovery
+            Synthetic Recovery Sandbox
           </h1>
           <p className="font-body-md text-body-md text-on-surface-variant max-w-3xl">
-            Apply a hypothetical disruption to the baseline maintenance plan and let the CP-SAT solver rebuild it. The comparison shows what stays, what moves and what cannot be placed. It illustrates the recovery method on synthetic data; it does not represent live railway operations.
+            Apply a hypothetical disruption to the baseline maintenance plan and let the CP-SAT solver rebuild it. The comparison shows what stays, what moves and what cannot be placed. It illustrates the recovery method on a synthetic fixture and saves nothing. For disruptions against the real job queue, with approvals and an audit trail, use Disruption &amp; Recovery under Operate.
           </p>
         </div>
       </section>

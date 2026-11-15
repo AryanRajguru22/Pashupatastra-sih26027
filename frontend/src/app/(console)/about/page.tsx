@@ -23,13 +23,13 @@ const SIMULATED = pick(
     "Every maintenance observation in the seed and every evidence reference: controlled demo inputs (evidence references are placeholders; no file is stored)",
     "Asset condition, criticality and failure history: generated demo inputs. No public source exists",
     "The two modelled running lines and the scoring inputs (speed, density, route class): engineering assumptions",
-    "Disruption Simulation runs on a separate synthetic fixture (Corridor A), statelessly, and saves nothing",
+    "The Synthetic Sandbox runs on a separate fixture (Corridor A), statelessly, and saves nothing. Disruption & Recovery under Operate acts on the real job queue; its disruptions are declared (simulated) inputs, never observed railway events",
     "The spatial corridor visuals, orbital rings and glow are stylised. No train is drawn: there is no live telemetry or train tracking",
   ],
   [
     "The NDLS–AGC corridor: real station codes, but synthetic topology, chainage, timetable, asset condition and possession windows",
     "Every job in the seed, and every evidence reference (placeholders; no file is stored)",
-    "Disruption Simulation runs on a separate synthetic fixture (Corridor A), statelessly, and saves nothing",
+    "The Synthetic Sandbox runs on a separate fixture (Corridor A), statelessly, and saves nothing. Disruption & Recovery under Operate acts on the real job queue; its disruptions are declared (simulated) inputs, never observed railway events",
     "The spatial corridor visuals, orbital rings and glow are stylised. They are not live telemetry or train tracking",
   ],
 );
